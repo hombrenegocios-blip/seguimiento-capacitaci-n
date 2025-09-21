@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Seguimiento de Capacitación - Nuevos Ingresos (Zonas Mejorado)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Biblioteca para generar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c5aa0;
+            --secondary-color: #4CAF50;
+            --accent-color: #ff9800;
+            --danger-color: #f44336;
+            --light-color: #f5f5f5;
+            --dark-color: #333;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+        * { box-sizing: border-box; margin:0; padding:0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height:1.6; color:#333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height:100vh; padding:20px;
+        }
+        .container { max-width:1400px; margin:0 auto; background:white; border-radius:15px; box-shadow:0 10px30px rgba(0,0,0,0.1); overflow:hidden; }
+        header { background:var(--primary-color); color:white; padding:25px; text-align:center; position:relative; }
+        header h1 { font-size:28px; margin-bottom:10px; }
+        header p { font-size:16px; opacity:.9; }
+        .logo { position:absolute; top:20px; left:25px; font-size:24px; font-weight:bold; }
+        .tabs { display:flex; background:#e8eaf6; padding:0 20px; overflow-x:auto; }
+        .tab { padding:15px 25px; cursor:pointer; font-weight:500; transition:all .3s; border-bottom:3px solid transparent; white-space:nowrap; }
+        .tab:hover { background:rgba(255,255,255,.5); }
+        .tab.active { background:white; border-bottom:3px solid var(--primary-color); color:var(--primary-color); }
+        .tab-content { display:none; padding:25px; }
+        .tab-content.active { display:block; animation:fadeIn .5s ease; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .instructions { background:#f0f4f8; padding:20px; border-radius:10px; margin-bottom:25px; border-left:5px solid var(--primary-color); position:relative; }
+        .instructions h3 { color:var(--primary-color); margin-bottom:15px; display:flex; align-items:center; }
+        .instructions h3 i { margin-right:10px; }
+        .stats-container { display:flex; justify-content:space-between; flex-wrap:wrap; margin:25px 0; gap:15px; }
+        .stat-box { background:white; border-radius:10px; padding:20px; flex:1; min-width:200px; box-shadow:0 5px15px rgba(0,0,0,.05); text-align:center; border-top:4px solid var(--primary-color); transition:transform .3s ease; }
+        .stat-box:hover { transform:translateY(-5px); }
+        .stat-value { font-size:32px; font-weight:bold; color:var(--primary-color); margin:10px 0; }
+        .stat-title { font-size:14px; color:#666; text-transform:uppercase; letter-spacing:1px; }
+        .controls { display:flex; justify-content:flex-end; gap:10px; margin:20px 0; flex-wrap:wrap; align-items:center; }
+        .btn { padding:12px 20px; border:none; border-radius:5px; cursor:pointer; font-weight:500; transition:all .3s ease; display:flex; align-items:center; justify-content:center; }
+        .btn i { margin-right:8px; font-size:16px; }
+        .btn-sm { padding:8px 15px; font-size:14px; }
+        .btn-primary { background:var(--primary-color); color:white; }
+        .btn-primary:hover { background:#1e3d73; }
+        .btn-success { background:var(--secondary-color); color:white; }
+        .btn-success:hover { background:#3d8b40; }
+        .btn-danger { background:var(--danger-color); color:white; }
+        .btn-danger:hover { background:#d32f2f; }
+        .btn-warning { background:var(--accent-color); color:white; }
+        .btn-warning:hover { background:#e68900; }
+        .btn-info { background:var(--info-color); color:white; }
+        .btn-info:hover { background:#138496; }
+        table { width:100%; border-collapse:collapse; margin:20px 0; box-shadow:0 5px15px rgba(0,0,0,.05); border-radius:10px; overflow:hidden; }
+        th, td { padding:12px; text-align:center; border:1px solid #e0e0e0; }
+        th { background:var(--primary-color); color:white; font-weight:600; position:sticky; top:0; }
+        tr:nth-child(even) { background:#f9f9f9; }
+        tr:hover { background:#f1f7ff; }
+        .progress-cell { position:relative; }
+        .progress-bar { height:20px; background:#f0f0f0; border-radius:10px; overflow:hidden; position:relative; }
+        .progress-fill { height:100%; border-radius:10px; width:0%; transition:width .5s ease; }
+        .progress-text { position:absolute; top:0; left:0; width:100%; text-align:center; font-weight:bold; color:#333; line-height:20px; font-size:12px; }
+        input[type="checkbox"] { transform:scale(1.3); cursor:pointer; }
+        input[type="number"], input[type="text"], input[type="date"], input[type="password"], select { padding:8px; border:1px solid #ddd; border-radius:5px; width:100%; }
+        input[type="number"] { max-width: 80px; }
+        .expiring { background:#fff9e6; }
+        .urgent { background:#ffe6e6; }
+        .completed { background:#e6ffe6; }
+        .save-notification, .error-notification { position:fixed; bottom:20px; right:20px; color:white; padding:15px 25px; border-radius:8px; box-shadow:0 5px15px rgba(0,0,0,.2); display:flex; align-items:center; animation:slideIn .3s ease; z-index:1000; }
+        .save-notification { background:var(--secondary-color); }
+        .error-notification { background:var(--danger-color); }
+        @keyframes slideIn { from{ transform:translateX(100px); opacity:0 } to{ transform:translateX(0); opacity:1 } }
+        .save-notification i, .error-notification i { margin-right:10px; font-size:20px; }
+        .employee-name { font-weight:500; text-align:left; }
+        .branch { background:#e8f5e9; padding:5px 10px; border-radius:15px; font-size:12px; font-weight:500; }
+        .action-btn { padding:6px 12px; border:none; border-radius:4px; cursor:pointer; margin:0 3px; }
+        .delete-btn { background:var(--danger-color); color:white; }
+        .delete-btn:hover { background:#d32f2f; }
+        .form-group { margin-bottom:15px; }
+        .form-group label { display:block; margin-bottom:5px; font-weight:500; }
+        .user-form { background:#f9f9f9; padding:20px; border-radius:10px; margin-bottom:20px; }
+        .required-field::after { content:" *"; color:var(--danger-color); }
+        .info-badge { position:absolute; top:10px; right:10px; background:var(--primary-color); color:white; padding:5px 10px; border-radius:15px; font-size:12px; font-weight:500; }
+        .feedback-date { font-size:12px; color:#666; margin-top:5px; }
+        .feedback-status { display:inline-block; padding:3px 8px; border-radius:12px; font-size:12px; font-weight:500; }
+        .status-pending { background:#fff3cd; color:#856404; }
+        .status-completed { background:#d4edda; color:#155724; }
+        .status-not-approved { background:#f8d7da; color:#721c24; }
+        .firebase-status { 
+            position: fixed; 
+            top: 10px; 
+            right: 10px; 
+            padding: 8px 15px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .firebase-connected { background: #d4edda; color: #155724; }
+        .firebase-disconnected { background: #f8d7da; color: #721c24; }
+        .firebase-offline { background: #fff3cd; color: #856404; }
+        /* días */
+        .days-critical { background-color: #ffcccc; }
+        .days-warning { background-color: #fff2cc; }
+        .days-normal { background-color: #e6ffe6; }
+        .feedback-score { width: 60px; text-align: center; }
+        .password-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .password-modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 400px; border-radius: 8px; }
+        .password-modal-close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .password-modal-close:hover { color: black; }
+        .date-input-container { position: relative; }
+        .date-format-hint { font-size: 12px; color: #666; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+        .date-error { color: #d32f2f; font-size: 12px; margin-top: 5px; display: none; }
+        .pdf-preview-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); overflow: auto; }
+        .pdf-preview-content { background-color: #fefefe; margin: 20px auto; padding: 20px; width: 90%; max-width: 1000px; border-radius: 8px; position: relative; }
+        .pdf-preview-close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; position: absolute; right: 20px; top: 15px; }
+        .pdf-preview-close:hover { color: black; }
+        .pdf-preview-container { width: 100%; height: 80vh; border: 1px solid #ddd; background: white; }
+        .pdf-preview-actions { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+        
+        /* Nuevos estilos para ordenamiento */
+        .sortable-header { cursor: pointer; position: relative; }
+        .sortable-header:hover { background-color: rgba(255, 255, 255, 0.2); }
+        .sortable-header::after {
+            content: '';
+            display: inline-block;
+            margin-left: 5px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #fff;
+            opacity: 0.5;
+        }
+        .sortable-header.asc::after {
+            border-top: none;
+            border-bottom: 5px solid #fff;
+            opacity: 1;
+        }
+        .sortable-header.desc::after {
+            opacity: 1;
+        }
+
+        /* Nuevos estilos para evaluación */
+        .evaluation-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .evaluation-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+        .score-display {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .total-score {
+            color: var(--primary-color);
+        }
+        .average-score {
+            color: var(--secondary-color);
+        }
+        
+        /* Nuevos estilos para login */
+        .login-modal {
+            display: flex;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+        }
+        .login-content {
+            background-color: #fefefe;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 5px15px rgba(0,0,0,0.3);
+        }
+        .login-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+        .login-error {
+            color: var(--danger-color);
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logout-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .access-denied {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .access-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+            display: none;
+        }
+        @media (max-width:1200px) { .container { border-radius:10px; } .stats-container { flex-direction:column; } .stat-box { width:100%; } table { display:block; overflow-x:auto; } }
+        @media (max-width:768px) { .tabs { flex-direction:column; } .tab { width:100%; text-align:center; } .controls { flex-direction:column; } .btn { width:100%; } }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body>
+    <!-- Modal de Login -->
+    <div id="loginModal" class="login-modal">
+        <div class="login-content">
+            <h2 class="login-title">Iniciar Sesión</h2>
+            <div class="form-group">
+                <label for="login-email">Usuario (Email):</label>
+                <input type="text" id="login-email" placeholder="usuario@prestocash.com">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Contraseña:</label>
+                <input type="password" id="login-password" placeholder="Contraseña">
+            </div>
+            <button class="btn btn-primary" style="width:100%" onclick="login()">Iniciar Sesión</button>
+            <div id="login-error" class="login-error">
+                <i class="fas fa-exclamation-circle"></i> Usuario o contraseña incorrectos
+            </div>
+        </div>
+    </div>
+
+    <div id="firebaseStatus" class="firebase-status firebase-disconnected">
+        <i class="fas fa-exclamation-triangle"></i> Sin conexión a Firebase
+    </div>
+
+    <div class="container" id="main-container" style="display:none">
+        <header>
+            <div class="logo">CAP</div>
+            <h1>Seguimiento de Capacitación - Nuevos Ingresos (Zonas)</h1>
+            <p>Sistema de monitoreo para el programa de capacitación en Servicio al Cliente</p>
+            <div class="user-info" id="userInfo">
+                <i class="fas fa-user"></i>
+                <span id="user-display">Usuario</span>
+                <button class="logout-btn" onclick="logout()" title="Cerrar sesión">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="tabs" id="tabsBar">
+            <div class="tab active" data-target="dashboard"><i class="fas fa-chart-line"></i> Dashboard Principal</div>
+            <div class="tab" data-target="instructions"><i class="fas fa-info-circle"></i> Instrucciones</div>
+            <div class="tab" data-target="evaluations"><i class="fas fa-clipboard-check"></i> Retroalimentaciones</div>
+            <div class="tab" data-target="user-management"><i class="fas fa-users-cog"></i> Gestión de Usuarios</div>
+        </div>
+
+        <div id="dashboard" class="tab-content active">
+            <div class="instructions">
+                <h3><i class="fas fa-chart-line"></i> Panel de Seguimiento de Capacitación</h3>
+                <p>Esta hoja muestra el progreso de cada empleado en su capacitación. Utilice los checkboxes para marcar los videos completados. <strong>Los datos se guardan automáticamente en la nube con Firebase.</strong></p>
+                <div class="info-badge">Total: <span id="employees-count">0</span> empleados</div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-box">
+                    <div class="stat-title">Total Empleados</div>
+                    <div class="stat-value" id="total-employees">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Capacitación Completada</div>
+                    <div class="stat-value" id="completed-training">0%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Promedio de Progreso</div>
+                    <div class="stat-value" id="average-progress">0%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-title">Próximos a Vencer</div>
+                    <div class="stat-value" id="expiring-soon">0</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <label for="zone-filter-global" style="margin-right:8px; font-weight:600;">Filtrar Zona:</label>
+                <select id="zone-filter-global" onchange="updateUIAfterSave()">
+                    <option value="ALL">Todas</option>
+                    <option value="ZONA 1">ZONA 1</option>
+                    <option value="ZONA 2">ZONA 2</option>
+                    <option value="ZONA 3">ZONA 3</option>
+                    <option value="ZONA 4">ZONA 4</option>
+                </select>
+
+                <button class="btn btn-primary" onclick="exportToCSV()"><i class="fas fa-file-export"></i> Generar Reporte CSV</button>
+                <button class="btn btn-info" onclick="generatePDF()"><i class="fas fa-file-pdf"></i> Generar PDF</button>
+                <button class="btn btn-success" onclick="window.print()"><i class="fas fa-print"></i> Imprimir Reporte</button>
+                <button class="btn btn-warning" onclick="forceSaveNow()"><i class="fas fa-sync"></i> Forzar Sincronización</button>
+            </div>
+
+            <table id="main-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th class="sortable-header" onclick="sortTable('name')">Nombre de Empleado</th>
+                        <th>Sucursal</th>
+                        <th>Zona</th>
+                        <th class="sortable-header" onclick="sortTable('startDate')">Fecha de Inicio</th>
+                        <th>Fecha de Término</th>
+                        <th>Días Restantes</th>
+                        <th>Curso SAC</th>
+                        <th>Video 1</th>
+                        <th>Video 2</th>
+                        <th>Video 3</th>
+                        <th>Video 4</th>
+                        <th>Progreso Total</th>
+                    </tr>
+                </thead>
+                <tbody id="employees-table-body"></tbody>
+            </table>
+        </div>
+
+        <div id="instructions" class="tab-content">
+            <div class="instructions">
+                <h3><i class="fas fa-info-circle"></i> Instrucciones de Uso</h3>
+                <p>Siga estas instrucciones para utilizar correctamente la plantilla de seguimiento de capacitación:</p>
+                <h4><i class="fas fa-video"></i> 1. Registro de Videos</h4>
+                <p>En las columnas de "Video 1" a "Video 4", marque con un check (✓) cuando el empleado haya completado cada video.</p>
+                <h4><i class="fas fa-graduation-cap"></i> 2. Curso SAC</h4>
+                <p>Marque la casilla en la columna "Curso SAC" cuando el empleado haya completado el curso de Servicio al Cliente.</p>
+                <h4><i class="fas fa-database"></i> 3. Sistema de Guardado</h4>
+                <p>Los datos se guardan y sincronizan automáticamente en la nube con Firebase. No es necesario guardar manualmente en un archivo local.</p>
+                <h4><i class="fas fa-file-export"></i> 4. Exportación de Datos</h4>
+                <p>Puede exportar todos los datos a un archío CSV usando el botón "Generar Reporte CSV".</p>
+                <h4><i class="fas fa-palette"></i> 5. Códigos de Color</h4>
+                <ul>
+                    <li><span style="background-color: #e6ffe6; padding: 2px 5px;">Fondo verde</span>: Capacitación completada</li>
+                    <li><span style="background-color: #fff9e6; padding: 2px 5px;">Fondo amarillo</span>: Menos de 10 días para retroalimentación</li>
+                    <li><span style="background-color: #ffe6e6; padding: 2px 5px;">Fondo rojo</span>: Retroalimentación vencida</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="evaluations" class="tab-content">
+            <div class="instructions">
+                <h3><i class="fas fa-clipboard-check"></i> Retroalimentaciones</h3>
+                <p>Esta sección permite registrar y hacer seguimiento a las retroalimentaciones de los empleados durante su periodo de prueba de 90 días.</p>
+                <div class="info-badge">Total: <span id="evaluations-count">0</span> empleados</div>
+            </div>
+
+            <div class="evaluation-controls">
+                <div>
+                    <label for="zone-filter-evaluations" style="margin-right:8px; font-weight:600;">Filtrar Zona:</label>
+                    <select id="zone-filter-evaluations" onchange="updateEvaluationsTable()">
+                        <option value="ALL">Todas</option>
+                        <option value="ZONA 1">ZONA 1</option>
+                        <option value="ZONA 2">ZONA 2</option>
+                        <option value="ZONA 3">ZONA 3</option>
+                        <option value="ZONA 4">ZONA 4</option>
+                    </select>
+                </div>
+                <div class="evaluation-summary">
+                    <div>Total empleados: <span id="filtered-evaluations-count">0</span></div>
+                    <div>Promedio general: <span id="general-average" class="score-display average-score">0</span></div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th class="sortable-header" onclick="sortEvaluationsTable('name')">Nombre</th>
+                        <th>Sucursal</th>
+                        <th>Zona</th>
+                        <th class="sortable-header" onclick="sortEvaluationsTable('startDate')">Fecha Inicio</th>
+                        <th>Fecha Término</th>
+                        <th>Días Restantes</th>
+                        <th>Retro 1 (30 días)</th>
+                        <th>Calificación 1</th>
+                        <th>Retro 2 (70 días)</th>
+                        <th>Calificación 2</th>
+                        <th>Suma Total</th>
+                        <th>Promedio</th>
+                        <th>Estado Final</th>
+                    </tr>
+                </thead>
+                <tbody id="evaluations-table-body"></tbody>
+            </table>
+        </div>
+
+        <div id="user-management" class="tab-content">
+            <div class="access-warning" id="accessWarning">
+                <i class="fas fa-exclamation-triangle"></i> Solo puede modificar empleados de su zona asignada.
+            </div>
+            <div class="instructions">
+                <h3><i class="fas fa-users-cog"></i> Gestión de Usuarios</h3>
+                <p>En esta sección puede agregar nuevos empleados al sistema de seguimiento o eliminar los existentes.</p>
+                <div class="info-badge">Total: <span id="management-count">0</span> empleados</div>
+            </div>
+
+            <div class="user-form" id="userForm">
+                <h4>Agregar Nuevo Empleado</h4>
+                <div class="form-group">
+                    <label for="new-name" class="required-field">Nombre completo:</label>
+                    <input type="text" id="new-name" placeholder="Ej: Juan Pérez López">
+                </div>
+                <div class="form-group">
+                    <label for="new-branch" class="required-field">Sucursal:</label>
+                    <input type="text" id="new-branch" placeholder="Ej: VALLES-01">
+                </div>
+                <div class="form-group">
+                    <label for="new-zone" class="required-field">Zona:</label>
+                    <select id="new-zone">
+                        <option value="ZONA 1">ZONA 1</option>
+                        <option value="ZONA 2">ZONA 2</option>
+                        <option value="ZONA 3">ZONA 3</option>
+                        <option value="ZONA 4">ZONA 4</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="new-start-date" class="required-field">Fecha de inicio:</label>
+                    <div class="date-input-container">
+                        <input type="date" id="new-start-date" onchange="updateEndDate()">
+                        <div class="date-format-hint">
+                            <i class="fas fa-info-circle"></i> Formato: AAAA-MM-DD
+                        </div>
+                        <div id="date-error" class="date-error">
+                            <i class="fas fa-exclamation-circle"></i> Por favor ingrese una fecha válida
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="new-end-date">Fecha de término (se calcula automáticamente):</label>
+                    <input type="date" id="new-end-date" readonly>
+                </div>
+                <button class="btn btn-success" onclick="addEmployee()"><i class="fas fa-user-plus"></i> Agregar Empleado</button>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-danger" onclick="showPasswordModal()"><i class="fas fa-redo"></i> Restablecer Datos</button>
+            </div>
+
+            <h4>Lista de Empleados <small>(Ordenados por fecha de inicio)</small></h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th class="sortable-header" onclick="sortManagementTable('name')">Nombre</th>
+                        <th>Sucursal</th>
+                        <th>Zona</th>
+                        <th class="sortable-header" onclick="sortManagementTable('startDate')">Fecha de Inicio</th>
+                        <th>Fecha de Término</th>
+                        <th>Días Restantes</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="user-management-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal para contraseña -->
+    <div id="passwordModal" class="password-modal">
+        <div class="password-modal-content">
+            <span class="password-modal-close" onclick="closePasswordModal()">&times;</span>
+            <h3>Restablecer Datos</h3>
+            <p>Esta acción eliminará todos los datos y restablecerá el sistema a valores predeterminados.</p>
+            <div class="form-group">
+                <label for="reset-password">Contraseña:</label>
+                <input type="password" id="reset-password" placeholder="Ingrese la contraseña">
+            </div>
+            <button class="btn btn-danger" onclick="confirmReset()">Confirmar Restablecimiento</button>
+            <p id="password-error" style="color: red; margin-top: 10px; display: none;">Contraseña incorrecta. Intente nuevamente.</p>
+        </div>
+    </div>
+
+    <!-- Modal para vista previa del PDF -->
+    <div id="pdfPreviewModal" class="pdf-preview-modal">
+        <div class="pdf-preview-content">
+            <span class="pdf-preview-close" onclick="closePdfPreview()">&times;</span>
+            <h3>Vista Previa del Reporte PDF</h3>
+            <div class="pdf-preview-container" id="pdf-preview-container">
+                <iframe id="pdf-preview-iframe" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+            <div class="pdf-preview-actions">
+                <button class="btn btn-primary" onclick="downloadPDF()"><i class="fas fa-download"></i> Descargar PDF</button>
+                <button class="btn btn-success" onclick="printPDF()"><i class="fas fa-print"></i> Imprimir</button>
+                <button class="btn" onclick="closePdfPreview()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="save-notification" id="saveNotification" style="display:none;"><i class="fas fa-check-circle"></i> <span id="notification-text"></span></div>
+    <div class="error-notification" id="errorNotification" style="display:none;"><i class="fas fa-exclamation-circle"></i> <span id="error-text"></span></div>
+
+    <script>
+        // Inicializar jsPDF
+        window.jsPDF = window.jspdf.jsPDF;
+
+        /* ===========================
+           Datos y configuración
+           =========================== */
+        let employees = [];
+        let firebaseConnected = false;
+        let lastSaveTime = null;
+        let usingLocalStorage = false;
+        let currentSort = { field: 'startDate', direction: 'asc' };
+        let currentUser = null;
+
+        // Configuración de usuarios y permisos
+        const users = {
+            "DAVID.UNIVERSIDAD@PRESTOCASH.COM": { password: "EDUARDO", zone: "ZONA 1", name: "David" },
+            "EDUARDO.UNIVERSIDAD@PRESTOCASH.COM": { password: "EDUARDO", zone: "ZONA 2", name: "Eduardo" },
+            "LUNA.UNIVERSIDAD@PRESTOCASH.COM": { password: "LUNA", zone: "ZONA 3", name: "Luna" },
+            "ALEX.UNIVERSIDAD@PRESTOCASH.COM": { password: "ALEX", zone: "ZONA 4", name: "Alex" },
+            "URSIOL.UNIVERSIDAD@PRESTOCASH.COM": { password: "URISOL", zone: "ALL", name: "Ursiol" },
+            "EUGENIA.UNIVERSIDAD@PRESTOCASH.COM": { password: "EUGENIA", zone: "ALL", name: "Eugenia" },
+            "EDUARDO.MASTER.UNIVERSIDAD@PRESTOCASH.COM": { password: "EDUARDO", zone: "ALL", name: "Eduardo Master" }
+        };
+
+        // Configuración CORRECTA de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBDHj-dts63M2Vgvwag4YzTTYtk1I3-iN4",
+            authDomain: "seguimiento-capacitacion.firebaseapp.com",
+            databaseURL: "https://seguimiento-capacitacion-default-rtdb.firebaseio.com",
+            projectId: "seguimiento-capacitacion",
+            storageBucket: "seguimiento-capacitacion.firebasestorage.app",
+            messagingSenderId: "789669982348",
+            appId: "1:789669982348:web:0d6d20b48f933364964ba9"
+        };
+
+        // Variables globales de Firebase
+        let app;
+        let database;
+        let employeesRef;
+
+        /* ===========================
+           INICIALIZACIÓN DE FIREBASE
+           =========================== */
+        function initializeFirebase() {
+            try {
+                console.log("Inicializando Firebase...");
+                
+                // Verificar si Firebase ya está inicializado
+                if (firebase.apps.length === 0) {
+                    app = firebase.initializeApp(firebaseConfig);
+                } else {
+                    app = firebase.app();
+                }
+                
+                database = firebase.database();
+                employeesRef = database.ref('employees');
+                
+                // Verificar estado de conexión
+                const connectedRef = database.ref(".info/connected");
+                connectedRef.on("value", function(snap) {
+                    if (snap.val() === true) {
+                        console.log("Conectado a Firebase");
+                        updateFirebaseStatus(true);
+                        firebaseConnected = true;
+                        usingLocalStorage = false;
+                        
+                        // Configurar listeners de Firebase
+                        setupFirebaseListeners();
+                    } else {
+                        console.log("Desconectado de Firebase");
+                        updateFirebaseStatus(false);
+                        firebaseConnected = false;
+                        loadFromLocalStorage(); // Cargar datos locales como respaldo
+                    }
+                });
+                
+                return true;
+            } catch (error) {
+                console.error("Error inicializando Firebase:", error);
+                updateFirebaseStatus(false);
+                firebaseConnected = false;
+                loadFromLocalStorage(); // Cargar datos locales como respaldo
+                return false;
+            }
+        }
+
+        function updateFirebaseStatus(connected) {
+            const statusElement = document.getElementById('firebaseStatus');
+            if (!statusElement) return;
+            
+            if (connected) {
+                statusElement.className = 'firebase-status firebase-connected';
+                statusElement.innerHTML = '<i class="fas fa-check-circle"></i> Conectado a Firebase';
+            } else {
+                statusElement.className = 'firebase-status firebase-disconnected';
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Sin conexión a Firebase - Usando almacenamiento local';
+            }
+        }
+
+        function setupFirebaseListeners() {
+            console.log("Configurando listener de Firebase Realtime Database para 'employees'.");
+            
+            employeesRef.on('value', (snapshot) => {
+                console.log("Datos recibidos de Firebase.");
+                const data = snapshot.val();
+                
+                if (data) {
+                    console.log("Datos existentes en Firebase:", data);
+                    // Convertir objeto a array
+                    employees = Object.keys(data).map(key => {
+                        const emp = data[key];
+                        return {
+                            id: emp.id || key,
+                            name: emp.name || '',
+                            branch: emp.branch || '',
+                            zone: emp.zone || 'ZONA 1',
+                            startDate: emp.startDate || '',
+                            endDate: emp.endDate || '',
+                            sacCourse: emp.sacCourse || false,
+                            video1: emp.video1 || false,
+                            video2: emp.video2 || false,
+                            video3: emp.video3 || false,
+                            video4: emp.video4 || false,
+                            feedback1: emp.feedback1 || 0,
+                            feedback2: emp.feedback2 || 0,
+                            feedback1Completed: emp.feedback1Completed || false,
+                            feedback2Completed: emp.feedback2Completed || false
+                        };
+                    });
+                    
+                    // Ordenar por fecha de inicio
+                    employees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                    
+                    // Guardar en localStorage como respaldo
+                    saveToLocalStorage();
+                    
+                    // Actualizar UI
+                    updateUIAfterSave();
+                    
+                    showNotification('Datos cargados desde Firebase');
+                } else {
+                    console.log("No hay datos en Firebase. Cargando desde almacenamiento local.");
+                    loadFromLocalStorage();
+                }
+            }, (error) => {
+                console.error('Error al leer datos de Firebase:', error);
+                showNotification('No se pudieron cargar los datos de Firebase: ' + error.message, true);
+                loadFromLocalStorage();
+            });
+        }
+
+        /* ===========================
+           ALMACENAMIENTO LOCAL (FALLBACK)
+           =========================== */
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('employeesData', JSON.stringify(employees));
+                return true;
+            } catch (e) {
+                console.error('Error guardando en almacenamiento local:', e);
+                return false;
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('employeesData');
+                if (savedData) {
+                    employees = JSON.parse(savedData);
+                    usingLocalStorage = true;
+                    updateUIAfterSave();
+                    showNotification('Datos cargados desde almacenamiento local', false);
+                    return true;
+                } else {
+                    // Datos de ejemplo si no hay nada guardado
+                    const today = new Date();
+                    const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + 90);
+                    
+                    employees = [{
+                        id: 1,
+                        name: "EJEMPLO - AGREGUE NUEVOS EMPLEADOS",
+                        branch: "SUCURSAL-01",
+                        zone: 'ZONA 1',
+                        startDate: startDate.toISOString().split('T')[0],
+                        endDate: endDate.toISOString().split('T')[0],
+                        sacCourse: false,
+                        video1: false,
+                        video2: false,
+                        video3: false,
+                        video4: false,
+                        feedback1: 0,
+                        feedback2: 0,
+                        feedback1Completed: false,
+                        feedback2Completed: false
+                    }];
+                    
+                    updateUIAfterSave();
+                    saveData();
+                    showNotification('Base de datos vacía, cargando datos de ejemplo');
+                    return false;
+                }
+            } catch (e) {
+                console.error('Error cargando desde almacenamiento local:', e);
+                employees = [];
+                updateUIAfterSave();
+                showNotification('Error cargando datos locales', true);
+                return false;
+            }
+        }
+
+        /* ===========================
+           FUNCIONES DE AUTENTICACIÓN
+           =========================== */
+        function login() {
+            const email = document.getElementById('login-email').value.trim().toUpperCase();
+            const password = document.getElementById('login-password').value;
+            const errorElement = document.getElementById('login-error');
+            
+            if (users[email] && users[email].password === password) {
+                currentUser = {
+                    email: email,
+                    name: users[email].name,
+                    zone: users[email].zone
+                };
+                
+                // Guardar en localStorage para persistir la sesión
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                // Ocultar modal y mostrar aplicación
+                document.getElementById('loginModal').style.display = 'none';
+                document.getElementById('main-container').style.display = 'block';
+                
+                // Actualizar UI con información del usuario
+                document.getElementById('user-display').textContent = `${currentUser.name} (${currentUser.zone === 'ALL' ? 'Todas las zonas' : currentUser.zone})`;
+                
+                // Cargar datos
+                loadData();
+                
+                // Ocultar error si existe
+                errorElement.style.display = 'none';
+            } else {
+                errorElement.style.display = 'block';
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            document.getElementById('main-container').style.display = 'none';
+            document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        function checkAccess(employeeZone) {
+            if (!currentUser) return false;
+            if (currentUser.zone === 'ALL') return true;
+            return currentUser.zone === employeeZone;
+        }
+
+        function checkExistingSession() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    
+                    // Verificar que el usuario aún existe en el sistema
+                    if (users[currentUser.email] && users[currentUser.email].password) {
+                        document.getElementById('loginModal').style.display = 'none';
+                        document.getElementById('main-container').style.display = 'block';
+                        document.getElementById('user-display').textContent = `${currentUser.name} (${currentUser.zone === 'ALL' ? 'Todas las zonas' : currentUser.zone})`;
+                        loadData();
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Error parsing saved user:', e);
+                }
+            }
+            // Si no hay sesión válida, mostrar login
+            document.getElementById('loginModal').style.display = 'flex';
+        }
+
+        /* ===========================
+           FUNCIONES PRINCIPALES
+           =========================== */
+        function loadData() {
+            // Verificar permisos de zona para la gestión de usuarios
+            const userManagementTab = document.getElementById('user-management');
+            if (currentUser.zone === 'ALL') {
+                userManagementTab.classList.remove('access-denied');
+                document.getElementById('accessWarning').style.display = 'none';
+            } else {
+                userManagementTab.classList.remove('access-denied');
+                document.getElementById('accessWarning').style.display = 'block';
+            }
+            // El formulario siempre debe mostrarse, pero con restricciones por zona
+            document.getElementById('userForm').style.display = 'block';
+
+            // Además, establecer la zona predeterminada en el formulario según el usuario
+            if (currentUser.zone !== 'ALL') {
+                document.getElementById('new-zone').value = currentUser.zone;
+                document.getElementById('new-zone').disabled = true;
+            } else {
+                document.getElementById('new-zone').disabled = false;
+            }
+            
+            // Inicializar Firebase y cargar datos
+            initializeFirebase();
+        }
+
+        function updateUIAfterSave() {
+            updateEmployeesTable();
+            updateEvaluationsTable();
+            updateUserManagementTable();
+            updateStats();
+        }
+
+        function updateEmployeesTable() {
+            const tableBody = document.getElementById('employees-table-body');
+            if (!tableBody) return;
+            
+            const zoneFilter = document.getElementById('zone-filter-global').value;
+            let filteredEmployees = employees;
+            
+            if (zoneFilter !== 'ALL') {
+                filteredEmployees = employees.filter(emp => emp.zone === zoneFilter);
+            }
+            
+            // Ordenar por fecha de inicio (más antigua primero)
+            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            tableBody.innerHTML = '';
+            
+            filteredEmployees.forEach(emp => {
+                const startDate = new Date(emp.startDate);
+                const endDate = new Date(emp.endDate);
+                const today = new Date();
+                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                
+                const progress = calculateProgress(emp);
+                const progressClass = getProgressClass(progress, daysRemaining);
+                
+                const row = document.createElement('tr');
+                row.className = progressClass;
+                
+                row.innerHTML = `
+                    <td>${emp.id}</td>
+                    <td class="employee-name">${emp.name}</td>
+                    <td><span class="branch">${emp.branch}</span></td>
+                    <td>${emp.zone}</td>
+                    <td>${formatDate(emp.startDate)}</td>
+                    <td>${formatDate(emp.endDate)}</td>
+                    <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
+                    <td><input type="checkbox" ${emp.sacCourse ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'sacCourse', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video1 ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'video1', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video2 ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'video2', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video3 ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'video3', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video4 ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'video4', this.checked)"></td>
+                    <td class="progress-cell">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%; background-color: ${getProgressColor(progress)}"></div>
+                            <div class="progress-text">${progress}%</div>
+                        </div>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            document.getElementById('employees-count').textContent = filteredEmployees.length;
+        }
+
+        function updateEmployeeField(id, field, value) {
+            const employee = employees.find(emp => emp.id === id);
+            if (employee) {
+                // Verificar permisos antes de actualizar
+                if (!checkAccess(employee.zone)) {
+                    showNotification("No tiene permisos para modificar empleados de esta zona", true);
+                    // Restaurar el valor original
+                    setTimeout(() => {
+                        updateUIAfterSave();
+                    }, 100);
+                    return;
+                }
+                
+                employee[field] = value;
+                saveData();
+            }
+        }
+
+        function updateEvaluationsTable() {
+            const tableBody = document.getElementById('evaluations-table-body');
+            if (!tableBody) return;
+            
+            const zoneFilter = document.getElementById('zone-filter-evaluations').value;
+            let filteredEmployees = employees;
+            
+            if (zoneFilter !== 'ALL') {
+                filteredEmployees = employees.filter(emp => emp.zone === zoneFilter);
+            }
+            
+            // Ordenar por fecha de inicio (más antigua primero)
+            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            tableBody.innerHTML = '';
+            
+            let totalSum = 0;
+            let totalCount = 0;
+            
+            filteredEmployees.forEach(emp => {
+                const startDate = new Date(emp.startDate);
+                const endDate = new Date(emp.endDate);
+                const today = new Date();
+                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                
+                const totalScore = emp.feedback1 + emp.feedback2;
+                const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
+                
+                // Calcular estadísticas generales
+                if (emp.feedback1Completed && emp.feedback2Completed) {
+                    totalSum += totalScore;
+                    totalCount += 2;
+                }
+                
+                const status = getEvaluationStatus(totalScore, emp.feedback1, emp.feedback2);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${emp.id}</td>
+                    <td class="employee-name">${emp.name}</td>
+                    <td><span class="branch">${emp.branch}</span></td>
+                    <td>${emp.zone}</td>
+                    <td>${formatDate(emp.startDate)}</td>
+                    <td>${formatDate(emp.endDate)}</td>
+                    <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
+                    <td>
+                        <input type="checkbox" ${emp.feedback1Completed ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'feedback1Completed', this.checked)">
+                        <div class="feedback-date">${getFeedbackDate(emp.startDate, 30)}</div>
+                    </td>
+                    <td>
+                        <input type="number" min="0" max="100" step="1" value="${emp.feedback1}" class="feedback-score" onchange="updateEmployeeField(${emp.id}, 'feedback1', parseFloat(this.value))">
+                    </td>
+                    <td>
+                        <input type="checkbox" ${emp.feedback2Completed ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'feedback2Completed', this.checked)">
+                        <div class="feedback-date">${getFeedbackDate(emp.startDate, 70)}</div>
+                    </td>
+                    <td>
+                        <input type="number" min="0" max="100" step="1" value="${emp.feedback2}" class="feedback-score" onchange="updateEmployeeField(${emp.id}, 'feedback2', parseFloat(this.value))">
+                    </td>
+                    <td class="total-score">${totalScore}</td>
+                    <td class="average-score">${averageScore}</td>
+                    <td><span class="feedback-status ${status.class}">${status.text}</span></td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Actualizar estadísticas generales
+            document.getElementById('filtered-evaluations-count').textContent = filteredEmployees.length;
+            const generalAverage = totalCount > 0 ? (totalSum / totalCount).toFixed(1) : 0;
+            document.getElementById('general-average').textContent = generalAverage;
+            
+            document.getElementById('evaluations-count').textContent = filteredEmployees.length;
+        }
+
+        function updateUserManagementTable() {
+            const tableBody = document.getElementById('user-management-table-body');
+            if (!tableBody) return;
+            
+            tableBody.innerHTML = '';
+            
+            // Filtrar empleados por zona si el usuario no tiene acceso completo
+            let filteredEmployees = employees;
+            if (currentUser.zone !== 'ALL') {
+                filteredEmployees = employees.filter(emp => emp.zone === currentUser.zone);
+            }
+            
+            // Ordenar por fecha de inicio (más antigua primero)
+            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            filteredEmployees.forEach(emp => {
+                const startDate = new Date(emp.startDate);
+                const endDate = new Date(emp.endDate);
+                const today = new Date();
+                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${emp.id}</td>
+                    <td class="employee-name">${emp.name}</td>
+                    <td><span class="branch">${emp.branch}</span></td>
+                    <td>${emp.zone}</td>
+                    <td>${formatDate(emp.startDate)}</td>
+                    <td>${formatDate(emp.endDate)}</td>
+                    <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
+                    <td>
+                        <button class="action-btn delete-btn" onclick="deleteEmployee(${emp.id})" ${!checkAccess(emp.zone) ? 'disabled' : ''}><i class="fas fa-trash"></i> Eliminar</button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            document.getElementById('management-count').textContent = filteredEmployees.length;
+        }
+
+        function updateStats() {
+            const totalEmployees = employees.length;
+            document.getElementById('total-employees').textContent = totalEmployees;
+            
+            if (totalEmployees === 0) {
+                document.getElementById('completed-training').textContent = '0%';
+                document.getElementById('average-progress').textContent = '0%';
+                document.getElementById('expiring-soon').textContent = '0';
+                return;
+            }
+            
+            // Calcular porcentaje de capacitación completada
+            const completedCount = employees.filter(emp => {
+                return emp.sacCourse && emp.video1 && emp.video2 && emp.video3 && emp.video4;
+            }).length;
+            
+            const completedPercentage = Math.round((completedCount / totalEmployees) * 100);
+            document.getElementById('completed-training').textContent = `${completedPercentage}%`;
+            
+            // Calcular progreso promedio
+            const totalProgress = employees.reduce((sum, emp) => sum + calculateProgress(emp), 0);
+            const averageProgress = Math.round(totalProgress / totalEmployees);
+            document.getElementById('average-progress').textContent = `${averageProgress}%`;
+            
+            // Calcular empleados próximos a vencer (menos de 15 días)
+            const today = new Date();
+            const expiringSoonCount = employees.filter(emp => {
+                const endDate = new Date(emp.endDate);
+                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                return daysRemaining < 15 && daysRemaining > 0;
+            }).length;
+            
+            document.getElementById('expiring-soon').textContent = expiringSoonCount;
+        }
+
+        function calculateProgress(employee) {
+            let progress = 0;
+            if (employee.sacCourse) progress += 20;
+            if (employee.video1) progress += 20;
+            if (employee.video2) progress += 20;
+            if (employee.video3) progress += 20;
+            if (employee.video4) progress += 20;
+            return progress;
+        }
+
+        function getProgressClass(progress, daysRemaining) {
+            if (progress === 100) return 'completed';
+            if (daysRemaining < 0) return 'urgent';
+            if (daysRemaining < 10) return 'expiring';
+            return '';
+        }
+
+        function getDaysRemainingClass(daysRemaining) {
+            if (daysRemaining < 0) return 'days-critical';
+            if (daysRemaining < 15) return 'days-warning';
+            return 'days-normal';
+        }
+
+        function getProgressColor(progress) {
+            if (progress === 100) return '#4CAF50';
+            if (progress >= 80) return '#8BC34A';
+            if (progress >= 60) return '#CDDC39';
+            if (progress >= 40) return '#FFC107';
+            if (progress >= 20) return '#FF9800';
+            return '#F44336';
+        }
+
+        function getEvaluationStatus(totalScore, score1, score2) {
+            // Mínimo 50 en cada campo y suma de 160 para aprobar
+            if (score1 >= 50 && score2 >= 50 && totalScore >= 160) {
+                return {
+                    class: 'status-completed',
+                    text: 'Aprobado'
+                };
+            } else if (score1 < 50 || score2 < 50) {
+                return {
+                    class: 'status-not-approved',
+                    text: 'No Aprobado (Falta mínimo en campo)'
+                };
+            } else {
+                return {
+                    class: 'status-not-approved',
+                    text: 'No Aprobado (Suma insuficiente)'
+                };
+            }
+        }
+
+        function getFeedbackDate(startDate, daysAfter) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + daysAfter);
+            return formatDate(date.toISOString().split('T')[0]);
+        }
+
+        /* ===========================
+           GESTIÓN DE EMPLEADOS
+           =========================== */
+        function addEmployee() {
+            const name = document.getElementById('new-name').value.trim();
+            const branch = document.getElementById('new-branch').value.trim();
+            const zone = document.getElementById('new-zone').value;
+            const startDate = document.getElementById('new-start-date').value;
+            
+            if (!name || !branch || !startDate) {
+                showNotification('Por favor complete todos los campos obligatorios', true);
+                return;
+            }
+            
+            // Validar formato de fecha
+            if (!isValidDate(startDate)) {
+                document.getElementById('date-error').style.display = 'block';
+                return;
+            } else {
+                document.getElementById('date-error').style.display = 'none';
+            }
+            
+            // Verificar permisos para agregar empleados en esta zona
+            if (currentUser.zone !== 'ALL' && currentUser.zone !== zone) {
+                showNotification('Solo puede agregar empleados a su zona asignada', true);
+                return;
+            }
+            
+            // Calcular fecha de término (90 días después)
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + 90);
+            
+            // Obtener el siguiente ID
+            const nextId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
+            
+            const newEmployee = {
+                id: nextId,
+                name: name.toUpperCase(),
+                branch: branch.toUpperCase(),
+                zone: zone,
+                startDate: startDate,
+                endDate: endDate.toISOString().split('T')[0],
+                sacCourse: false,
+                video1: false,
+                video2: false,
+                video3: false,
+                video4: false,
+                feedback1: 0,
+                feedback2: 0,
+                feedback1Completed: false,
+                feedback2Completed: false
+            };
+            
+            employees.push(newEmployee);
+            saveData();
+            
+            // Limpiar formulario
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-branch').value = '';
+            document.getElementById('new-start-date').value = '';
+            document.getElementById('new-end-date').value = '';
+            
+            showNotification('Empleado agregado correctamente');
+        }
+
+        function deleteEmployee(id) {
+            const employee = employees.find(emp => emp.id === id);
+            
+            if (!employee) return;
+            
+            // Verificar permisos
+            if (!checkAccess(employee.zone)) {
+                showNotification('No tiene permisos para eliminar empleados de esta zona', true);
+                return;
+            }
+            
+            if (!confirm('¿Está seguro de que desea eliminar este empleado? Esta acción no se puede deshacer.')) {
+                return;
+            }
+            
+            employees = employees.filter(emp => emp.id !== id);
+            saveData();
+            showNotification('Empleado eliminado correctamente');
+        }
+
+        function updateEndDate() {
+            const startDateInput = document.getElementById('new-start-date');
+            const endDateInput = document.getElementById('new-end-date');
+            
+            if (startDateInput.value) {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 90);
+                endDateInput.value = endDate.toISOString().split('T')[0];
+            }
+        }
+
+        function isValidDate(dateString) {
+            const regEx = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateString.match(regEx)) return false;
+            const d = new Date(dateString);
+            const dNum = d.getTime();
+            if (!dNum && dNum !== 0) return false;
+            return d.toISOString().slice(0,10) === dateString;
+        }
+
+        /* ===========================
+           ORDENAMIENTO DE TABLAS
+           =========================== */
+        function sortTable(field) {
+            // Cambiar dirección si es el mismo campo
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            
+            // Actualizar indicadores visuales en los encabezados
+            document.querySelectorAll('.sortable-header').forEach(header => {
+                header.classList.remove('asc', 'desc');
+            });
+            
+            const currentHeader = document.querySelector(`.sortable-header[onclick="sortTable('${field}')"]`);
+            if (currentHeader) {
+                currentHeader.classList.add(currentSort.direction);
+            }
+            
+            // Aplicar ordenamiento
+            employees.sort((a, b) => {
+                let valueA, valueB;
+                
+                switch (field) {
+                    case 'name':
+                        valueA = a.name.toLowerCase();
+                        valueB = b.name.toLowerCase();
+                        break;
+                    case 'startDate':
+                        valueA = new Date(a.startDate);
+                        valueB = new Date(b.startDate);
+                        break;
+                    default:
+                        valueA = a[field];
+                        valueB = b[field];
+                }
+                
+                if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
+                if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            updateUIAfterSave();
+        }
+
+        function sortEvaluationsTable(field) {
+            // Similar a sortTable pero para la tabla de evaluaciones
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            
+            document.querySelectorAll('.sortable-header').forEach(header => {
+                header.classList.remove('asc', 'desc');
+            });
+            
+            const currentHeader = document.querySelector(`.sortable-header[onclick="sortEvaluationsTable('${field}')"]`);
+            if (currentHeader) {
+                currentHeader.classList.add(currentSort.direction);
+            }
+            
+            employees.sort((a, b) => {
+                let valueA, valueB;
+                
+                switch (field) {
+                    case 'name':
+                        valueA = a.name.toLowerCase();
+                        valueB = b.name.toLowerCase();
+                        break;
+                    case 'startDate':
+                        valueA = new Date(a.startDate);
+                        valueB = new Date(b.startDate);
+                        break;
+                    default:
+                        valueA = a[field];
+                        valueB = b[field];
+                }
+                
+                if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
+                if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            updateUIAfterSave();
+        }
+
+        function sortManagementTable(field) {
+            // Similar a sortTable pero para la tabla de gestión
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            
+            document.querySelectorAll('.sortable-header').forEach(header => {
+                header.classList.remove('asc', 'desc');
+            });
+            
+            const currentHeader = document.querySelector(`.sortable-header[onclick="sortManagementTable('${field}')"]`);
+            if (currentHeader) {
+                currentHeader.classList.add(currentSort.direction);
+            }
+            
+            employees.sort((a, b) => {
+                let valueA, valueB;
+                
+                switch (field) {
+                    case 'name':
+                        valueA = a.name.toLowerCase();
+                        valueB = b.name.toLowerCase();
+                        break;
+                    case 'startDate':
+                        valueA = new Date(a.startDate);
+                        valueB = new Date(b.startDate);
+                        break;
+                    default:
+                        valueA = a[field];
+                        valueB = b[field];
+                }
+                
+                if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
+                if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            updateUIAfterSave();
+        }
+
+        /* ===========================
+           EXPORTACIÓN DE DATOS
+           =========================== */
+        function exportToCSV() {
+            const zoneFilter = document.getElementById('zone-filter-global').value;
+            let filteredEmployees = employees;
+            
+            if (zoneFilter !== 'ALL') {
+                filteredEmployees = employees.filter(emp => emp.zone === zoneFilter);
+            }
+            
+            if (filteredEmployees.length === 0) {
+                showNotification('No hay datos para exportar', true);
+                return;
+            }
+            
+            // Ordenar por fecha de inicio (más antigua primero)
+            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            const headers = ['ID', 'Nombre', 'Sucursal', 'Zona', 'Fecha Inicio', 'Fecha Término', 'Días Restantes', 'Curso SAC', 'Video 1', 'Video 2', 'Video 3', 'Video 4', 'Progreso Total', 'Retro 1', 'Calif 1', 'Retro 2', 'Calif 2', 'Suma Total', 'Promedio', 'Estado Final'];
+            
+            let csvContent = headers.join(',') + '\n';
+            
+            filteredEmployees.forEach(emp => {
+                const startDate = new Date(emp.startDate);
+                const endDate = new Date(emp.endDate);
+                const today = new Date();
+                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                const progress = calculateProgress(emp);
+                const totalScore = emp.feedback1 + emp.feedback2;
+                const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
+                const status = getEvaluationStatus(totalScore, emp.feedback1, emp.feedback2);
+                
+                const row = [
+                    emp.id,
+                    `"${emp.name}"`,
+                    `"${emp.branch}"`,
+                    emp.zone,
+                    formatDate(emp.startDate),
+                    formatDate(emp.endDate),
+                    daysRemaining,
+                    emp.sacCourse ? 'Completado' : 'Pendiente',
+                    emp.video1 ? 'Completado' : 'Pendiente',
+                    emp.video2 ? 'Completado' : 'Pendiente',
+                    emp.video3 ? 'Completado' : 'Pendiente',
+                    emp.video4 ? 'Completado' : 'Pendiente',
+                    `${progress}%`,
+                    emp.feedback1Completed ? 'Completado' : 'Pendiente',
+                    emp.feedback1,
+                    emp.feedback2Completed ? 'Completado' : 'Pendiente',
+                    emp.feedback2,
+                    totalScore,
+                    averageScore,
+                    status.text
+                ];
+                
+                csvContent += row.join(',') + '\n';
+            });
+            
+            const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `reporte_capacitacion_${formatDateForFilename(new Date())}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('Reporte CSV generado correctamente');
+        }
+
+        function generatePDF() {
+            const zoneFilter = document.getElementById('zone-filter-global').value;
+            let filteredEmployees = employees;
+            
+            if (zoneFilter !== 'ALL') {
+                filteredEmployees = employees.filter(emp => emp.zone === zoneFilter);
+            }
+            
+            if (filteredEmployees.length === 0) {
+                showNotification('No hay datos para generar PDF', true);
+                return;
+            }
+            
+            // Ordenar por fecha de inicio (más antigua primero)
+            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Título
+            doc.setFontSize(20);
+            doc.text('Reporte de Capacitación - Nuevos Ingresos', 105, 15, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(`Fecha de generación: ${formatDate(new Date().toISOString().split('T')[0])}`, 105, 22, { align: 'center' });
+            doc.text(`Zona: ${zoneFilter === 'ALL' ? 'Todas' : zoneFilter}`, 105, 28, { align: 'center' });
+            
+            // Datos para la tabla
+            const tableData = [];
+            filteredEmployees.forEach(emp => {
+                const startDate = new Date(emp.startDate);
+                const endDate = new Date(emp.endDate);
+                const today = new Date();
+                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                const progress = calculateProgress(emp);
+                const totalScore = emp.feedback1 + emp.feedback2;
+                const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
+                
+                tableData.push([
+                    emp.id,
+                    emp.name,
+                    emp.branch,
+                    emp.zone,
+                    formatDate(emp.startDate),
+                    formatDate(emp.endDate),
+                    daysRemaining.toString(),
+                    emp.sacCourse ? '✓' : '✗',
+                    emp.video1 ? '✓' : '✗',
+                    emp.video2 ? '✓' : '✗',
+                    emp.video3 ? '✓' : '✗',
+                    emp.video4 ? '✓' : '✗',
+                    `${progress}%`,
+                    emp.feedback1,
+                    emp.feedback2,
+                    totalScore,
+                    averageScore
+                ]);
+            });
+            
+            // Encabezados de la tabla
+            const headers = [
+                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Término', 'Días', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Progreso', 'Retro1', 'Retro2', 'Suma', 'Promedio']
+            ];
+            
+            // Generar tabla
+            doc.autoTable({
+                head: headers,
+                body: tableData,
+                startY: 35,
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [44, 90, 160] },
+                alternateRowStyles: { fillColor: [240, 240, 240] },
+                margin: { top: 35 }
+            });
+            
+            // Estadísticas al final
+            const finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(12);
+            doc.text(`Total de empleados: ${filteredEmployees.length}`, 14, finalY);
+            
+            // Guardar PDF
+            const pdfBlob = doc.output('blob');
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            
+            // Mostrar vista previa
+            document.getElementById('pdf-preview-iframe').src = pdfUrl;
+            document.getElementById('pdfPreviewModal').style.display = 'block';
+        }
+
+        function downloadPDF() {
+            const zoneFilter = document.getElementById('zone-filter-global').value;
+            let filteredEmployees = employees;
+            
+            if (zoneFilter !== 'ALL') {
+                filteredEmployees = employees.filter(emp => emp.zone === zoneFilter);
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Título
+            doc.setFontSize(20);
+            doc.text('Reporte de Capacitación - Nuevos Ingresos', 105, 15, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(`Fecha de generación: ${formatDate(new Date().toISOString().split('T')[0])}`, 105, 22, { align: 'center' });
+            doc.text(`Zona: ${zoneFilter === 'ALL' ? 'Todas' : zoneFilter}`, 105, 28, { align: 'center' });
+            
+            // Datos para la tabla
+            const tableData = [];
+            filteredEmployees.forEach(emp => {
+                const startDate = new Date(emp.startDate);
+                const endDate = new Date(emp.endDate);
+                const today = new Date();
+                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                const progress = calculateProgress(emp);
+                const totalScore = emp.feedback1 + emp.feedback2;
+                const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
+                
+                tableData.push([
+                    emp.id,
+                    emp.name,
+                    emp.branch,
+                    emp.zone,
+                    formatDate(emp.startDate),
+                    formatDate(emp.endDate),
+                    daysRemaining.toString(),
+                    emp.sacCourse ? '✓' : '✗',
+                    emp.video1 ? '✓' : '✗',
+                    emp.video2 ? '✓' : '✗',
+                    emp.video3 ? '✓' : '✗',
+                    emp.video4 ? '✓' : '✗',
+                    `${progress}%`,
+                    emp.feedback1,
+                    emp.feedback2,
+                    totalScore,
+                    averageScore
+                ]);
+            });
+            
+            // Encabezados de la tabla
+            const headers = [
+                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Término', 'Días', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Progreso', 'Retro1', 'Retro2', 'Suma', 'Promedio']
+            ];
+            
+            // Generar tabla
+            doc.autoTable({
+                head: headers,
+                body: tableData,
+                startY: 35,
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [44, 90, 160] },
+                alternateRowStyles: { fillColor: [240, 240, 240] },
+                margin: { top: 35 }
+            });
+            
+            // Guardar PDF
+            doc.save(`reporte_capacitacion_${formatDateForFilename(new Date())}.pdf`);
+            showNotification('PDF descargado correctamente');
+        }
+
+        function printPDF() {
+            const iframe = document.getElementById('pdf-preview-iframe');
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+        }
+
+        function closePdfPreview() {
+            document.getElementById('pdfPreviewModal').style.display = 'none';
+        }
+
+        /* ===========================
+           FUNCIONES UTILITARIAS
+           =========================== */
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES');
+        }
+
+        function formatDateForFilename(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}${month}${day}_${hours}${minutes}`;
+        }
+
+        function toUpperCaseSafe(str) {
+            if (typeof str !== 'string') return '';
+            return str.toUpperCase();
+        }
+
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById(isError ? 'errorNotification' : 'saveNotification');
+            const textElement = document.getElementById(isError ? 'error-text' : 'notification-text');
+            
+            textElement.textContent = message;
+            notification.style.display = 'flex';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function showPasswordModal() {
+            document.getElementById('passwordModal').style.display = 'block';
+            document.getElementById('reset-password').value = '';
+            document.getElementById('password-error').style.display = 'none';
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function confirmReset() {
+            const password = document.getElementById('reset-password').value;
+            // Contraseña simple para demostración (en producción usar algo más seguro)
+            if (password === 'admin123') {
+                resetData();
+                closePasswordModal();
+            } else {
+                document.getElementById('password-error').style.display = 'block';
+            }
+        }
+
+        function resetData() {
+            if (!confirm('¿ESTÁ SEGURO? Esta acción eliminará TODOS los datos y no se puede deshacer.')) {
+                return;
+            }
+            
+            // Crear empleado de ejemplo
+            const today = new Date();
+            const start = new Date(today.toISOString().split('T')[0]);
+            const end = new Date(start);
+            end.setDate(end.getDate() + 90);
+            
+            const exampleEmployee = {
+                id: 1,
+                name: "EJEMPLO - AGREGUE NUEVOS EMPLEADOS",
+                branch: "SUCURSAL-01",
+                zone: 'ZONA 1',
+                startDate: start.toISOString().split('T')[0],
+                endDate: end.toISOString().split('T')[0],
+                sacCourse: false,
+                video1: false,
+                video2: false,
+                video3: false,
+                video4: false,
+                feedback1: 0,
+                feedback2: 0,
+                feedback1Completed: false,
+                feedback2Completed: false
+            };
+            
+            employees = [exampleEmployee];
+            saveData();
+            showNotification('Datos restablecidos correctamente');
+        }
+
+        function saveData() {
+            // Guardar en Firebase si está conectado, si no usar almacenamiento local
+            if (firebaseConnected) {
+                try {
+                    // Convertir el array a objeto para Firebase
+                    const employeesObj = {};
+                    employees.forEach(emp => {
+                        employeesObj[emp.id] = emp;
+                    });
+                    
+                    employeesRef.set(employeesObj)
+                        .then(() => {
+                            lastSaveTime = new Date();
+                            showNotification('Datos guardados en la nube correctamente');
+                            saveToLocalStorage(); // También guardar localmente como respaldo
+                        })
+                        .catch(error => {
+                            console.error('Error guardando en Firebase:', error);
+                            // Fallback a almacenamiento local
+                            if (saveToLocalStorage()) {
+                                showNotification('Datos guardados localmente (error de conexión)', true);
+                            } else {
+                                showNotification('Error guardando datos', true);
+                            }
+                        });
+                } catch (error) {
+                    console.error('Error en saveData:', error);
+                    saveToLocalStorage();
+                    showNotification('Datos guardados localmente (error inesperado)', true);
+                }
+            } else {
+                if (saveToLocalStorage()) {
+                    showNotification('Datos guardados localmente (sin conexión)');
+                } else {
+                    showNotification('Error guardando datos localmente', true);
+                }
+            }
+        }
+
+        function forceSaveNow() {
+            saveData();
+        }
+
+        /* ===========================
+           INICIALIZACIÓN
+           =========================== */
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configurar tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.getAttribute('data-target');
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(target).classList.add('active');
+                });
+            });
+            
+            // Verificar si hay una sesión existente
+            checkExistingSession();
+            
+            // Actualizar UI cada minuto para recalcular días restantes
+            setInterval(updateUIAfterSave, 60000);
+        });
+    </script>
+</body>
+</html>
