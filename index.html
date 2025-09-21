@@ -545,15 +545,15 @@
         let currentSort = { field: 'startDate', direction: 'asc' };
         let currentUser = null;
 
-        // Configuración de usuarios y permisos
+        // Configuración de usuarios y permisos - ACTUALIZADA
         const users = {
-            "DAVID.UNIVERSIDAD@PRESTOCASH.COM": { password: "EDUARDO", zone: "ZONA 1", name: "David" },
-            "EDUARDO.UNIVERSIDAD@PRESTOCASH.COM": { password: "EDUARDO", zone: "ZONA 2", name: "Eduardo" },
-            "LUNA.UNIVERSIDAD@PRESTOCASH.COM": { password: "LUNA", zone: "ZONA 3", name: "Luna" },
-            "ALEX.UNIVERSIDAD@PRESTOCASH.COM": { password: "ALEX", zone: "ZONA 4", name: "Alex" },
-            "URSIOL.UNIVERSIDAD@PRESTOCASH.COM": { password: "URISOL", zone: "ALL", name: "Ursiol" },
-            "EUGENIA.UNIVERSIDAD@PRESTOCASH.COM": { password: "EUGENIA", zone: "ALL", name: "Eugenia" },
-            "EDUARDO.MASTER.UNIVERSIDAD@PRESTOCASH.COM": { password: "EDUARDO", zone: "ALL", name: "Eduardo Master" }
+            "DAVID@UNIVERSIDADPRESTOCASH.MX": { password: "DAVIDZONA123", zone: "ZONA 1", name: "David" },
+            "EDUARDO@UNIVERSIDADPRESTOCASH.MX": { password: "EDUARDOZONA245", zone: "ZONA 2", name: "Eduardo" },
+            "LUNA@UNIVERSIDADPRESTOCASH.MX": { password: "LUNAZONA345", zone: "ZONA 3", name: "Luna" },
+            "ALEX@UNIVERSIDADPRESTOCASH.MX": { password: "ALEX456", zone: "ZONA 4", name: "Alex" },
+            "URISOL@UNIVERSIDADPRESTOCASH.MX": { password: "URISOLMASTER1", zone: "ALL", name: "Ursiol" },
+            "EUGENIA@UNIVERSIDADPRESTOCASH.MX": { password: "EUGENIAMASTER2", zone: "ALL", name: "Eugenia" },
+            "EDUARDO.MASTER@UNIVERSIDADPRESTOCASH.MX": { password: "EDUARDO.MASTER", zone: "ALL", name: "Eduardo Master" }
         };
 
         // Configuración CORRECTA de Firebase
@@ -706,7 +706,7 @@
                     showNotification('Datos cargados desde almacenamiento local', false);
                     return true;
                 } else {
-                    // Datos de ejemplo si no hay nada guardado
+                    // Datos de ejemplo si no hay nada salvado
                     const today = new Date();
                     const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                     const endDate = new Date(startDate);
@@ -1354,7 +1354,7 @@
                 
                 switch (field) {
                     case 'name':
-                        valueA = a.name.toLowerCase();
+                        value极 = a.name.toLowerCase();
                         valueB = b.name.toLowerCase();
                         break;
                     case 'startDate':
@@ -1772,5 +1772,4 @@
         });
     </script>
 </body>
-
 </html>
