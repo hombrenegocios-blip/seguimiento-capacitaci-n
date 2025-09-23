@@ -544,6 +544,8 @@
         let usingLocalStorage = false;
         let currentSort = { field: 'startDate', direction: 'asc' };
         let currentUser = null;
+        let database;
+        let employeesRef;
 
         // Configuración de usuarios y permisos - ACTUALIZADA
         const users = {
@@ -567,10 +569,42 @@
             appId: "1:789669982348:web:0d6d20b48f933364964ba9"
         };
 
-        // Variables globales de Firebase
-        let app;
-        let database;
-        let employeesRef;
+        /* ===========================
+           UTILIDADES DE FECHAS (ZONA HORARIA FIJA / LOCAL)
+           =========================== */
+
+        // Parsear una fecha 'YYYY-MM-DD' a Date con hora local (evita interpretación UTC)
+        function parseDateFromInput(dateString) {
+            if (!dateString) return null;
+            const parts = dateString.split('-');
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1; // meses 0-11
+            const day = parseInt(parts[2], 10);
+            return new Date(year, month, day); // hora local a las 00:00
+        }
+
+        // Formatea un objeto Date a 'YYYY-MM-DD' usando su fecha local (no toISOString)
+        function formatDateISO(date) {
+            if (!date) return '';
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // Devuelve la fecha de "hoy" en 00:00 local (sin hora)
+        function todayLocal() {
+            const t = new Date();
+            return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+        }
+
+        // Formatea para mostrar en UI con toLocaleDateString en español
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const d = parseDateFromInput(dateString);
+            if (!d) return 'N/A';
+            return d.toLocaleDateString('es-ES');
+        }
 
         /* ===========================
            INICIALIZACIÓN DE FIREBASE
@@ -580,10 +614,8 @@
                 console.log("Inicializando Firebase...");
                 
                 // Verificar si Firebase ya está inicializado
-                if (firebase.apps.length === 0) {
-                    app = firebase.initializeApp(firebaseConfig);
-                } else {
-                    app = firebase.app();
+                if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
+                    firebase.initializeApp(firebaseConfig);
                 }
                 
                 database = firebase.database();
@@ -644,7 +676,7 @@
                     employees = Object.keys(data).map(key => {
                         const emp = data[key];
                         return {
-                            id: emp.id || key,
+                            id: String(emp.id || key),
                             name: emp.name || '',
                             branch: emp.branch || '',
                             zone: emp.zone || 'ZONA 1',
@@ -662,8 +694,8 @@
                         };
                     });
                     
-                    // Ordenar por fecha de inicio
-                    employees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                    // Ordenar por fecha de inicio usando parseDateFromInput
+                    employees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
                     
                     // Guardar en localStorage como respaldo
                     saveToLocalStorage();
@@ -707,18 +739,18 @@
                     return true;
                 } else {
                     // Datos de ejemplo si no hay nada salvado
-                    const today = new Date();
-                    const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const startDate = todayLocal();
                     const endDate = new Date(startDate);
-                    endDate.setDate(endDate.getDate() + 90);
+                    // 90 días contando el día de inicio => +89
+                    endDate.setDate(endDate.getDate() + 89);
                     
                     employees = [{
                         id: 1,
                         name: "EJEMPLO - AGREGUE NUEVOS EMPLEADOS",
                         branch: "SUCURSAL-01",
                         zone: 'ZONA 1',
-                        startDate: startDate.toISOString().split('T')[0],
-                        endDate: endDate.toISOString().split('T')[0],
+                        startDate: formatDateISO(startDate),
+                        endDate: formatDateISO(endDate),
                         sacCourse: false,
                         video1: false,
                         video2: false,
@@ -864,14 +896,14 @@
             }
             
             // Ordenar por fecha de inicio (más antigua primero)
-            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
             
             tableBody.innerHTML = '';
             
             filteredEmployees.forEach(emp => {
-                const startDate = new Date(emp.startDate);
-                const endDate = new Date(emp.endDate);
-                const today = new Date();
+                const startDate = parseDateFromInput(emp.startDate);
+                const endDate = parseDateFromInput(emp.endDate);
+                const today = todayLocal();
                 const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 
                 const progress = calculateProgress(emp);
@@ -888,11 +920,11 @@
                     <td>${formatDate(emp.startDate)}</td>
                     <td>${formatDate(emp.endDate)}</td>
                     <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
-                    <td><input type="checkbox" ${emp.sacCourse ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'sacCourse', this.checked)"></td>
-                    <td><input type="checkbox" ${emp.video1 ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'video1', this.checked)"></td>
-                    <td><input type="checkbox" ${emp.video2 ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'video2', this.checked)"></td>
-                    <td><input type="checkbox" ${emp.video3 ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'video3', this.checked)"></td>
-                    <td><input type="checkbox" ${emp.video4 ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'video4', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.sacCourse ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'sacCourse', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video1 ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'video1', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video2 ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'video2', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video3 ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'video3', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video4 ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'video4', this.checked)"></td>
                     <td class="progress-cell">
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${progress}%; background-color: ${getProgressColor(progress)}"></div>
@@ -937,7 +969,7 @@
             }
             
             // Ordenar por fecha de inicio (más antigua primero)
-            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
             
             tableBody.innerHTML = '';
             
@@ -945,9 +977,9 @@
             let totalCount = 0;
             
             filteredEmployees.forEach(emp => {
-                const startDate = new Date(emp.startDate);
-                const endDate = new Date(emp.endDate);
-                const today = new Date();
+                const startDate = parseDateFromInput(emp.startDate);
+                const endDate = parseDateFromInput(emp.endDate);
+                const today = todayLocal();
                 const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 
                 const totalScore = emp.feedback1 + emp.feedback2;
@@ -971,18 +1003,18 @@
                     <td>${formatDate(emp.endDate)}</td>
                     <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
                     <td>
-                        <input type="checkbox" ${emp.feedback1Completed ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'feedback1Completed', this.checked)">
+                        <input type="checkbox" ${emp.feedback1Completed ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'feedback1Completed', this.checked)">
                         <div class="feedback-date">${getFeedbackDate(emp.startDate, 30)}</div>
                     </td>
                     <td>
-                        <input type="number" min="0" max="100" step="1" value="${emp.feedback1}" class="feedback-score" onchange="updateEmployeeField(${emp.id}, 'feedback1', parseFloat(this.value))">
+                        <input type="number" min="0" max="100" step="1" value="${emp.feedback1}" class="feedback-score" onchange="updateEmployeeField('${emp.id}', 'feedback1', parseFloat(this.value) || 0)">
                     </td>
                     <td>
-                        <input type="checkbox" ${emp.feedback2Completed ? 'checked' : ''} onchange="updateEmployeeField(${emp.id}, 'feedback2Completed', this.checked)">
+                        <input type="checkbox" ${emp.feedback2Completed ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'feedback2Completed', this.checked)">
                         <div class="feedback-date">${getFeedbackDate(emp.startDate, 70)}</div>
                     </td>
                     <td>
-                        <input type="number" min="0" max="100" step="1" value="${emp.feedback2}" class="feedback-score" onchange="updateEmployeeField(${emp.id}, 'feedback2', parseFloat(this.value))">
+                        <input type="number" min="0" max="100" step="1" value="${emp.feedback2}" class="feedback-score" onchange="updateEmployeeField('${emp.id}', 'feedback2', parseFloat(this.value) || 0)">
                     </td>
                     <td class="total-score">${totalScore}</td>
                     <td class="average-score">${averageScore}</td>
@@ -1013,12 +1045,12 @@
             }
             
             // Ordenar por fecha de inicio (más antigua primero)
-            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
             
             filteredEmployees.forEach(emp => {
-                const startDate = new Date(emp.startDate);
-                const endDate = new Date(emp.endDate);
-                const today = new Date();
+                const startDate = parseDateFromInput(emp.startDate);
+                const endDate = parseDateFromInput(emp.endDate);
+                const today = todayLocal();
                 const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 
                 const row = document.createElement('tr');
@@ -1031,7 +1063,7 @@
                     <td>${formatDate(emp.endDate)}</td>
                     <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
                     <td>
-                        <button class="action-btn delete-btn" onclick="deleteEmployee(${emp.id})" ${!checkAccess(emp.zone) ? 'disabled' : ''}><i class="fas fa-trash"></i> Eliminar</button>
+                        <button class="action-btn delete-btn" onclick="deleteEmployee('${emp.id}')" ${!checkAccess(emp.zone) ? 'disabled' : ''}><i class="fas fa-trash"></i> Eliminar</button>
                     </td>
                 `;
                 
@@ -1066,9 +1098,9 @@
             document.getElementById('average-progress').textContent = `${averageProgress}%`;
             
             // Calcular empleados próximos a vencer (menos de 15 días)
-            const today = new Date();
+            const today = todayLocal();
             const expiringSoonCount = employees.filter(emp => {
-                const endDate = new Date(emp.endDate);
+                const endDate = parseDateFromInput(emp.endDate);
                 const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 return daysRemaining < 15 && daysRemaining > 0;
             }).length;
@@ -1129,9 +1161,10 @@
         }
 
         function getFeedbackDate(startDate, daysAfter) {
-            const date = new Date(startDate);
+            const date = parseDateFromInput(startDate);
+            if (!date) return 'N/A';
             date.setDate(date.getDate() + daysAfter);
-            return formatDate(date.toISOString().split('T')[0]);
+            return formatDateISO(date);
         }
 
         /* ===========================
@@ -1141,15 +1174,15 @@
             const name = document.getElementById('new-name').value.trim();
             const branch = document.getElementById('new-branch').value.trim();
             const zone = document.getElementById('new-zone').value;
-            const startDate = document.getElementById('new-start-date').value;
+            const startDateInput = document.getElementById('new-start-date').value;
             
-            if (!name || !branch || !startDate) {
+            if (!name || !branch || !startDateInput) {
                 showNotification('Por favor complete todos los campos obligatorios', true);
                 return;
             }
             
             // Validar formato de fecha
-            if (!isValidDate(startDate)) {
+            if (!isValidDate(startDateInput)) {
                 document.getElementById('date-error').style.display = 'block';
                 return;
             } else {
@@ -1162,20 +1195,21 @@
                 return;
             }
             
-            // Calcular fecha de término (90 días después)
+            // Calcular fecha de término: 90 días contando el día de inicio => +89
+            const startDate = parseDateFromInput(startDateInput);
             const endDate = new Date(startDate);
-            endDate.setDate(endDate.getDate() + 90);
+            endDate.setDate(endDate.getDate() + 89); // +89 para que inclusive contemos 90 días
             
-            // Obtener el siguiente ID
-            const nextId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
+            // Obtener el siguiente ID (asegurando enteros)
+            const nextId = employees.length > 0 ? (Math.max(...employees.map(e => Number(e.id || 0))) + 1) : 1;
             
             const newEmployee = {
-                id: nextId,
+                id: String(nextId),
                 name: name.toUpperCase(),
                 branch: branch.toUpperCase(),
                 zone: zone,
-                startDate: startDate,
-                endDate: endDate.toISOString().split('T')[0],
+                startDate: formatDateISO(startDate),
+                endDate: formatDateISO(endDate),
                 sacCourse: false,
                 video1: false,
                 video2: false,
@@ -1224,20 +1258,30 @@
             const endDateInput = document.getElementById('new-end-date');
             
             if (startDateInput.value) {
-                const startDate = new Date(startDateInput.value);
+                if (!isValidDate(startDateInput.value)) {
+                    document.getElementById('date-error').style.display = 'block';
+                    endDateInput.value = '';
+                    return;
+                }
+                document.getElementById('date-error').style.display = 'none';
+                const startDate = parseDateFromInput(startDateInput.value);
                 const endDate = new Date(startDate);
-                endDate.setDate(endDate.getDate() + 90);
-                endDateInput.value = endDate.toISOString().split('T')[0];
+                endDate.setDate(endDate.getDate() + 89); // +89 para incluir el día inicial
+                endDateInput.value = formatDateISO(endDate);
+            } else {
+                endDateInput.value = '';
             }
         }
 
         function isValidDate(dateString) {
             const regEx = /^\d{4}-\d{2}-\d{2}$/;
             if (!dateString.match(regEx)) return false;
-            const d = new Date(dateString);
-            const dNum = d.getTime();
-            if (!dNum && dNum !== 0) return false;
-            return d.toISOString().slice(0,10) === dateString;
+            const parts = dateString.split('-');
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10);
+            const day = parseInt(parts[2], 10);
+            const d = new Date(year, month - 1, day);
+            return d && (d.getFullYear() === year) && (d.getMonth() + 1 === month) && (d.getDate() === day);
         }
 
         /* ===========================
@@ -1268,12 +1312,12 @@
                 
                 switch (field) {
                     case 'name':
-                        valueA = a.name.toLowerCase();
-                        valueB = b.name.toLowerCase();
+                        valueA = (a.name || '').toLowerCase();
+                        valueB = (b.name || '').toLowerCase();
                         break;
                     case 'startDate':
-                        valueA = new Date(a.startDate);
-                        valueB = new Date(b.startDate);
+                        valueA = parseDateFromInput(a.startDate) || todayLocal();
+                        valueB = parseDateFromInput(b.startDate) || todayLocal();
                         break;
                     default:
                         valueA = a[field];
@@ -1289,7 +1333,6 @@
         }
 
         function sortEvaluationsTable(field) {
-            // Similar a sortTable pero para la tabla de evaluaciones
             if (currentSort.field === field) {
                 currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
             } else {
@@ -1311,12 +1354,12 @@
                 
                 switch (field) {
                     case 'name':
-                        valueA = a.name.toLowerCase();
-                        valueB = b.name.toLowerCase();
+                        valueA = (a.name || '').toLowerCase();
+                        valueB = (b.name || '').toLowerCase();
                         break;
                     case 'startDate':
-                        valueA = new Date(a.startDate);
-                        valueB = new Date(b.startDate);
+                        valueA = parseDateFromInput(a.startDate) || todayLocal();
+                        valueB = parseDateFromInput(b.startDate) || todayLocal();
                         break;
                     default:
                         valueA = a[field];
@@ -1332,7 +1375,6 @@
         }
 
         function sortManagementTable(field) {
-            // Similar a sortTable pero para la tabla de gestión
             if (currentSort.field === field) {
                 currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
             } else {
@@ -1354,12 +1396,12 @@
                 
                 switch (field) {
                     case 'name':
-                        value极 = a.name.toLowerCase();
-                        valueB = b.name.toLowerCase();
+                        valueA = (a.name || '').toLowerCase();
+                        valueB = (b.name || '').toLowerCase();
                         break;
                     case 'startDate':
-                        valueA = new Date(a.startDate);
-                        valueB = new Date(b.startDate);
+                        valueA = parseDateFromInput(a.startDate) || todayLocal();
+                        valueB = parseDateFromInput(b.startDate) || todayLocal();
                         break;
                     default:
                         valueA = a[field];
@@ -1391,16 +1433,16 @@
             }
             
             // Ordenar por fecha de inicio (más antigua primero)
-            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
             
             const headers = ['ID', 'Nombre', 'Sucursal', 'Zona', 'Fecha Inicio', 'Fecha Término', 'Días Restantes', 'Curso SAC', 'Video 1', 'Video 2', 'Video 3', 'Video 4', 'Progreso Total', 'Retro 1', 'Calif 1', 'Retro 2', 'Calif 2', 'Suma Total', 'Promedio', 'Estado Final'];
             
             let csvContent = headers.join(',') + '\n';
             
             filteredEmployees.forEach(emp => {
-                const startDate = new Date(emp.startDate);
-                const endDate = new Date(emp.endDate);
-                const today = new Date();
+                const startDate = parseDateFromInput(emp.startDate);
+                const endDate = parseDateFromInput(emp.endDate);
+                const today = todayLocal();
                 const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 const progress = calculateProgress(emp);
                 const totalScore = emp.feedback1 + emp.feedback2;
@@ -1412,8 +1454,8 @@
                     `"${emp.name}"`,
                     `"${emp.branch}"`,
                     emp.zone,
-                    formatDate(emp.startDate),
-                    formatDate(emp.endDate),
+                    formatDateISO(startDate),
+                    formatDateISO(endDate),
                     daysRemaining,
                     emp.sacCourse ? 'Completado' : 'Pendiente',
                     emp.video1 ? 'Completado' : 'Pendiente',
@@ -1458,7 +1500,7 @@
             }
             
             // Ordenar por fecha de inicio (más antigua primero)
-            filteredEmployees.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
             
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -1467,15 +1509,15 @@
             doc.setFontSize(20);
             doc.text('Reporte de Capacitación - Nuevos Ingresos', 105, 15, { align: 'center' });
             doc.setFontSize(12);
-            doc.text(`Fecha de generación: ${formatDate(new Date().toISOString().split('T')[0])}`, 105, 22, { align: 'center' });
+            doc.text(`Fecha de generación: ${formatDateISO(todayLocal())}`, 105, 22, { align: 'center' });
             doc.text(`Zona: ${zoneFilter === 'ALL' ? 'Todas' : zoneFilter}`, 105, 28, { align: 'center' });
             
             // Datos para la tabla
             const tableData = [];
             filteredEmployees.forEach(emp => {
-                const startDate = new Date(emp.startDate);
-                const endDate = new Date(emp.endDate);
-                const today = new Date();
+                const startDate = parseDateFromInput(emp.startDate);
+                const endDate = parseDateFromInput(emp.endDate);
+                const today = todayLocal();
                 const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 const progress = calculateProgress(emp);
                 const totalScore = emp.feedback1 + emp.feedback2;
@@ -1486,8 +1528,8 @@
                     emp.name,
                     emp.branch,
                     emp.zone,
-                    formatDate(emp.startDate),
-                    formatDate(emp.endDate),
+                    formatDateISO(startDate),
+                    formatDateISO(endDate),
                     daysRemaining.toString(),
                     emp.sacCourse ? '✓' : '✗',
                     emp.video1 ? '✓' : '✗',
@@ -1548,15 +1590,15 @@
             doc.setFontSize(20);
             doc.text('Reporte de Capacitación - Nuevos Ingresos', 105, 15, { align: 'center' });
             doc.setFontSize(12);
-            doc.text(`Fecha de generación: ${formatDate(new Date().toISOString().split('T')[0])}`, 105, 22, { align: 'center' });
+            doc.text(`Fecha de generación: ${formatDateISO(todayLocal())}`, 105, 22, { align: 'center' });
             doc.text(`Zona: ${zoneFilter === 'ALL' ? 'Todas' : zoneFilter}`, 105, 28, { align: 'center' });
             
             // Datos para la tabla
             const tableData = [];
             filteredEmployees.forEach(emp => {
-                const startDate = new Date(emp.startDate);
-                const endDate = new Date(emp.endDate);
-                const today = new Date();
+                const startDate = parseDateFromInput(emp.startDate);
+                const endDate = parseDateFromInput(emp.endDate);
+                const today = todayLocal();
                 const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 const progress = calculateProgress(emp);
                 const totalScore = emp.feedback1 + emp.feedback2;
@@ -1567,8 +1609,8 @@
                     emp.name,
                     emp.branch,
                     emp.zone,
-                    formatDate(emp.startDate),
-                    formatDate(emp.endDate),
+                    formatDateISO(startDate),
+                    formatDateISO(endDate),
                     daysRemaining.toString(),
                     emp.sacCourse ? '✓' : '✗',
                     emp.video1 ? '✓' : '✗',
@@ -1600,6 +1642,11 @@
                 margin: { top: 35 }
             });
             
+            // Estadísticas al final
+            const finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(12);
+            doc.text(`Total de empleados: ${filteredEmployees.length}`, 14, finalY);
+            
             // Guardar PDF
             doc.save(`reporte_capacitacion_${formatDateForFilename(new Date())}.pdf`);
             showNotification('PDF descargado correctamente');
@@ -1607,104 +1654,89 @@
 
         function printPDF() {
             const iframe = document.getElementById('pdf-preview-iframe');
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-        }
-
-        function closePdfPreview() {
-            document.getElementById('pdfPreviewModal').style.display = 'none';
-        }
-
-        /* ===========================
-           FUNCIONES UTILITARIAS
-           =========================== */
-        function formatDate(dateString) {
-            if (!dateString) return 'N/A';
-            const date = new Date(dateString);
-            return date.toLocaleDateString('es-ES');
-        }
-
-        function formatDateForFilename(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            return `${year}${month}${day}_${hours}${minutes}`;
-        }
-
-        function toUpperCaseSafe(str) {
-            if (typeof str !== 'string') return '';
-            return str.toUpperCase();
-        }
-
-        function showNotification(message, isError = false) {
-            const notification = document.getElementById(isError ? 'errorNotification' : 'saveNotification');
-            const textElement = document.getElementById(isError ? 'error-text' : 'notification-text');
-            
-            textElement.textContent = message;
-            notification.style.display = 'flex';
-            
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 3000);
-        }
-
-        function showPasswordModal() {
-            document.getElementById('passwordModal').style.display = 'block';
-            document.getElementById('reset-password').value = '';
-            document.getElementById('password-error').style.display = 'none';
-        }
-
-        function closePasswordModal() {
-            document.getElementById('passwordModal').style.display = 'none';
-        }
-
-        function confirmReset() {
-            const password = document.getElementById('reset-password').value;
-            // Contraseña simple para demostración (en producción usar algo más seguro)
-            if (password === 'admin123') {
-                resetData();
-                closePasswordModal();
-            } else {
-                document.getElementById('password-error').style.display = 'block';
-            }
-        }
-
-        function resetData() {
-            if (!confirm('¿ESTÁ SEGURO? Esta acción eliminará TODOS los datos y no se puede deshacer.')) {
+            if (!iframe) {
+                showNotification('No hay iframe de vista previa del PDF', true);
                 return;
             }
             
-            // Crear empleado de ejemplo
-            const today = new Date();
-            const start = new Date(today.toISOString().split('T')[0]);
-            const end = new Date(start);
-            end.setDate(end.getDate() + 90);
-            
-            const exampleEmployee = {
-                id: 1,
-                name: "EJEMPLO - AGREGUE NUEVOS EMPLEADOS",
-                branch: "SUCURSAL-01",
-                zone: 'ZONA 1',
-                startDate: start.toISOString().split('T')[0],
-                endDate: end.toISOString().split('T')[0],
-                sacCourse: false,
-                video1: false,
-                video2: false,
-                video3: false,
-                video4: false,
-                feedback1: 0,
-                feedback2: 0,
-                feedback1Completed: false,
-                feedback2Completed: false
-            };
-            
-            employees = [exampleEmployee];
-            saveData();
-            showNotification('Datos restablecidos correctamente');
+            const src = iframe.src;
+            if (!src) {
+                showNotification('No hay PDF cargado para imprimir', true);
+                return;
+            }
+
+            // Intentar imprimir desde el iframe
+            try {
+                if (iframe.contentWindow && typeof iframe.contentWindow.print === 'function') {
+                    iframe.contentWindow.focus();
+                    setTimeout(() => {
+                        try {
+                            iframe.contentWindow.print();
+                        } catch (err) {
+                            console.warn('printPDF: print desde contentWindow falló:', err);
+                            fallbackOpenAndPrint(src);
+                        }
+                    }, 200);
+                    return;
+                }
+            } catch (err) {
+                console.warn('printPDF: error accediendo a contentWindow:', err);
+            }
+
+            // Fallback: abrir en nueva ventana
+            fallbackOpenAndPrint(src);
         }
 
+        function fallbackOpenAndPrint(src) {
+            const newWin = window.open(src);
+            if (!newWin) {
+                showNotification('El navegador bloqueó la apertura de una nueva ventana. Permita popups e inténtelo de nuevo.', true);
+                return;
+            }
+            
+            let printed = false;
+            const tryPrint = () => {
+                try {
+                    if (newWin.document.readyState === 'complete' || newWin.document.readyState === 'interactive') {
+                        newWin.focus();
+                        try {
+                            newWin.print();
+                            printed = true;
+                        } catch (err) {
+                            console.warn('fallbackOpenAndPrint: error al imprimir en la nueva ventana', err);
+                            showNotification('No se pudo imprimir el PDF desde la nueva ventana.', true);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('fallbackOpenAndPrint: error comprobando readyState', err);
+                }
+            };
+
+            newWin.addEventListener ? newWin.addEventListener('load', tryPrint) : (newWin.onload = tryPrint);
+            setTimeout(() => { if (!printed) tryPrint(); }, 1500);
+        }
+
+        function closePdfPreview() {
+            const modal = document.getElementById('pdfPreviewModal');
+            const iframe = document.getElementById('pdf-preview-iframe');
+            if (iframe && iframe.src) {
+                try { 
+                    URL.revokeObjectURL(iframe.src); 
+                } catch (e) { 
+                    // Ignorar errores al revocar URL
+                }
+                iframe.src = '';
+            }
+            if (modal) modal.style.display = 'none';
+        }
+
+        function forceSaveNow() {
+            saveData();
+        }
+
+        /* ===========================
+           GUARDADO EN FIREBASE / LOCAL
+           =========================== */
         function saveData() {
             // Guardar en Firebase si está conectado, si no usar almacenamiento local
             if (firebaseConnected) {
@@ -1744,12 +1776,94 @@
             }
         }
 
-        function forceSaveNow() {
+        /* ===========================
+           RESET DE DATOS
+           =========================== */
+        function showPasswordModal() {
+            document.getElementById('passwordModal').style.display = 'block';
+            document.getElementById('reset-password').value = '';
+            document.getElementById('password-error').style.display = 'none';
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function confirmReset() {
+            const password = document.getElementById('reset-password').value;
+            // Contraseña simple para demostración (en producción usar algo más seguro)
+            if (password === 'admin123') {
+                resetData();
+                closePasswordModal();
+            } else {
+                document.getElementById('password-error').style.display = 'block';
+            }
+        }
+
+        function resetData() {
+            if (!confirm('¿ESTÁ SEGURO? Esta acción eliminará TODOS los datos y no se puede deshacer.')) {
+                return;
+            }
+            
+            // Crear empleado de ejemplo con cálculo correcto de fechas (90 días contando inicio)
+            const start = todayLocal();
+            const end = new Date(start);
+            end.setDate(end.getDate() + 89); // +89 para contar día inicial
+            
+            const exampleEmployee = {
+                id: 1,
+                name: "EJEMPLO - AGREGUE NUEVOS EMPLEADOS",
+                branch: "SUCURSAL-01",
+                zone: 'ZONA 1',
+                startDate: formatDateISO(start),
+                endDate: formatDateISO(end),
+                sacCourse: false,
+                video1: false,
+                video2: false,
+                video3: false,
+                video4: false,
+                feedback1: 0,
+                feedback2: 0,
+                feedback1Completed: false,
+                feedback2Completed: false
+            };
+            
+            employees = [exampleEmployee];
             saveData();
+            showNotification('Datos restablecidos correctamente');
         }
 
         /* ===========================
-           INICIALIZACIÓN
+           FUNCIONES UTILITARIAS
+           =========================== */
+        function formatDateForFilename(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}${month}${day}_${hours}${minutes}`;
+        }
+
+        function toUpperCaseSafe(str) {
+            if (typeof str !== 'string') return '';
+            return str.toUpperCase();
+        }
+
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById(isError ? 'errorNotification' : 'saveNotification');
+            const textElement = document.getElementById(isError ? 'error-text' : 'notification-text');
+            
+            textElement.textContent = message;
+            notification.style.display = 'flex';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        /* ===========================
+           INICIALIZACIÓN AL CARGAR LA PÁGINA
            =========================== */
         document.addEventListener('DOMContentLoaded', function() {
             // Configurar tabs
