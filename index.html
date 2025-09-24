@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Seguimiento de Capacitación - Nuevos Ingresos (Zonas Mejorado)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Biblioteca para generar PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -243,6 +242,19 @@
             text-align: center;
             display: none;
         }
+        .status-inactive {
+            background-color: #cccccc !important;
+            color: #666;
+        }
+        
+        /* Estilos para deshabilitar campos */
+        .status-inactive input[type="checkbox"],
+        .status-inactive input[type="number"],
+        .status-inactive select {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
         @media (max-width:1200px) { .container { border-radius:10px; } .stats-container { flex-direction:column; } .stat-box { width:100%; } table { display:block; overflow-x:auto; } }
         @media (max-width:768px) { .tabs { flex-direction:column; } .tab { width:100%; text-align:center; } .controls { flex-direction:column; } .btn { width:100%; } }
     </style>
@@ -250,7 +262,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
-    <!-- Modal de Login -->
     <div id="loginModal" class="login-modal">
         <div class="login-content">
             <h2 class="login-title">Iniciar Sesión</h2>
@@ -292,6 +303,9 @@
             <div class="tab" data-target="instructions"><i class="fas fa-info-circle"></i> Instrucciones</div>
             <div class="tab" data-target="evaluations"><i class="fas fa-clipboard-check"></i> Retroalimentaciones</div>
             <div class="tab" data-target="user-management"><i class="fas fa-users-cog"></i> Gestión de Usuarios</div>
+            <div class="tab access-denied" data-target="administration" id="admin-tab">
+                <i class="fas fa-toolbox"></i> Administración
+            </div>
         </div>
 
         <div id="dashboard" class="tab-content active">
@@ -303,8 +317,8 @@
 
             <div class="stats-container">
                 <div class="stat-box">
-                    <div class="stat-title">Total Empleados</div>
-                    <div class="stat-value" id="total-employees">0</div>
+                    <div class="stat-title">Total Empleados Activos</div>
+                    <div class="stat-value" id="total-active-employees">0</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-title">Capacitación Completada</div>
@@ -368,13 +382,12 @@
                 <p>Marque la casilla en la columna "Curso SAC" cuando el empleado haya completado el curso de Servicio al Cliente.</p>
                 <h4><i class="fas fa-database"></i> 3. Sistema de Guardado</h4>
                 <p>Los datos se guardan y sincronizan automáticamente en la nube con Firebase. No es necesario guardar manualmente en un archivo local.</p>
-                <h4><i class="fas fa-file-export"></i> 4. Exportación de Datos</h4>
-                <p>Puede exportar todos los datos a un archío CSV usando el botón "Generar Reporte CSV".</p>
                 <h4><i class="fas fa-palette"></i> 5. Códigos de Color</h4>
                 <ul>
                     <li><span style="background-color: #e6ffe6; padding: 2px 5px;">Fondo verde</span>: Capacitación completada</li>
                     <li><span style="background-color: #fff9e6; padding: 2px 5px;">Fondo amarillo</span>: Menos de 10 días para retroalimentación</li>
                     <li><span style="background-color: #ffe6e6; padding: 2px 5px;">Fondo rojo</span>: Retroalimentación vencida</li>
+                    <li><span style="background-color: #cccccc; padding: 2px 5px;">Fondo gris</span>: Empleado con estatus de Baja o Renuncia</li>
                 </ul>
             </div>
         </div>
@@ -398,7 +411,7 @@
                     </select>
                 </div>
                 <div class="evaluation-summary">
-                    <div>Total empleados: <span id="filtered-evaluations-count">0</span></div>
+                    <div>Total empleados Activos: <span id="filtered-evaluations-count">0</span></div>
                     <div>Promedio general: <span id="general-average" class="score-display average-score">0</span></div>
                 </div>
             </div>
@@ -419,7 +432,7 @@
                         <th>Calificación 2</th>
                         <th>Suma Total</th>
                         <th>Promedio</th>
-                        <th>Estado Final</th>
+                        <th>Estatus Final</th>
                     </tr>
                 </thead>
                 <tbody id="evaluations-table-body"></tbody>
@@ -474,10 +487,6 @@
                 <button class="btn btn-success" onclick="addEmployee()"><i class="fas fa-user-plus"></i> Agregar Empleado</button>
             </div>
 
-            <div class="controls">
-                <button class="btn btn-danger" onclick="showPasswordModal()"><i class="fas fa-redo"></i> Restablecer Datos</button>
-            </div>
-
             <h4>Lista de Empleados <small>(Ordenados por fecha de inicio)</small></h4>
             <table>
                 <thead>
@@ -495,24 +504,51 @@
                 <tbody id="user-management-table-body"></tbody>
             </table>
         </div>
+
+        <div id="administration" class="tab-content">
+            <div class="instructions">
+                <h3><i class="fas fa-toolbox"></i> Herramientas de Administración</h3>
+                <p>Esta sección contiene herramientas avanzadas para la gestión de la base de datos. Solo para usuarios con permisos de administrador.</p>
+                <div class="info-badge">Acceso de administrador</div>
+            </div>
+            <div class="user-form">
+                <h4>Copia de Seguridad y Restauración</h4>
+                <div class="controls" style="justify-content: flex-start; margin-top: 0;">
+                    <button class="btn btn-primary" onclick="backupData()"><i class="fas fa-save"></i> Crear Copia de Seguridad (JSON)</button>
+                    <div class="form-group" style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                        <input type="file" id="restoreFile" accept=".json" style="width: auto;">
+                        <button class="btn btn-warning" onclick="showPasswordModal('restore')"><i class="fas fa-upload"></i> Restaurar desde Copia</button>
+                    </div>
+                </div>
+                <p style="margin-top: 20px;">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--danger-color);"></i>
+                    <strong style="color: var(--danger-color);">Advertencia:</strong> La restauración sobrescribirá todos los datos existentes en la nube.
+                </p>
+            </div>
+            <div class="user-form" style="margin-top: 25px;">
+                <h4>Restablecer la Base de Datos</h4>
+                <p>Esta acción eliminará todos los datos y restablecerá el sistema a sus valores predeterminados.</p>
+                <div class="controls" style="justify-content: flex-start; margin-top: 15px;">
+                    <button class="btn btn-danger" onclick="showPasswordModal('reset')"><i class="fas fa-redo"></i> Borrar Datos y Restablecer</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Modal para contraseña -->
     <div id="passwordModal" class="password-modal">
         <div class="password-modal-content">
             <span class="password-modal-close" onclick="closePasswordModal()">&times;</span>
-            <h3>Restablecer Datos</h3>
-            <p>Esta acción eliminará todos los datos y restablecerá el sistema a valores predeterminados.</p>
+            <h3 id="password-modal-title">Acceso de Administrador</h3>
+            <p id="password-modal-message">Esta acción requiere permisos de administrador.</p>
             <div class="form-group">
                 <label for="reset-password">Contraseña:</label>
                 <input type="password" id="reset-password" placeholder="Ingrese la contraseña">
             </div>
-            <button class="btn btn-danger" onclick="confirmReset()">Confirmar Restablecimiento</button>
+            <button class="btn btn-danger" id="password-modal-button" onclick="confirmAction()">Confirmar</button>
             <p id="password-error" style="color: red; margin-top: 10px; display: none;">Contraseña incorrecta. Intente nuevamente.</p>
         </div>
     </div>
 
-    <!-- Modal para vista previa del PDF -->
     <div id="pdfPreviewModal" class="pdf-preview-modal">
         <div class="pdf-preview-content">
             <span class="pdf-preview-close" onclick="closePdfPreview()">&times;</span>
@@ -546,6 +582,7 @@
         let currentUser = null;
         let database;
         let employeesRef;
+        let currentAction = ''; // Variable para controlar la acción del modal
 
         // Configuración de usuarios y permisos - ACTUALIZADA
         const users = {
@@ -690,7 +727,8 @@
                             feedback1: emp.feedback1 || 0,
                             feedback2: emp.feedback2 || 0,
                             feedback1Completed: emp.feedback1Completed || false,
-                            feedback2Completed: emp.feedback2Completed || false
+                            feedback2Completed: emp.feedback2Completed || false,
+                            status: emp.status || 'En proceso'
                         };
                     });
                     
@@ -745,7 +783,7 @@
                     endDate.setDate(endDate.getDate() + 89);
                     
                     employees = [{
-                        id: 1,
+                        id: "1",
                         name: "EJEMPLO - AGREGUE NUEVOS EMPLEADOS",
                         branch: "SUCURSAL-01",
                         zone: 'ZONA 1',
@@ -759,7 +797,8 @@
                         feedback1: 0,
                         feedback2: 0,
                         feedback1Completed: false,
-                        feedback2Completed: false
+                        feedback2Completed: false,
+                        status: 'En proceso'
                     }];
                     
                     updateUIAfterSave();
@@ -872,6 +911,14 @@
             } else {
                 document.getElementById('new-zone').disabled = false;
             }
+
+            // Verificar y controlar acceso a la pestaña de administración
+            const adminTab = document.getElementById('admin-tab');
+            if (currentUser.email === 'EDUARDO.MASTER@UNIVERSIDADPRESTOCASH.MX') {
+                adminTab.classList.remove('access-denied');
+            } else {
+                adminTab.classList.add('access-denied');
+            }
             
             // Inicializar Firebase y cargar datos
             initializeFirebase();
@@ -904,10 +951,15 @@
                 const startDate = parseDateFromInput(emp.startDate);
                 const endDate = parseDateFromInput(emp.endDate);
                 const today = todayLocal();
-                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 
                 const progress = calculateProgress(emp);
-                const progressClass = getProgressClass(progress, daysRemaining);
+                const progressClass = getProgressClass(progress, daysRemaining, emp.status);
+
+                const isDisabled = emp.status === 'Baja' || emp.status === 'Renuncia' ? 'disabled' : '';
+                if (isDisabled) {
+                    daysRemaining = 0;
+                }
                 
                 const row = document.createElement('tr');
                 row.className = progressClass;
@@ -920,11 +972,11 @@
                     <td>${formatDate(emp.startDate)}</td>
                     <td>${formatDate(emp.endDate)}</td>
                     <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
-                    <td><input type="checkbox" ${emp.sacCourse ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'sacCourse', this.checked)"></td>
-                    <td><input type="checkbox" ${emp.video1 ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'video1', this.checked)"></td>
-                    <td><input type="checkbox" ${emp.video2 ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'video2', this.checked)"></td>
-                    <td><input type="checkbox" ${emp.video3 ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'video3', this.checked)"></td>
-                    <td><input type="checkbox" ${emp.video4 ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'video4', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.sacCourse ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'sacCourse', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video1 ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'video1', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video2 ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'video2', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video3 ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'video3', this.checked)"></td>
+                    <td><input type="checkbox" ${emp.video4 ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'video4', this.checked)"></td>
                     <td class="progress-cell">
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${progress}%; background-color: ${getProgressColor(progress)}"></div>
@@ -976,24 +1028,43 @@
             let totalSum = 0;
             let totalCount = 0;
             
+            // Filtrar los empleados que estén activos para el cálculo del promedio
+            const activeEmployees = filteredEmployees.filter(emp => emp.status !== 'Baja' && emp.status !== 'Renuncia');
+            
+            // Calcular estadísticas generales solo para empleados activos
+            activeEmployees.forEach(emp => {
+                if (emp.feedback1Completed && emp.feedback2Completed) {
+                    totalSum += emp.feedback1 + emp.feedback2;
+                    totalCount += 2;
+                }
+            });
+            
+            const generalAverage = totalCount > 0 ? (totalSum / totalCount).toFixed(1) : 0;
+            
+            // Actualizar estadísticas generales
+            document.getElementById('filtered-evaluations-count').textContent = activeEmployees.length;
+            document.getElementById('general-average').textContent = generalAverage;
+            
+            // Renderizar la tabla con todos los empleados, pero aplicando los estilos
             filteredEmployees.forEach(emp => {
                 const startDate = parseDateFromInput(emp.startDate);
                 const endDate = parseDateFromInput(emp.endDate);
                 const today = todayLocal();
-                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 
+                const progressClass = getProgressClass(0, 0, emp.status);
+                const isDisabled = emp.status === 'Baja' || emp.status === 'Renuncia' ? 'disabled' : '';
+
+                if (isDisabled) {
+                    daysRemaining = 0;
+                }
+
                 const totalScore = emp.feedback1 + emp.feedback2;
                 const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
-                
-                // Calcular estadísticas generales
-                if (emp.feedback1Completed && emp.feedback2Completed) {
-                    totalSum += totalScore;
-                    totalCount += 2;
-                }
-                
-                const status = getEvaluationStatus(totalScore, emp.feedback1, emp.feedback2);
-                
+
                 const row = document.createElement('tr');
+                row.className = progressClass;
+                
                 row.innerHTML = `
                     <td>${emp.id}</td>
                     <td class="employee-name">${emp.name}</td>
@@ -1003,31 +1074,34 @@
                     <td>${formatDate(emp.endDate)}</td>
                     <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
                     <td>
-                        <input type="checkbox" ${emp.feedback1Completed ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'feedback1Completed', this.checked)">
+                        <input type="checkbox" ${emp.feedback1Completed ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'feedback1Completed', this.checked)">
                         <div class="feedback-date">${getFeedbackDate(emp.startDate, 30)}</div>
                     </td>
                     <td>
-                        <input type="number" min="0" max="100" step="1" value="${emp.feedback1}" class="feedback-score" onchange="updateEmployeeField('${emp.id}', 'feedback1', parseFloat(this.value) || 0)">
+                        <input type="number" min="0" max="100" step="1" value="${emp.feedback1}" class="feedback-score" ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'feedback1', parseFloat(this.value) || 0)">
                     </td>
                     <td>
-                        <input type="checkbox" ${emp.feedback2Completed ? 'checked' : ''} onchange="updateEmployeeField('${emp.id}', 'feedback2Completed', this.checked)">
+                        <input type="checkbox" ${emp.feedback2Completed ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'feedback2Completed', this.checked)">
                         <div class="feedback-date">${getFeedbackDate(emp.startDate, 70)}</div>
                     </td>
                     <td>
-                        <input type="number" min="0" max="100" step="1" value="${emp.feedback2}" class="feedback-score" onchange="updateEmployeeField('${emp.id}', 'feedback2', parseFloat(this.value) || 0)">
+                        <input type="number" min="0" max="100" step="1" value="${emp.feedback2}" class="feedback-score" ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'feedback2', parseFloat(this.value) || 0)">
                     </td>
                     <td class="total-score">${totalScore}</td>
                     <td class="average-score">${averageScore}</td>
-                    <td><span class="feedback-status ${status.class}">${status.text}</span></td>
+                    <td>
+                        <select onchange="updateEmployeeField('${emp.id}', 'status', this.value)">
+                            <option value="Aprobado" ${emp.status === 'Aprobado' ? 'selected' : ''}>Aprobado</option>
+                            <option value="No Aprobado" ${emp.status === 'No Aprobado' ? 'selected' : ''}>No Aprobado</option>
+                            <option value="Baja" ${emp.status === 'Baja' ? 'selected' : ''}>Baja</option>
+                            <option value="Renuncia" ${emp.status === 'Renuncia' ? 'selected' : ''}>Renuncia</option>
+                            <option value="En proceso" ${emp.status === 'En proceso' ? 'selected' : ''}>En proceso</option>
+                        </select>
+                    </td>
                 `;
                 
                 tableBody.appendChild(row);
             });
-            
-            // Actualizar estadísticas generales
-            document.getElementById('filtered-evaluations-count').textContent = filteredEmployees.length;
-            const generalAverage = totalCount > 0 ? (totalSum / totalCount).toFixed(1) : 0;
-            document.getElementById('general-average').textContent = generalAverage;
             
             document.getElementById('evaluations-count').textContent = filteredEmployees.length;
         }
@@ -1051,9 +1125,16 @@
                 const startDate = parseDateFromInput(emp.startDate);
                 const endDate = parseDateFromInput(emp.endDate);
                 const today = todayLocal();
-                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                
+                const progressClass = getProgressClass(0, 0, emp.status);
+
+                if (progressClass === 'status-inactive') {
+                    daysRemaining = 0;
+                }
                 
                 const row = document.createElement('tr');
+                row.className = progressClass;
                 row.innerHTML = `
                     <td>${emp.id}</td>
                     <td class="employee-name">${emp.name}</td>
@@ -1074,10 +1155,19 @@
         }
 
         function updateStats() {
-            const totalEmployees = employees.length;
-            document.getElementById('total-employees').textContent = totalEmployees;
+            // Filtrar empleados activos para los cálculos
+            const zoneFilter = document.getElementById('zone-filter-global').value;
+            let employeesForStats = employees.filter(emp => emp.status !== 'Baja' && emp.status !== 'Renuncia');
             
-            if (totalEmployees === 0) {
+            if (zoneFilter !== 'ALL') {
+                employeesForStats = employeesForStats.filter(emp => emp.zone === zoneFilter);
+            }
+            
+            const totalActiveEmployees = employeesForStats.length;
+            
+            document.getElementById('total-active-employees').textContent = totalActiveEmployees;
+            
+            if (totalActiveEmployees === 0) {
                 document.getElementById('completed-training').textContent = '0%';
                 document.getElementById('average-progress').textContent = '0%';
                 document.getElementById('expiring-soon').textContent = '0';
@@ -1085,21 +1175,21 @@
             }
             
             // Calcular porcentaje de capacitación completada
-            const completedCount = employees.filter(emp => {
+            const completedCount = employeesForStats.filter(emp => {
                 return emp.sacCourse && emp.video1 && emp.video2 && emp.video3 && emp.video4;
             }).length;
             
-            const completedPercentage = Math.round((completedCount / totalEmployees) * 100);
+            const completedPercentage = Math.round((completedCount / totalActiveEmployees) * 100);
             document.getElementById('completed-training').textContent = `${completedPercentage}%`;
             
             // Calcular progreso promedio
-            const totalProgress = employees.reduce((sum, emp) => sum + calculateProgress(emp), 0);
-            const averageProgress = Math.round(totalProgress / totalEmployees);
+            const totalProgress = employeesForStats.reduce((sum, emp) => sum + calculateProgress(emp), 0);
+            const averageProgress = Math.round(totalProgress / totalActiveEmployees);
             document.getElementById('average-progress').textContent = `${averageProgress}%`;
             
             // Calcular empleados próximos a vencer (menos de 15 días)
             const today = todayLocal();
-            const expiringSoonCount = employees.filter(emp => {
+            const expiringSoonCount = employeesForStats.filter(emp => {
                 const endDate = parseDateFromInput(emp.endDate);
                 const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 return daysRemaining < 15 && daysRemaining > 0;
@@ -1118,7 +1208,8 @@
             return progress;
         }
 
-        function getProgressClass(progress, daysRemaining) {
+        function getProgressClass(progress, daysRemaining, status) {
+            if (status === 'Baja' || status === 'Renuncia') return 'status-inactive';
             if (progress === 100) return 'completed';
             if (daysRemaining < 0) return 'urgent';
             if (daysRemaining < 10) return 'expiring';
@@ -1140,8 +1231,14 @@
             return '#F44336';
         }
 
-        function getEvaluationStatus(totalScore, score1, score2) {
+        function getEvaluationStatus(totalScore, score1, score2, status) {
             // Mínimo 50 en cada campo y suma de 160 para aprobar
+            if (status === 'Baja' || status === 'Renuncia') {
+                return {
+                    class: 'status-not-approved',
+                    text: status
+                };
+            }
             if (score1 >= 50 && score2 >= 50 && totalScore >= 160) {
                 return {
                     class: 'status-completed',
@@ -1218,7 +1315,8 @@
                 feedback1: 0,
                 feedback2: 0,
                 feedback1Completed: false,
-                feedback2Completed: false
+                feedback2Completed: false,
+                status: 'En proceso'
             };
             
             employees.push(newEmployee);
@@ -1443,12 +1541,15 @@
                 const startDate = parseDateFromInput(emp.startDate);
                 const endDate = parseDateFromInput(emp.endDate);
                 const today = todayLocal();
-                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 const progress = calculateProgress(emp);
                 const totalScore = emp.feedback1 + emp.feedback2;
                 const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
-                const status = getEvaluationStatus(totalScore, emp.feedback1, emp.feedback2);
                 
+                if (emp.status === 'Baja' || emp.status === 'Renuncia') {
+                    daysRemaining = 0;
+                }
+
                 const row = [
                     emp.id,
                     `"${emp.name}"`,
@@ -1469,7 +1570,7 @@
                     emp.feedback2,
                     totalScore,
                     averageScore,
-                    status.text
+                    emp.status
                 ];
                 
                 csvContent += row.join(',') + '\n';
@@ -1518,11 +1619,15 @@
                 const startDate = parseDateFromInput(emp.startDate);
                 const endDate = parseDateFromInput(emp.endDate);
                 const today = todayLocal();
-                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 const progress = calculateProgress(emp);
                 const totalScore = emp.feedback1 + emp.feedback2;
                 const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
                 
+                if (emp.status === 'Baja' || emp.status === 'Renuncia') {
+                    daysRemaining = 0;
+                }
+
                 tableData.push([
                     emp.id,
                     emp.name,
@@ -1540,13 +1645,14 @@
                     emp.feedback1,
                     emp.feedback2,
                     totalScore,
-                    averageScore
+                    averageScore,
+                    emp.status
                 ]);
             });
             
             // Encabezados de la tabla
             const headers = [
-                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Término', 'Días', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Progreso', 'Retro1', 'Retro2', 'Suma', 'Promedio']
+                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Término', 'Días', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Progreso', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus']
             ];
             
             // Generar tabla
@@ -1599,11 +1705,15 @@
                 const startDate = parseDateFromInput(emp.startDate);
                 const endDate = parseDateFromInput(emp.endDate);
                 const today = todayLocal();
-                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 const progress = calculateProgress(emp);
                 const totalScore = emp.feedback1 + emp.feedback2;
                 const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
                 
+                if (emp.status === 'Baja' || emp.status === 'Renuncia') {
+                    daysRemaining = 0;
+                }
+
                 tableData.push([
                     emp.id,
                     emp.name,
@@ -1621,13 +1731,14 @@
                     emp.feedback1,
                     emp.feedback2,
                     totalScore,
-                    averageScore
+                    averageScore,
+                    emp.status
                 ]);
             });
             
             // Encabezados de la tabla
             const headers = [
-                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Término', 'Días', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Progreso', 'Retro1', 'Retro2', 'Suma', 'Promedio']
+                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Término', 'Días', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Progreso', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus']
             ];
             
             // Generar tabla
@@ -1775,11 +1886,83 @@
                 }
             }
         }
+        
+        /* ===========================
+           NUEVAS FUNCIONES DE ADMINISTRACIÓN
+           =========================== */
+        function backupData() {
+            if (currentUser && currentUser.email === 'EDUARDO.MASTER@UNIVERSIDADPRESTOCASH.MX') {
+                const dataStr = JSON.stringify(employees, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `copia_de_seguridad_${formatDateForFilename(new Date())}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                showNotification('Copia de seguridad generada correctamente.');
+            } else {
+                showNotification('No tiene permisos para realizar esta acción.', true);
+            }
+        }
+
+        function restoreData() {
+            const fileInput = document.getElementById('restoreFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('Por favor, seleccione un archivo JSON para restaurar.', true);
+                return;
+            }
+            
+            if (!confirm('¿Está seguro de que desea restaurar la base de datos? Esto eliminará todos los datos actuales.')) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const restoredData = JSON.parse(event.target.result);
+                    // Validar la estructura del archivo JSON
+                    if (!Array.isArray(restoredData) || restoredData.some(emp => !emp.id)) {
+                        throw new Error('El archivo no tiene el formato correcto.');
+                    }
+                    
+                    employees = restoredData;
+                    saveData();
+                    showNotification('Base de datos restaurada correctamente.');
+                    closePasswordModal();
+                } catch (e) {
+                    console.error('Error al procesar el archivo de restauración:', e);
+                    showNotification('Error: El archivo no es un formato de copia de seguridad válido.', true);
+                }
+            };
+            reader.readAsText(file);
+        }
 
         /* ===========================
-           RESET DE DATOS
+           RESET DE DATOS (AHORA CON MODAL UNIFICADO)
            =========================== */
-        function showPasswordModal() {
+        function showPasswordModal(action) {
+            currentAction = action;
+            const title = document.getElementById('password-modal-title');
+            const message = document.getElementById('password-modal-message');
+            const button = document.getElementById('password-modal-button');
+            
+            if (action === 'reset') {
+                title.textContent = "Restablecer Datos";
+                message.textContent = "Esta acción eliminará todos los datos y restablecerá el sistema a valores predeterminados.";
+                button.textContent = "Confirmar Restablecimiento";
+                button.className = "btn btn-danger";
+            } else if (action === 'restore') {
+                title.textContent = "Restaurar Base de Datos";
+                message.textContent = "Esta acción sobrescribirá la base de datos con los datos de la copia de seguridad.";
+                button.textContent = "Confirmar Restauración";
+                button.className = "btn btn-warning";
+            }
+            
             document.getElementById('passwordModal').style.display = 'block';
             document.getElementById('reset-password').value = '';
             document.getElementById('password-error').style.display = 'none';
@@ -1789,12 +1972,14 @@
             document.getElementById('passwordModal').style.display = 'none';
         }
 
-        function confirmReset() {
+        function confirmAction() {
             const password = document.getElementById('reset-password').value;
-            // Contraseña simple para demostración (en producción usar algo más seguro)
-            if (password === 'admin123') {
-                resetData();
-                closePasswordModal();
+            if (currentUser && users[currentUser.email] && users[currentUser.email].password === password) {
+                if (currentAction === 'reset') {
+                    resetData();
+                } else if (currentAction === 'restore') {
+                    restoreData();
+                }
             } else {
                 document.getElementById('password-error').style.display = 'block';
             }
@@ -1802,6 +1987,7 @@
 
         function resetData() {
             if (!confirm('¿ESTÁ SEGURO? Esta acción eliminará TODOS los datos y no se puede deshacer.')) {
+                closePasswordModal();
                 return;
             }
             
@@ -1811,7 +1997,7 @@
             end.setDate(end.getDate() + 89); // +89 para contar día inicial
             
             const exampleEmployee = {
-                id: 1,
+                id: "1",
                 name: "EJEMPLO - AGREGUE NUEVOS EMPLEADOS",
                 branch: "SUCURSAL-01",
                 zone: 'ZONA 1',
@@ -1825,12 +2011,14 @@
                 feedback1: 0,
                 feedback2: 0,
                 feedback1Completed: false,
-                feedback2Completed: false
+                feedback2Completed: false,
+                status: 'En proceso'
             };
             
             employees = [exampleEmployee];
             saveData();
             showNotification('Datos restablecidos correctamente');
+            closePasswordModal();
         }
 
         /* ===========================
@@ -1870,6 +2058,12 @@
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
+                    // Prevenir cambio de tab si no tiene permisos
+                    if (tab.classList.contains('access-denied')) {
+                        showNotification("No tiene permisos para acceder a esta sección.", true);
+                        return;
+                    }
+
                     const target = tab.getAttribute('data-target');
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
