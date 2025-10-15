@@ -738,6 +738,16 @@
                     // Convertir objeto a array
                     employees = Object.keys(data).map(key => {
                         const emp = data[key];
+                        // Normalizar hasSalesExperience: Si es undefined o null/false antiguo, usar 'PENDIENTE'.
+                        let hasSalesExperienceValue = emp.hasSalesExperience;
+                        if (hasSalesExperienceValue === undefined || hasSalesExperienceValue === null || hasSalesExperienceValue === false) {
+                            hasSalesExperienceValue = 'PENDIENTE';
+                        } else if (hasSalesExperienceValue === true || hasSalesExperienceValue === 'true') {
+                            hasSalesExperienceValue = true;
+                        } else if (hasSalesExperienceValue === 'false') {
+                            hasSalesExperienceValue = false;
+                        }
+                        
                         return {
                             id: String(emp.id || key),
                             name: emp.name || '',
@@ -755,8 +765,7 @@
                             feedback1Completed: emp.feedback1Completed || false,
                             feedback2Completed: emp.feedback2Completed || false,
                             status: emp.status || 'En proceso',
-                            // Cambio: hasSalesExperience ahora es 'PENDIENTE' por defecto si es undefined o el valor antiguo 'false'
-                            hasSalesExperience: emp.hasSalesExperience === undefined || emp.hasSalesExperience === false ? 'PENDIENTE' : emp.hasSalesExperience,
+                            hasSalesExperience: hasSalesExperienceValue,
                             previousWorkplace: emp.previousWorkplace || '', 
                         };
                     });
@@ -801,10 +810,20 @@
                 if (savedData) {
                     employees = JSON.parse(savedData);
                     // Asegurar que hasSalesExperience sea 'PENDIENTE' si es undefined o null/false antiguo
-                    employees = employees.map(emp => ({
-                        ...emp,
-                        hasSalesExperience: emp.hasSalesExperience === undefined || emp.hasSalesExperience === false ? 'PENDIENTE' : emp.hasSalesExperience
-                    }));
+                    employees = employees.map(emp => {
+                        let hasSalesExperienceValue = emp.hasSalesExperience;
+                        if (hasSalesExperienceValue === undefined || hasSalesExperienceValue === null || hasSalesExperienceValue === false) {
+                            hasSalesExperienceValue = 'PENDIENTE';
+                        } else if (hasSalesExperienceValue === true || hasSalesExperienceValue === 'true') {
+                            hasSalesExperienceValue = true;
+                        } else if (hasSalesExperienceValue === 'false') {
+                            hasSalesExperienceValue = false;
+                        }
+                        return {
+                            ...emp,
+                            hasSalesExperience: hasSalesExperienceValue
+                        };
+                    });
                     
                     usingLocalStorage = true;
                     updateUIAfterSave();
@@ -834,7 +853,7 @@
                         feedback1Completed: false,
                         feedback2Completed: false,
                         status: 'En proceso',
-                        hasSalesExperience: 'PENDIENTE', // Cambio: valor inicial
+                        hasSalesExperience: 'PENDIENTE', // Valor inicial por defecto
                         previousWorkplace: '', 
                     }];
                     
