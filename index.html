@@ -738,13 +738,14 @@
                     // Convertir objeto a array
                     employees = Object.keys(data).map(key => {
                         const emp = data[key];
-                        // Normalizar hasSalesExperience: Si es undefined o null/false antiguo, usar 'PENDIENTE'.
+                        
+                        // Lógica de normalización de hasSalesExperience:
                         let hasSalesExperienceValue = emp.hasSalesExperience;
-                        if (hasSalesExperienceValue === undefined || hasSalesExperienceValue === null || hasSalesExperienceValue === false) {
+                        if (hasSalesExperienceValue === undefined || hasSalesExperienceValue === null || hasSalesExperienceValue === '') {
                             hasSalesExperienceValue = 'PENDIENTE';
-                        } else if (hasSalesExperienceValue === true || hasSalesExperienceValue === 'true') {
+                        } else if (hasSalesExperienceValue === 'true' || hasSalesExperienceValue === true) {
                             hasSalesExperienceValue = true;
-                        } else if (hasSalesExperienceValue === 'false') {
+                        } else if (hasSalesExperienceValue === 'false' || hasSalesExperienceValue === false) {
                             hasSalesExperienceValue = false;
                         }
                         
@@ -809,14 +810,14 @@
                 const savedData = localStorage.getItem('employeesData');
                 if (savedData) {
                     employees = JSON.parse(savedData);
-                    // Asegurar que hasSalesExperience sea 'PENDIENTE' si es undefined o null/false antiguo
+                    // Normalización para datos guardados localmente
                     employees = employees.map(emp => {
                         let hasSalesExperienceValue = emp.hasSalesExperience;
-                        if (hasSalesExperienceValue === undefined || hasSalesExperienceValue === null || hasSalesExperienceValue === false) {
+                        if (hasSalesExperienceValue === undefined || hasSalesExperienceValue === null || hasSalesExperienceValue === '') {
                             hasSalesExperienceValue = 'PENDIENTE';
                         } else if (hasSalesExperienceValue === true || hasSalesExperienceValue === 'true') {
                             hasSalesExperienceValue = true;
-                        } else if (hasSalesExperienceValue === 'false') {
+                        } else if (hasSalesExperienceValue === 'false' || hasSalesExperienceValue === false) {
                             hasSalesExperienceValue = false;
                         }
                         return {
