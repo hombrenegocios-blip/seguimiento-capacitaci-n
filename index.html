@@ -71,6 +71,8 @@
         input[type="checkbox"] { transform:scale(1.3); cursor:pointer; }
         input[type="number"], input[type="text"], input[type="date"], input[type="password"], select { padding:8px; border:1px solid #ddd; border-radius:5px; width:100%; }
         input[type="number"] { max-width: 80px; }
+        /* Ajuste de ancho para el select en la tabla de evaluaciones */
+        .evaluation-select-small { max-width: 60px; font-size: 12px; padding: 5px; }
         .expiring { background:#fff9e6; }
         .urgent { background:#ffe6e6; }
         .completed { background:#e6ffe6; }
@@ -115,6 +117,7 @@
         .days-warning { background-color: #fff2cc; }
         .days-normal { background-color: #e6ffe6; }
         .feedback-score { width: 60px; text-align: center; }
+        .previous-workplace-input { width: 100px !important; font-size: 10px; padding: 4px; }
         .password-modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
         .password-modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 400px; border-radius: 8px; }
         .password-modal-close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
@@ -250,7 +253,16 @@
         /* Estilos para deshabilitar campos */
         .status-inactive input[type="checkbox"],
         .status-inactive input[type="number"],
-        .status-inactive select {
+        .status-inactive select:not(.evaluation-status-select), /* Deshabilita todos los selects excepto el de estatus */
+        .status-inactive input[type="text"]:not(.evaluation-status-select) {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        
+        /* Deshabilitar selects para usuarios sin permiso */
+        .evaluation-select-small[disabled],
+        .evaluation-status-select[disabled],
+        .evaluation-text-input[disabled] {
             pointer-events: none;
             opacity: 0.6;
         }
@@ -259,6 +271,14 @@
         .evaluation-status-select {
             pointer-events: auto !important;
             opacity: 1 !important;
+        }
+        
+        /* Estilo para inputs de texto en la tabla de evaluaciones */
+        .evaluation-text-input {
+            width: 100px;
+            font-size: 10px;
+            padding: 4px;
+            box-sizing: border-box; /* Para que el padding no aumente el ancho */
         }
 
         @media (max-width:1200px) { .container { border-radius:10px; } .stats-container { flex-direction:column; } .stat-box { width:100%; } table { display:block; overflow-x:auto; } }
@@ -432,7 +452,7 @@
                         <th class="sortable-header" onclick="sortEvaluationsTable('startDate')">Fecha Inicio</th>
                         <th>Fecha Término</th>
                         <th>Días Restantes</th>
-                        <th>Retro 1 (30 días)</th>
+                        <th>Exp. Ventas</th> <th>Lugar Anterior</th> <th>Retro 1 (30 días)</th>
                         <th>Calificación 1</th>
                         <th>Retro 2 (70 días)</th>
                         <th>Calificación 2</th>
@@ -734,7 +754,10 @@
                             feedback2: emp.feedback2 || 0,
                             feedback1Completed: emp.feedback1Completed || false,
                             feedback2Completed: emp.feedback2Completed || false,
-                            status: emp.status || 'En proceso'
+                            status: emp.status || 'En proceso',
+                            // Cambio: hasSalesExperience ahora es 'PENDIENTE' por defecto si es undefined o el valor antiguo 'false'
+                            hasSalesExperience: emp.hasSalesExperience === undefined || emp.hasSalesExperience === false ? 'PENDIENTE' : emp.hasSalesExperience,
+                            previousWorkplace: emp.previousWorkplace || '', 
                         };
                     });
                     
@@ -777,6 +800,12 @@
                 const savedData = localStorage.getItem('employeesData');
                 if (savedData) {
                     employees = JSON.parse(savedData);
+                    // Asegurar que hasSalesExperience sea 'PENDIENTE' si es undefined o null/false antiguo
+                    employees = employees.map(emp => ({
+                        ...emp,
+                        hasSalesExperience: emp.hasSalesExperience === undefined || emp.hasSalesExperience === false ? 'PENDIENTE' : emp.hasSalesExperience
+                    }));
+                    
                     usingLocalStorage = true;
                     updateUIAfterSave();
                     showNotification('Datos cargados desde almacenamiento local', false);
@@ -804,7 +833,9 @@
                         feedback2: 0,
                         feedback1Completed: false,
                         feedback2Completed: false,
-                        status: 'En proceso'
+                        status: 'En proceso',
+                        hasSalesExperience: 'PENDIENTE', // Cambio: valor inicial
+                        previousWorkplace: '', 
                     }];
                     
                     updateUIAfterSave();
@@ -1059,10 +1090,14 @@
                 let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 
                 const progressClass = getProgressClass(0, 0, emp.status);
-                // El campo de estatus es siempre editable, solo se deshabilita los otros campos
-                const isDisabled = emp.status === 'Baja' || emp.status === 'Renuncia' ? 'disabled' : '';
+                
+                const isStatusInactive = emp.status === 'Baja' || emp.status === 'Renuncia';
+                // Verificar si el usuario tiene permiso para editar
+                const canEdit = checkAccess(emp.zone);
+                // Si el estatus es inactivo O no tiene permiso, deshabilitar.
+                const isDisabled = isStatusInactive || !canEdit ? 'disabled' : '';
 
-                if (isDisabled) {
+                if (isStatusInactive) {
                     daysRemaining = 0;
                 }
 
@@ -1072,6 +1107,16 @@
                 const row = document.createElement('tr');
                 row.className = progressClass;
                 
+                // Nota: El select de estatus debe ser editable por los supervisores de zona (canEdit)
+                // y se maneja con la clase `evaluation-status-select` para evitar la deshabilitación total.
+                const isStatusSelectDisabled = !canEdit && currentUser.zone !== 'ALL' || isStatusInactive ? 'disabled' : '';
+                
+                // Determinar el valor seleccionado para 'Exp. Ventas'
+                let salesExpValue = emp.hasSalesExperience;
+                let salesExpSelectedPendiente = salesExpValue === 'PENDIENTE' ? 'selected' : '';
+                let salesExpSelectedSi = salesExpValue === true ? 'selected' : '';
+                let salesExpSelectedNo = salesExpValue === false ? 'selected' : '';
+
                 row.innerHTML = `
                     <td>${emp.id}</td>
                     <td class="employee-name">${emp.name}</td>
@@ -1080,6 +1125,17 @@
                     <td>${formatDate(emp.startDate)}</td>
                     <td>${formatDate(emp.endDate)}</td>
                     <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
+                    <td>
+                        <select class="evaluation-select-small" ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'hasSalesExperience', this.value === 'true' ? true : (this.value === 'false' ? false : 'PENDIENTE'))">
+                            <option value="PENDIENTE" ${salesExpSelectedPendiente}>Pendiente</option>
+                            <option value="true" ${salesExpSelectedSi}>Sí</option>
+                            <option value="false" ${salesExpSelectedNo}>No</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" value="${emp.previousWorkplace || ''}" class="evaluation-text-input" placeholder="Lugar" 
+                               maxlength="30" ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'previousWorkplace', toUpperCaseSafe(this.value))">
+                    </td>
                     <td>
                         <input type="checkbox" ${emp.feedback1Completed ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'feedback1Completed', this.checked)">
                         <div class="feedback-date">${getFeedbackDate(emp.startDate, 30)}</div>
@@ -1097,7 +1153,7 @@
                     <td class="total-score">${totalScore}</td>
                     <td class="average-score">${averageScore}</td>
                     <td>
-                        <select onchange="updateEmployeeField('${emp.id}', 'status', this.value)" class="evaluation-status-select">
+                        <select onchange="updateEmployeeField('${emp.id}', 'status', this.value)" class="evaluation-status-select" ${isStatusSelectDisabled}>
                             <option value="Aprobado" ${emp.status === 'Aprobado' ? 'selected' : ''}>Aprobado</option>
                             <option value="No Aprobado" ${emp.status === 'No Aprobado' ? 'selected' : ''}>No Aprobado</option>
                             <option value="Baja" ${emp.status === 'Baja' ? 'selected' : ''}>Baja</option>
@@ -1238,32 +1294,6 @@
             return '#F44336';
         }
 
-        function getEvaluationStatus(totalScore, score1, score2, status) {
-            // Mínimo 50 en cada campo y suma de 160 para aprobar
-            if (status === 'Baja' || status === 'Renuncia') {
-                return {
-                    class: 'status-not-approved',
-                    text: status
-                };
-            }
-            if (score1 >= 50 && score2 >= 50 && totalScore >= 160) {
-                return {
-                    class: 'status-completed',
-                    text: 'Aprobado'
-                };
-            } else if (score1 < 50 || score2 < 50) {
-                return {
-                    class: 'status-not-approved',
-                    text: 'No Aprobado (Falta mínimo en campo)'
-                };
-            } else {
-                return {
-                    class: 'status-not-approved',
-                    text: 'No Aprobado (Suma insuficiente)'
-                };
-            }
-        }
-
         function getFeedbackDate(startDate, daysAfter) {
             const date = parseDateFromInput(startDate);
             if (!date) return 'N/A';
@@ -1323,7 +1353,9 @@
                 feedback2: 0,
                 feedback1Completed: false,
                 feedback2Completed: false,
-                status: 'En proceso'
+                status: 'En proceso',
+                hasSalesExperience: 'PENDIENTE', // Valor inicial por defecto
+                previousWorkplace: '', 
             };
             
             employees.push(newEmployee);
@@ -1540,7 +1572,7 @@
             // Ordenar por fecha de inicio (más antigua primero)
             filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
             
-            const headers = ['ID', 'Nombre', 'Sucursal', 'Zona', 'Fecha Inicio', 'Fecha Término', 'Días Restantes', 'Curso SAC', 'Video 1', 'Video 2', 'Video 3', 'Video 4', 'Progreso Total', 'Retro 1', 'Calif 1', 'Retro 2', 'Calif 2', 'Suma Total', 'Promedio', 'Estado Final'];
+            const headers = ['ID', 'Nombre', 'Sucursal', 'Zona', 'Fecha Inicio', 'Fecha Término', 'Días Restantes', 'Exp. Ventas', 'Lugar Anterior', 'Curso SAC', 'Video 1', 'Video 2', 'Video 3', 'Video 4', 'Progreso Total', 'Retro 1', 'Calif 1', 'Retro 2', 'Calif 2', 'Suma Total', 'Promedio', 'Estado Final'];
             
             let csvContent = headers.join(',') + '\n';
             
@@ -1556,6 +1588,16 @@
                 if (emp.status === 'Baja' || emp.status === 'Renuncia') {
                     daysRemaining = 0;
                 }
+                
+                // Formatear Exp. Ventas
+                let salesExpText;
+                if (emp.hasSalesExperience === true) {
+                    salesExpText = 'Sí';
+                } else if (emp.hasSalesExperience === false) {
+                    salesExpText = 'No';
+                } else {
+                    salesExpText = 'PENDIENTE';
+                }
 
                 const row = [
                     emp.id,
@@ -1565,6 +1607,8 @@
                     formatDateISO(startDate),
                     formatDateISO(endDate),
                     daysRemaining,
+                    salesExpText, // Usa el texto formateado
+                    `"${emp.previousWorkplace || ''}"`, 
                     emp.sacCourse ? 'Completado' : 'Pendiente',
                     emp.video1 ? 'Completado' : 'Pendiente',
                     emp.video2 ? 'Completado' : 'Pendiente',
@@ -1583,7 +1627,9 @@
                 csvContent += row.join(',') + '\n';
             });
             
-            const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
+            // Añadir el BOM para asegurar que Excel reconozca UTF-8 correctamente
+            const BOM = '\uFEFF'; 
+            const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + BOM + csvContent);
             const link = document.createElement('a');
             link.setAttribute('href', encodedUri);
             link.setAttribute('download', `reporte_capacitacion_${formatDateForFilename(new Date())}.csv`);
@@ -1611,14 +1657,14 @@
             filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
             
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+            const doc = new jsPDF('l', 'mm', 'a4'); // Orientación horizontal para más columnas
             
             // Título
-            doc.setFontSize(20);
-            doc.text('Reporte de Capacitación - Nuevos Ingresos', 105, 15, { align: 'center' });
-            doc.setFontSize(12);
-            doc.text(`Fecha de generación: ${formatDateISO(todayLocal())}`, 105, 22, { align: 'center' });
-            doc.text(`Zona: ${zoneFilter === 'ALL' ? 'Todas' : zoneFilter}`, 105, 28, { align: 'center' });
+            doc.setFontSize(18);
+            doc.text('Reporte de Capacitación y Retroalimentación', 148, 15, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`Fecha de generación: ${formatDateISO(todayLocal())}`, 148, 20, { align: 'center' });
+            doc.text(`Zona: ${zoneFilter === 'ALL' ? 'Todas' : zoneFilter}`, 148, 25, { align: 'center' });
             
             // Datos para la tabla
             const tableData = [];
@@ -1634,6 +1680,16 @@
                 if (emp.status === 'Baja' || emp.status === 'Renuncia') {
                     daysRemaining = 0;
                 }
+                
+                // Formatear Exp. Ventas
+                let salesExpText;
+                if (emp.hasSalesExperience === true) {
+                    salesExpText = 'Sí';
+                } else if (emp.hasSalesExperience === false) {
+                    salesExpText = 'No';
+                } else {
+                    salesExpText = 'PENDIENTE';
+                }
 
                 tableData.push([
                     emp.id,
@@ -1641,14 +1697,15 @@
                     emp.branch,
                     emp.zone,
                     formatDateISO(startDate),
-                    formatDateISO(endDate),
                     daysRemaining.toString(),
+                    salesExpText, // Usa el texto formateado
+                    emp.previousWorkplace, 
+                    `${progress}%`,
                     emp.sacCourse ? '✓' : '✗',
                     emp.video1 ? '✓' : '✗',
                     emp.video2 ? '✓' : '✗',
                     emp.video3 ? '✓' : '✗',
                     emp.video4 ? '✓' : '✗',
-                    `${progress}%`,
                     emp.feedback1,
                     emp.feedback2,
                     totalScore,
@@ -1659,25 +1716,46 @@
             
             // Encabezados de la tabla
             const headers = [
-                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Término', 'Días', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Progreso', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus']
+                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Días', 'Exp. Ventas', 'Lugar Ant.', 'Progreso', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus']
             ];
             
             // Generar tabla
             doc.autoTable({
                 head: headers,
                 body: tableData,
-                startY: 35,
+                startY: 30,
                 theme: 'grid',
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [44, 90, 160] },
+                styles: { fontSize: 7, cellPadding: 1.5 },
+                headStyles: { fillColor: [44, 90, 160], fontSize: 7, fontStyle: 'bold' },
                 alternateRowStyles: { fillColor: [240, 240, 240] },
-                margin: { top: 35 }
+                margin: { top: 30, left: 5, right: 5, bottom: 5 },
+                columnStyles: {
+                    0: { cellWidth: 8 }, // ID
+                    1: { cellWidth: 30 }, // Nombre
+                    2: { cellWidth: 15 }, // Sucursal
+                    3: { cellWidth: 12 }, // Zona
+                    4: { cellWidth: 15 }, // Inicio
+                    5: { cellWidth: 8 }, // Días
+                    6: { cellWidth: 12 }, // Exp. Ventas 
+                    7: { cellWidth: 20 }, // Lugar Ant. 
+                    8: { cellWidth: 12 }, // Progreso
+                    9: { cellWidth: 8 }, // SAC
+                    10: { cellWidth: 6 }, // V1
+                    11: { cellWidth: 6 }, // V2
+                    12: { cellWidth: 6 }, // V3
+                    13: { cellWidth: 6 }, // V4
+                    14: { cellWidth: 10 }, // Retro1
+                    15: { cellWidth: 10 }, // Retro2
+                    16: { cellWidth: 10 }, // Suma
+                    17: { cellWidth: 12 }, // Promedio
+                    18: { cellWidth: 20 }  // Estatus
+                }
             });
             
             // Estadísticas al final
-            const finalY = doc.lastAutoTable.finalY + 10;
-            doc.setFontSize(12);
-            doc.text(`Total de empleados: ${filteredEmployees.length}`, 14, finalY);
+            const finalY = doc.lastAutoTable.finalY + 5;
+            doc.setFontSize(10);
+            doc.text(`Total de empleados: ${filteredEmployees.length}`, 5, finalY);
             
             // Guardar PDF
             const pdfBlob = doc.output('blob');
@@ -1689,6 +1767,7 @@
         }
 
         function downloadPDF() {
+            // Reutiliza la lógica de generatePDF hasta la generación del documento
             const zoneFilter = document.getElementById('zone-filter-global').value;
             let filteredEmployees = employees;
             
@@ -1697,14 +1776,14 @@
             }
             
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+            const doc = new jsPDF('l', 'mm', 'a4'); // Orientación horizontal para más columnas
             
             // Título
-            doc.setFontSize(20);
-            doc.text('Reporte de Capacitación - Nuevos Ingresos', 105, 15, { align: 'center' });
-            doc.setFontSize(12);
-            doc.text(`Fecha de generación: ${formatDateISO(todayLocal())}`, 105, 22, { align: 'center' });
-            doc.text(`Zona: ${zoneFilter === 'ALL' ? 'Todas' : zoneFilter}`, 105, 28, { align: 'center' });
+            doc.setFontSize(18);
+            doc.text('Reporte de Capacitación y Retroalimentación', 148, 15, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`Fecha de generación: ${formatDateISO(todayLocal())}`, 148, 20, { align: 'center' });
+            doc.text(`Zona: ${zoneFilter === 'ALL' ? 'Todas' : zoneFilter}`, 148, 25, { align: 'center' });
             
             // Datos para la tabla
             const tableData = [];
@@ -1720,6 +1799,16 @@
                 if (emp.status === 'Baja' || emp.status === 'Renuncia') {
                     daysRemaining = 0;
                 }
+                
+                // Formatear Exp. Ventas
+                let salesExpText;
+                if (emp.hasSalesExperience === true) {
+                    salesExpText = 'Sí';
+                } else if (emp.hasSalesExperience === false) {
+                    salesExpText = 'No';
+                } else {
+                    salesExpText = 'PENDIENTE';
+                }
 
                 tableData.push([
                     emp.id,
@@ -1727,14 +1816,15 @@
                     emp.branch,
                     emp.zone,
                     formatDateISO(startDate),
-                    formatDateISO(endDate),
                     daysRemaining.toString(),
+                    salesExpText, // Usa el texto formateado
+                    emp.previousWorkplace, 
+                    `${progress}%`,
                     emp.sacCourse ? '✓' : '✗',
                     emp.video1 ? '✓' : '✗',
                     emp.video2 ? '✓' : '✗',
                     emp.video3 ? '✓' : '✗',
                     emp.video4 ? '✓' : '✗',
-                    `${progress}%`,
                     emp.feedback1,
                     emp.feedback2,
                     totalScore,
@@ -1745,30 +1835,52 @@
             
             // Encabezados de la tabla
             const headers = [
-                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Término', 'Días', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Progreso', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus']
+                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Días', 'Exp. Ventas', 'Lugar Ant.', 'Progreso', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus']
             ];
             
             // Generar tabla
             doc.autoTable({
                 head: headers,
                 body: tableData,
-                startY: 35,
+                startY: 30,
                 theme: 'grid',
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [44, 90, 160] },
+                styles: { fontSize: 7, cellPadding: 1.5 },
+                headStyles: { fillColor: [44, 90, 160], fontSize: 7, fontStyle: 'bold' },
                 alternateRowStyles: { fillColor: [240, 240, 240] },
-                margin: { top: 35 }
+                margin: { top: 30, left: 5, right: 5, bottom: 5 },
+                columnStyles: {
+                    0: { cellWidth: 8 }, // ID
+                    1: { cellWidth: 30 }, // Nombre
+                    2: { cellWidth: 15 }, // Sucursal
+                    3: { cellWidth: 12 }, // Zona
+                    4: { cellWidth: 15 }, // Inicio
+                    5: { cellWidth: 8 }, // Días
+                    6: { cellWidth: 12 }, // Exp. Ventas 
+                    7: { cellWidth: 20 }, // Lugar Ant. 
+                    8: { cellWidth: 12 }, // Progreso
+                    9: { cellWidth: 8 }, // SAC
+                    10: { cellWidth: 6 }, // V1
+                    11: { cellWidth: 6 }, // V2
+                    12: { cellWidth: 6 }, // V3
+                    13: { cellWidth: 6 }, // V4
+                    14: { cellWidth: 10 }, // Retro1
+                    15: { cellWidth: 10 }, // Retro2
+                    16: { cellWidth: 10 }, // Suma
+                    17: { cellWidth: 12 }, // Promedio
+                    18: { cellWidth: 20 }  // Estatus
+                }
             });
             
             // Estadísticas al final
-            const finalY = doc.lastAutoTable.finalY + 10;
-            doc.setFontSize(12);
-            doc.text(`Total de empleados: ${filteredEmployees.length}`, 14, finalY);
-            
+            const finalY = doc.lastAutoTable.finalY + 5;
+            doc.setFontSize(10);
+            doc.text(`Total de empleados: ${filteredEmployees.length}`, 5, finalY);
+
             // Guardar PDF
             doc.save(`reporte_capacitacion_${formatDateForFilename(new Date())}.pdf`);
             showNotification('PDF descargado correctamente');
         }
+
 
         function printPDF() {
             const iframe = document.getElementById('pdf-preview-iframe');
@@ -2019,7 +2131,9 @@
                 feedback2: 0,
                 feedback1Completed: false,
                 feedback2Completed: false,
-                status: 'En proceso'
+                status: 'En proceso',
+                hasSalesExperience: 'PENDIENTE', // Valor inicial por defecto
+                previousWorkplace: '', 
             };
             
             employees = [exampleEmployee];
