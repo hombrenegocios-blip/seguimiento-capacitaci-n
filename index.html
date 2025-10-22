@@ -281,6 +281,15 @@
             box-sizing: border-box; /* Para que el padding no aumente el ancho */
         }
 
+        /* ------------------------------------------------ */
+        /* ✨ MEJORA PARA LA BARRA DESLIZADORA DE EVALUACIONES */
+        /* ------------------------------------------------ */
+        .evaluation-table-wrapper {
+            /* Contenedor para la tabla de evaluaciones que permite el scroll horizontal */
+            overflow-x: auto;
+        }
+        /* ------------------------------------------------ */
+
         @media (max-width:1200px) { .container { border-radius:10px; } .stats-container { flex-direction:column; } .stat-box { width:100%; } table { display:block; overflow-x:auto; } }
         @media (max-width:768px) { .tabs { flex-direction:column; } .tab { width:100%; text-align:center; } .controls { flex-direction:column; } .btn { width:100%; } }
     </style>
@@ -441,29 +450,31 @@
                     <div>Promedio general: <span id="general-average" class="score-display average-score">0</span></div>
                 </div>
             </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th class="sortable-header" onclick="sortEvaluationsTable('name')">Nombre</th>
-                        <th>Sucursal</th>
-                        <th>Zona</th>
-                        <th class="sortable-header" onclick="sortEvaluationsTable('startDate')">Fecha Inicio</th>
-                        <th>Fecha Término</th>
-                        <th>Días Restantes</th>
-                        <th>Exp. Ventas</th> <th>Lugar Anterior</th> <th>Retro 1 (30 días)</th>
-                        <th>Calificación 1</th>
-                        <th>Retro 2 (70 días)</th>
-                        <th>Calificación 2</th>
-                        <th>Suma Total</th>
-                        <th>Promedio</th>
-                        <th>Estatus Final</th>
-                    </tr>
-                </thead>
-                <tbody id="evaluations-table-body"></tbody>
-            </table>
-        </div>
+            
+            <div class="evaluation-table-wrapper"> 
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th class="sortable-header" onclick="sortEvaluationsTable('name')">Nombre</th>
+                            <th>Sucursal</th>
+                            <th>Zona</th>
+                            <th class="sortable-header" onclick="sortEvaluationsTable('startDate')">Fecha Inicio</th>
+                            <th>Fecha Término</th>
+                            <th>Días Restantes</th>
+                            <th>Exp. Ventas</th> <th>Lugar Anterior</th> <th>Retro 1 (30 días)</th>
+                            <th>Calificación 1</th>
+                            <th>Retro 2 (70 días)</th>
+                            <th>Calificación 2</th>
+                            <th>Suma Total</th>
+                            <th>Promedio</th>
+                            <th>Estatus Final</th>
+                        </tr>
+                    </thead>
+                    <tbody id="evaluations-table-body"></tbody>
+                </table>
+            </div>
+            </div>
 
         <div id="user-management" class="tab-content">
             <div class="access-warning" id="accessWarning">
