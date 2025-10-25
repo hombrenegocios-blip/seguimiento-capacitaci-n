@@ -46,6 +46,7 @@
         .stat-value { font-size:32px; font-weight:bold; color:var(--primary-color); margin:10px 0; }
         .stat-title { font-size:14px; color:#666; text-transform:uppercase; letter-spacing:1px; }
         .controls { display:flex; justify-content:flex-end; gap:10px; margin:20px 0; flex-wrap:wrap; align-items:center; }
+        .filter-group { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-start; margin-bottom: 10px; } 
         .btn { padding:12px 20px; border:none; border-radius:5px; cursor:pointer; font-weight:500; transition:all .3s ease; display:flex; align-items:center; justify-content:center; }
         .btn i { margin-right:8px; font-size:16px; }
         .btn-sm { padding:8px 15px; font-size:14px; }
@@ -69,7 +70,7 @@
         .progress-fill { height:100%; border-radius:10px; width:0%; transition:width .5s ease; }
         .progress-text { position:absolute; top:0; left:0; width:100%; text-align:center; font-weight:bold; color:#333; line-height:20px; font-size:12px; }
         input[type="checkbox"] { transform:scale(1.3); cursor:pointer; }
-        input[type="number"], input[type="text"], input[type="date"], input[type="password"], select { padding:8px; border:1px solid #ddd; border-radius:5px; width:100%; }
+        input[type="number"], input[type="text"], input[type="date"], input[type="password"], select, textarea { padding:8px; border:1px solid #ddd; border-radius:5px; width:100%; }
         input[type="number"] { max-width: 80px; }
         /* Ajuste de ancho para el select en la tabla de evaluaciones */
         .evaluation-select-small { max-width: 60px; font-size: 12px; padding: 5px; }
@@ -96,6 +97,11 @@
         .status-pending { background:#fff3cd; color:#856404; }
         .status-completed { background:#d4edda; color:#155724; }
         .status-not-approved { background:#f8d7da; color:#721c24; }
+        .status-en-proceso { background:#e0f7fa; color:#006064; } /* Nuevo color para 'En proceso' */
+        .status-aprobado { background:#d4edda; color:#155724; }
+        .status-no-aprobado { background:#f8d7da; color:#721c24; }
+        .status-baja, .status-renuncia { background:#cccccc; color:#666; }
+        
         .firebase-status { 
             position: fixed; 
             top: 10px; 
@@ -253,8 +259,8 @@
         /* Estilos para deshabilitar campos */
         .status-inactive input[type="checkbox"],
         .status-inactive input[type="number"],
-        .status-inactive select:not(.evaluation-status-select), /* Deshabilita todos los selects excepto el de estatus */
-        .status-inactive input[type="text"]:not(.evaluation-status-select) {
+        .status-inactive select:not(.evaluation-status-select), 
+        .status-inactive input[type="text"]:not(.evaluation-status-select):not(.observation-input) { 
             pointer-events: none;
             opacity: 0.6;
         }
@@ -262,33 +268,58 @@
         /* Deshabilitar selects para usuarios sin permiso */
         .evaluation-select-small[disabled],
         .evaluation-status-select[disabled],
-        .evaluation-text-input[disabled] {
+        .evaluation-text-input[disabled],
+        .observation-input[disabled] {
             pointer-events: none;
             opacity: 0.6;
         }
 
-        /* Sobrescribir el estilo para el select de estatus, sin importar la clase */
-        .evaluation-status-select {
+        /* ************************************************************ */
+        /* HABILITAR ESTATUS FINAL Y OBSERVACIONES INCLUSO SI ESTÁ INACTIVO */
+        /* ************************************************************ */
+        .evaluation-status-select, .observation-input {
             pointer-events: auto !important;
             opacity: 1 !important;
         }
+        /* ************************************************************ */
         
         /* Estilo para inputs de texto en la tabla de evaluaciones */
         .evaluation-text-input {
             width: 100px;
             font-size: 10px;
             padding: 4px;
-            box-sizing: border-box; /* Para que el padding no aumente el ancho */
+            box-sizing: border-box; 
+        }
+        .observation-input {
+            width: 100px; 
+            font-size: 10px;
+            padding: 4px;
+            box-sizing: border-box;
+            max-height: 50px; 
+            overflow-y: auto;
         }
 
         /* ------------------------------------------------ */
-        /* ✨ MEJORA PARA LA BARRA DESLIZADORA DE EVALUACIONES */
+        /* ✨ MEJORA PARA LA BARRA DESLIZADORA DE EVALUACIONES/ANÁLISIS */
         /* ------------------------------------------------ */
         .evaluation-table-wrapper {
             /* Contenedor para la tabla de evaluaciones que permite el scroll horizontal */
             overflow-x: auto;
         }
         /* ------------------------------------------------ */
+        /* New Styles for Charts (simple horizontal bar chart) */
+        .chart-bar-container { width: 100%; display: flex; flex-direction: column; gap: 5px; }
+        .chart-bar-item { display: flex; align-items: center; font-size: 11px; }
+        .chart-label { width: 80px; text-align: right; padding-right: 5px; color: #555; }
+        .chart-bar-wrapper { flex: 1; height: 18px; background: #eee; border-radius: 3px; overflow: hidden; }
+        .chart-bar-fill { height: 100%; transition: width 0.5s ease; display: flex; justify-content: flex-end; align-items: center; color: white; padding-right: 5px; font-weight: bold; }
+        .chart-bar-fill.status-aprobado { background-color: var(--secondary-color); }
+        .chart-bar-fill.status-no-aprobado { background-color: var(--danger-color); }
+        .chart-bar-fill.status-en-proceso { background-color: var(--info-color); }
+        .chart-bar-fill.status-baja, .chart-bar-fill.status-renuncia { background-color: #444; }
+        .chart-bar-fill.progress-complete { background-color: var(--secondary-color); }
+        .chart-bar-fill.progress-incomplete { background-color: var(--accent-color); }
+        .chart-bar-fill.progress-pending { background-color: var(--danger-color); }
 
         @media (max-width:1200px) { .container { border-radius:10px; } .stats-container { flex-direction:column; } .stat-box { width:100%; } table { display:block; overflow-x:auto; } }
         @media (max-width:768px) { .tabs { flex-direction:column; } .tab { width:100%; text-align:center; } .controls { flex-direction:column; } .btn { width:100%; } }
@@ -335,6 +366,7 @@
 
         <div class="tabs" id="tabsBar">
             <div class="tab active" data-target="dashboard"><i class="fas fa-chart-line"></i> Dashboard Principal</div>
+            <div class="tab" data-target="analytics"><i class="fas fa-chart-pie"></i> Análisis de Datos</div>
             <div class="tab" data-target="instructions"><i class="fas fa-info-circle"></i> Instrucciones</div>
             <div class="tab" data-target="evaluations"><i class="fas fa-clipboard-check"></i> Retroalimentaciones</div>
             <div class="tab" data-target="user-management"><i class="fas fa-users-cog"></i> Gestión de Usuarios</div>
@@ -370,8 +402,13 @@
             </div>
 
             <div class="controls">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="active-filter-dashboard" onchange="updateEmployeesTable()">
+                    <label for="active-filter-dashboard" style="font-weight:600; cursor: pointer; user-select: none;">Solo En Proceso</label>
+                </div>
+                
                 <label for="zone-filter-global" style="margin-right:8px; font-weight:600;">Filtrar Zona:</label>
-                <select id="zone-filter-global" onchange="updateUIAfterSave()">
+                <select id="zone-filter-global" onchange="updateEmployeesTable()">
                     <option value="ALL">Todas</option>
                     <option value="ZONA 1">ZONA 1</option>
                     <option value="ZONA 2">ZONA 2</option>
@@ -405,6 +442,154 @@
                 </thead>
                 <tbody id="employees-table-body"></tbody>
             </table>
+        </div>
+
+        <div id="analytics" class="tab-content">
+            <div class="instructions">
+                <h3><i class="fas fa-chart-pie"></i> Análisis y Control de Datos Detallado</h3>
+                <p>Utilice los filtros para segmentar la información y obtener un análisis profundo del desempeño y estatus de capacitación y retroalimentación.</p>
+                <div class="info-badge">Total Filtrado: <span id="analytics-total-employees">0</span> empleados</div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-box">
+                    <div class="stat-title">Personal con Exp. en Ventas</div>
+                    <div class="stat-value" id="sales-experience-count">0</div>
+                </div>
+                <div class="stat-box" style="border-top:4px solid var(--secondary-color);">
+                    <div class="stat-title">Promedio Calif. Retro. 1 (30 días)</div>
+                    <div class="stat-value" id="avg-feedback1">0</div>
+                </div>
+                <div class="stat-box" style="border-top:4px solid var(--accent-color);">
+                    <div class="stat-title">Promedio Calif. Retro. 2 (70 días)</div>
+                    <div class="stat-value" id="avg-feedback2">0</div>
+                </div>
+                <div class="stat-box" style="border-top:4px solid var(--danger-color);">
+                    <div class="stat-title">Personal de Baja / Renuncia</div>
+                    <div class="stat-value" id="inactive-personnel">0</div>
+                </div>
+            </div>
+
+            <div class="controls" style="justify-content: flex-start; flex-direction: row; align-items: flex-start; margin-top: 0; gap: 20px;">
+                <div class="filter-group" style="flex-direction: column; align-items: stretch; border-right: 1px solid #eee; padding-right: 20px;">
+                    <h4 style="color: var(--primary-color); margin-bottom: 10px;"><i class="fas fa-filter"></i> Filtros de Contexto</h4>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                        <label for="zone-filter-analytics" style="font-weight:600;">Zona:</label>
+                        <select id="zone-filter-analytics" onchange="updateAnalyticsTab()" style="width: 100px;">
+                            <option value="ALL">Todas</option>
+                            <option value="ZONA 1">ZONA 1</option>
+                            <option value="ZONA 2">ZONA 2</option>
+                            <option value="ZONA 3">ZONA 3</option>
+                            <option value="ZONA 4">ZONA 4</option>
+                        </select>
+                        <label for="status-filter-analytics" style="font-weight:600;">Estatus Final:</label>
+                        <select id="status-filter-analytics" onchange="updateAnalyticsTab()" style="width: 120px;">
+                            <option value="ALL">Todos</option>
+                            <option value="En proceso">En Proceso</option>
+                            <option value="Aprobado">Aprobado</option>
+                            <option value="No Aprobado">No Aprobado</option>
+                            <option value="Baja">Baja</option>
+                            <option value="Renuncia">Renuncia</option>
+                        </select>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                        <label for="sales-exp-filter-analytics" style="font-weight:600;">Exp. Ventas:</label>
+                        <select id="sales-exp-filter-analytics" onchange="updateAnalyticsTab()" style="width: 100px;">
+                            <option value="ALL">Todos</option>
+                            <option value="true">Sí</option>
+                            <option value="false">No</option>
+                            <option value="PENDIENTE">Pendiente</option>
+                        </select>
+                        
+                        <label for="previous-workplace-filter" style="font-weight:600;">Lugar Anterior:</label>
+                        <select id="previous-workplace-filter" onchange="updateAnalyticsTab()" style="width: 120px;">
+                            <option value="ALL">Todos</option>
+                            <option value="SPECIFIED">Especificado</option>
+                            <option value="N/A">No Especificado</option>
+                        </select>
+                    </div>
+                    
+                    <h4 style="color: var(--primary-color); margin-top: 15px; margin-bottom: 10px;"><i class="fas fa-search"></i> Búsqueda Rápida</h4>
+                    <div class="form-group" style="margin: 0;">
+                        <input type="text" id="search-analytics" onkeyup="updateAnalyticsTab()" placeholder="🔍 Buscar Nombre / Sucursal" style="padding: 6px; width: 100%;">
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="clearAnalyticsFilters()" style="margin-top: 10px;"><i class="fas fa-undo"></i> Limpiar Filtros</button>
+                </div>
+                
+                <div class="filter-group" style="flex-direction: column; align-items: stretch; border-right: 1px solid #eee; padding-right: 20px;">
+                    <h4 style="color: var(--primary-color); margin-bottom: 10px;"><i class="fas fa-medal"></i> Filtros de Performance</h4>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                        <label for="progress-filter-analytics" style="font-weight:600;">Progreso:</label>
+                        <select id="progress-filter-analytics" onchange="updateAnalyticsTab()" style="width: 120px;">
+                            <option value="ALL">Todos</option>
+                            <option value="COMPLETED">100% (Completo)</option>
+                            <option value="INCOMPLETE">0-99% (Incompleto)</option>
+                            <option value="PENDING">0% (Pendiente)</option>
+                        </select>
+                        
+                        <label for="avg-score-filter-analytics" style="font-weight:600;">Promedio Calif:</label>
+                        <select id="avg-score-filter-analytics" onchange="updateAnalyticsTab()" style="width: 120px;">
+                            <option value="ALL">Todos</option>
+                            <option value="HIGH">Alto (80-100)</option>
+                            <option value="MEDIUM">Medio (60-79)</option>
+                            <option value="LOW">Bajo (0-59)</option>
+                            <option value="N/A">N/A (Sin completar)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <label for="feedback1-filter-analytics" style="font-weight:600;">Retro 1:</label>
+                        <select id="feedback1-filter-analytics" onchange="updateAnalyticsTab()" style="width: 120px;">
+                            <option value="ALL">Todos</option>
+                            <option value="COMPLETED">Completa</option>
+                            <option value="PENDING">Pendiente</option>
+                        </select>
+                        <label for="feedback2-filter-analytics" style="font-weight:600;">Retro 2:</label>
+                        <select id="feedback2-filter-analytics" onchange="updateAnalyticsTab()" style="width: 120px;">
+                            <option value="ALL">Todos</option>
+                            <option value="COMPLETED">Completa</option>
+                            <option value="PENDING">Pendiente</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="filter-group" style="flex-direction: column; flex-grow: 1; align-items: stretch;">
+                    <h4 style="color: var(--primary-color); margin-bottom: 10px;"><i class="fas fa-chart-bar"></i> Visualización de Datos (Filtrados)</h4>
+                    <div id="analytics-charts-container" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div id="status-chart" style="flex: 1; min-width: 250px; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                            <div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Estatus Final</div>
+                            </div>
+                        <div id="progress-chart" style="flex: 1; min-width: 250px; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                            <div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Progreso Capacitación</div>
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="evaluation-table-wrapper"> 
+                <table id="analytics-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Sucursal</th>
+                            <th>Zona</th>
+                            <th>Fecha Inicio</th>
+                            <th>Días Restantes</th>
+                            <th>Exp. Ventas</th>
+                            <th>Lugar Anterior</th>
+                            <th>Progreso Total</th>
+                            <th>Calif. Retro 1</th>
+                            <th>Calif. Retro 2</th>
+                            <th>Promedio Final</th>
+                            <th>Estatus</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analytics-table-body">
+                        </tbody>
+                </table>
+            </div>
         </div>
 
         <div id="instructions" class="tab-content">
@@ -469,6 +654,7 @@
                             <th>Suma Total</th>
                             <th>Promedio</th>
                             <th>Estatus Final</th>
+                            <th>Observaciones</th>
                         </tr>
                     </thead>
                     <tbody id="evaluations-table-body"></tbody>
@@ -778,7 +964,8 @@
                             feedback2Completed: emp.feedback2Completed || false,
                             status: emp.status || 'En proceso',
                             hasSalesExperience: hasSalesExperienceValue,
-                            previousWorkplace: emp.previousWorkplace || '', 
+                            previousWorkplace: emp.previousWorkplace || '',
+                            observations: emp.observations || '' 
                         };
                     });
                     
@@ -833,7 +1020,8 @@
                         }
                         return {
                             ...emp,
-                            hasSalesExperience: hasSalesExperienceValue
+                            hasSalesExperience: hasSalesExperienceValue,
+                            observations: emp.observations || '' 
                         };
                     });
                     
@@ -866,7 +1054,8 @@
                         feedback2Completed: false,
                         status: 'En proceso',
                         hasSalesExperience: 'PENDIENTE', // Valor inicial por defecto
-                        previousWorkplace: '', 
+                        previousWorkplace: '',
+                        observations: ''
                     }];
                     
                     updateUIAfterSave();
@@ -997,6 +1186,7 @@
             updateEvaluationsTable();
             updateUserManagementTable();
             updateStats();
+            updateAnalyticsTab(); 
         }
 
         function updateEmployeesTable() {
@@ -1004,10 +1194,17 @@
             if (!tableBody) return;
             
             const zoneFilter = document.getElementById('zone-filter-global').value;
+            const activeOnly = document.getElementById('active-filter-dashboard').checked; // NUEVA LÍNEA
+
             let filteredEmployees = employees;
             
             if (zoneFilter !== 'ALL') {
                 filteredEmployees = employees.filter(emp => emp.zone === zoneFilter);
+            }
+            
+            // Lógica para filtrar solo "En proceso"
+            if (activeOnly) {
+                filteredEmployees = filteredEmployees.filter(emp => emp.status === 'En proceso');
             }
             
             // Ordenar por fecha de inicio (más antigua primero)
@@ -1024,6 +1221,7 @@
                 const progress = calculateProgress(emp);
                 const progressClass = getProgressClass(progress, daysRemaining, emp.status);
 
+                // Solo deshabilitar la capacitación si el estatus es Baja/Renuncia
                 const isDisabled = emp.status === 'Baja' || emp.status === 'Renuncia' ? 'disabled' : '';
                 if (isDisabled) {
                     daysRemaining = 0;
@@ -1076,6 +1274,33 @@
                 saveData();
             }
         }
+        
+        // Función dedicada para actualizar observaciones o el estatus final
+        function updateEvaluationField(id, field, value) {
+            const employee = employees.find(emp => emp.id === id);
+            if (employee) {
+                 // Verificar permisos (solo si no es ALL, se verifica que sea su zona)
+                if (!checkAccess(employee.zone)) {
+                    showNotification("No tiene permisos para modificar este empleado", true);
+                    // Restaurar el valor original si es un select (no necesario en input[text] si es observación)
+                    if (field === 'status') {
+                        setTimeout(() => {
+                            updateUIAfterSave();
+                        }, 100);
+                    }
+                    return;
+                }
+
+                if (field === 'observations') {
+                    // Mantener el texto original en mayúsculas
+                    employee[field] = toUpperCaseSafe(value); 
+                } else {
+                    employee[field] = value;
+                }
+                saveData();
+            }
+        }
+
 
         function updateEvaluationsTable() {
             const tableBody = document.getElementById('evaluations-table-body');
@@ -1125,22 +1350,22 @@
                 const isStatusInactive = emp.status === 'Baja' || emp.status === 'Renuncia';
                 // Verificar si el usuario tiene permiso para editar
                 const canEdit = checkAccess(emp.zone);
-                // Si el estatus es inactivo O no tiene permiso, deshabilitar.
-                const isDisabled = isStatusInactive || !canEdit ? 'disabled' : '';
+                // Inhabilita los campos de entrenamiento/calif. si el estatus es Baja/Renuncia O si no tiene permiso.
+                const isDisabledTraining = isStatusInactive || !canEdit ? 'disabled' : ''; 
 
                 if (isStatusInactive) {
                     daysRemaining = 0;
                 }
 
                 const totalScore = emp.feedback1 + emp.feedback2;
-                const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
+                const totalCount = (emp.feedback1Completed ? 1 : 0) + (emp.feedback2Completed ? 1 : 0);
+                const averageScore = totalCount > 0 ? (totalScore / totalCount).toFixed(1) : 0;
 
                 const row = document.createElement('tr');
                 row.className = progressClass;
                 
-                // Nota: El select de estatus debe ser editable por los supervisores de zona (canEdit)
-                // y se maneja con la clase `evaluation-status-select` para evitar la deshabilitación total.
-                const isStatusSelectDisabled = !canEdit && currentUser.zone !== 'ALL' || isStatusInactive ? 'disabled' : '';
+                // Los selects de Estatus y Observaciones solo se deshabilitan si el usuario NO tiene permisos de zona.
+                const isStatusObservationDisabled = !canEdit ? 'disabled' : '';
                 
                 // Determinar el valor seleccionado para 'Exp. Ventas'
                 let salesExpValue = emp.hasSalesExperience;
@@ -1157,7 +1382,7 @@
                     <td>${formatDate(emp.endDate)}</td>
                     <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
                     <td>
-                        <select class="evaluation-select-small" ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'hasSalesExperience', this.value === 'true' ? true : (this.value === 'false' ? false : 'PENDIENTE'))">
+                        <select class="evaluation-select-small" ${isDisabledTraining} onchange="updateEmployeeField('${emp.id}', 'hasSalesExperience', this.value === 'true' ? true : (this.value === 'false' ? false : 'PENDIENTE'))">
                             <option value="PENDIENTE" ${salesExpSelectedPendiente}>Pendiente</option>
                             <option value="true" ${salesExpSelectedSi}>Sí</option>
                             <option value="false" ${salesExpSelectedNo}>No</option>
@@ -1165,32 +1390,37 @@
                     </td>
                     <td>
                         <input type="text" value="${emp.previousWorkplace || ''}" class="evaluation-text-input" placeholder="Lugar" 
-                               maxlength="30" ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'previousWorkplace', toUpperCaseSafe(this.value))">
+                               maxlength="30" ${isDisabledTraining} onchange="updateEmployeeField('${emp.id}', 'previousWorkplace', toUpperCaseSafe(this.value))">
                     </td>
                     <td>
-                        <input type="checkbox" ${emp.feedback1Completed ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'feedback1Completed', this.checked)">
+                        <input type="checkbox" ${emp.feedback1Completed ? 'checked' : ''} ${isDisabledTraining} onchange="updateEmployeeField('${emp.id}', 'feedback1Completed', this.checked)">
                         <div class="feedback-date">${getFeedbackDate(emp.startDate, 30)}</div>
                     </td>
                     <td>
-                        <input type="number" min="0" max="100" step="1" value="${emp.feedback1}" class="feedback-score" ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'feedback1', parseFloat(this.value) || 0)">
+                        <input type="number" min="0" max="100" step="1" value="${emp.feedback1}" class="feedback-score" ${isDisabledTraining} onchange="updateEmployeeField('${emp.id}', 'feedback1', parseFloat(this.value) || 0)">
                     </td>
                     <td>
-                        <input type="checkbox" ${emp.feedback2Completed ? 'checked' : ''} ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'feedback2Completed', this.checked)">
+                        <input type="checkbox" ${emp.feedback2Completed ? 'checked' : ''} ${isDisabledTraining} onchange="updateEmployeeField('${emp.id}', 'feedback2Completed', this.checked)">
                         <div class="feedback-date">${getFeedbackDate(emp.startDate, 70)}</div>
                     </td>
                     <td>
-                        <input type="number" min="0" max="100" step="1" value="${emp.feedback2}" class="feedback-score" ${isDisabled} onchange="updateEmployeeField('${emp.id}', 'feedback2', parseFloat(this.value) || 0)">
+                        <input type="number" min="0" max="100" step="1" value="${emp.feedback2}" class="feedback-score" ${isDisabledTraining} onchange="updateEmployeeField('${emp.id}', 'feedback2', parseFloat(this.value) || 0)">
                     </td>
                     <td class="total-score">${totalScore}</td>
                     <td class="average-score">${averageScore}</td>
                     <td>
-                        <select onchange="updateEmployeeField('${emp.id}', 'status', this.value)" class="evaluation-status-select" ${isStatusSelectDisabled}>
+                        <select onchange="updateEvaluationField('${emp.id}', 'status', this.value)" class="evaluation-status-select" ${isStatusObservationDisabled}>
                             <option value="Aprobado" ${emp.status === 'Aprobado' ? 'selected' : ''}>Aprobado</option>
                             <option value="No Aprobado" ${emp.status === 'No Aprobado' ? 'selected' : ''}>No Aprobado</option>
                             <option value="Baja" ${emp.status === 'Baja' ? 'selected' : ''}>Baja</option>
                             <option value="Renuncia" ${emp.status === 'Renuncia' ? 'selected' : ''}>Renuncia</option>
                             <option value="En proceso" ${emp.status === 'En proceso' ? 'selected' : ''}>En proceso</option>
                         </select>
+                    </td>
+                    <td>
+                        <textarea class="observation-input" placeholder="Observaciones" rows="3" 
+                                  onchange="updateEvaluationField('${emp.id}', 'observations', this.value)" 
+                                  ${isStatusObservationDisabled}>${emp.observations || ''}</textarea>
                     </td>
                 `;
                 
@@ -1292,6 +1522,304 @@
             document.getElementById('expiring-soon').textContent = expiringSoonCount;
         }
 
+        /* ===========================
+           ANÁLISIS DE DATOS - FUNCIONES
+           =========================== */
+
+        function getEmployeeAverageScore(emp) {
+            const totalScore = emp.feedback1 + emp.feedback2;
+            const totalCount = (emp.feedback1Completed ? 1 : 0) + (emp.feedback2Completed ? 1 : 0);
+            return totalCount > 0 ? (totalScore / totalCount) : null; // Retorna null si no hay retroalimentaciones completadas
+        }
+
+        function updateAnalyticsTab() {
+            const tableBody = document.getElementById('analytics-table-body');
+            if (!tableBody) return;
+
+            // Obtener todos los valores de filtro
+            const zoneFilter = document.getElementById('zone-filter-analytics').value;
+            const statusFilter = document.getElementById('status-filter-analytics').value;
+            const salesExpFilter = document.getElementById('sales-exp-filter-analytics').value;
+            const previousWorkplaceFilter = document.getElementById('previous-workplace-filter').value;
+            const progressFilter = document.getElementById('progress-filter-analytics').value;
+            const avgScoreFilter = document.getElementById('avg-score-filter-analytics').value;
+            const feedback1Filter = document.getElementById('feedback1-filter-analytics').value;
+            const feedback2Filter = document.getElementById('feedback2-filter-analytics').value;
+            const searchName = document.getElementById('search-analytics').value.trim().toUpperCase();
+
+            // 1. Filtrado de Empleados (Filtro compuesto)
+            let filteredEmployees = employees.filter(emp => {
+                const empProgress = calculateProgress(emp);
+                const empAvgScore = getEmployeeAverageScore(emp);
+                
+                // Zona
+                if (zoneFilter !== 'ALL' && emp.zone !== zoneFilter) return false;
+                
+                // Estatus Final
+                if (statusFilter !== 'ALL' && emp.status !== statusFilter) return false;
+                
+                // Experiencia en Ventas
+                if (salesExpFilter !== 'ALL') {
+                    if (salesExpFilter === 'true' && emp.hasSalesExperience !== true) return false;
+                    if (salesExpFilter === 'false' && emp.hasSalesExperience !== false) return false;
+                    if (salesExpFilter === 'PENDIENTE' && emp.hasSalesExperience !== 'PENDIENTE') return false;
+                }
+                
+                // Lugar Anterior 
+                if (previousWorkplaceFilter !== 'ALL') {
+                    const hasWorkplace = emp.previousWorkplace && emp.previousWorkplace.trim().length > 0;
+                    if (previousWorkplaceFilter === 'SPECIFIED' && !hasWorkplace) return false;
+                    if (previousWorkplaceFilter === 'N/A' && hasWorkplace) return false;
+                }
+
+                // Progreso de Capacitación
+                if (progressFilter !== 'ALL') {
+                    if (progressFilter === 'COMPLETED' && empProgress !== 100) return false;
+                    if (progressFilter === 'INCOMPLETE' && (empProgress === 100 || empProgress === 0)) return false;
+                    if (progressFilter === 'PENDING' && empProgress !== 0) return false;
+                }
+
+                // Estatus Retroalimentación 1
+                if (feedback1Filter !== 'ALL') {
+                    if (feedback1Filter === 'COMPLETED' && emp.feedback1Completed !== true) return false;
+                    if (feedback1Filter === 'PENDING' && emp.feedback1Completed !== false) return false;
+                }
+                
+                // Estatus Retroalimentación 2
+                if (feedback2Filter !== 'ALL') {
+                    if (feedback2Filter === 'COMPLETED' && emp.feedback2Completed !== true) return false;
+                    if (feedback2Filter === 'PENDING' && emp.feedback2Completed !== false) return false;
+                }
+
+                // Promedio de Calificación (Solo si hay una calificación válida)
+                if (avgScoreFilter !== 'ALL') {
+                    if (avgScoreFilter === 'N/A' && empAvgScore !== null) return false;
+                    if (empAvgScore !== null) {
+                        if (avgScoreFilter === 'HIGH' && (empAvgScore < 80 || empAvgScore > 100)) return false;
+                        if (avgScoreFilter === 'MEDIUM' && (empAvgScore < 60 || empAvgScore >= 80)) return false;
+                        if (avgScoreFilter === 'LOW' && (empAvgScore >= 0 && empAvgScore < 60)) return false;
+                    } else if (avgScoreFilter !== 'N/A') {
+                        return false; 
+                    }
+                }
+
+                // Búsqueda por Nombre / Sucursal
+                if (searchName) {
+                    if (!emp.name.toUpperCase().includes(searchName) && !emp.branch.toUpperCase().includes(searchName)) return false;
+                }
+
+                return true;
+            });
+            
+            // Ordenar por fecha de inicio (más antigua primero)
+            filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
+
+            document.getElementById('analytics-total-employees').textContent = filteredEmployees.length;
+
+            // 2. Cálculo de Estadísticas y Gráficos
+            let salesExperienceCount = 0;
+            let sumFeedback1 = 0;
+            let countFeedback1 = 0;
+            let sumFeedback2 = 0;
+            let countFeedback2 = 0;
+            let inactiveCount = 0;
+            
+            const statusCounts = { 'Aprobado': 0, 'No Aprobado': 0, 'En proceso': 0, 'Baja': 0, 'Renuncia': 0 };
+            const progressCounts = { 'COMPLETED': 0, 'INCOMPLETE': 0, 'PENDING': 0 };
+
+
+            filteredEmployees.forEach(emp => {
+                const empProgress = calculateProgress(emp);
+                
+                // Stat Boxes
+                if (emp.hasSalesExperience === true) {
+                    salesExperienceCount++;
+                }
+                if (emp.status === 'Baja' || emp.status === 'Renuncia') {
+                    inactiveCount++;
+                }
+                if (emp.feedback1Completed) {
+                    sumFeedback1 += emp.feedback1;
+                    countFeedback1++;
+                }
+                if (emp.feedback2Completed) {
+                    sumFeedback2 += emp.feedback2;
+                    countFeedback2++;
+                }
+                
+                // Chart Data - Status
+                if (statusCounts.hasOwnProperty(emp.status)) {
+                    statusCounts[emp.status]++;
+                } else {
+                    statusCounts[emp.status] = 1; 
+                }
+
+                // Chart Data - Progress
+                if (empProgress === 100) {
+                    progressCounts['COMPLETED']++;
+                } else if (empProgress > 0) {
+                    progressCounts['INCOMPLETE']++;
+                } else {
+                    progressCounts['PENDING']++;
+                }
+            });
+
+            // Actualizar Stats Boxes
+            const avgFeedback1 = countFeedback1 > 0 ? (sumFeedback1 / countFeedback1).toFixed(1) : 'N/A';
+            const avgFeedback2 = countFeedback2 > 0 ? (sumFeedback2 / countFeedback2).toFixed(1) : 'N/A';
+            
+            document.getElementById('sales-experience-count').textContent = salesExperienceCount;
+            document.getElementById('avg-feedback1').textContent = avgFeedback1;
+            document.getElementById('avg-feedback2').textContent = avgFeedback2;
+            document.getElementById('inactive-personnel').textContent = inactiveCount;
+            
+            // Renderizar Gráficos
+            renderAnalyticsCharts(filteredEmployees.length, statusCounts, progressCounts);
+
+
+            // 3. Renderizado de la Tabla
+            tableBody.innerHTML = '';
+            
+            filteredEmployees.forEach(emp => {
+                const startDate = parseDateFromInput(emp.startDate);
+                const endDate = parseDateFromInput(emp.endDate);
+                const today = todayLocal();
+                let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                
+                const progress = calculateProgress(emp);
+                const empAvgScore = getEmployeeAverageScore(emp);
+                const averageScore = empAvgScore !== null ? empAvgScore.toFixed(1) : 'N/A';
+                
+                const progressClass = getProgressClass(0, 0, emp.status);
+                
+                if (emp.status === 'Baja' || emp.status === 'Renuncia') {
+                    daysRemaining = 0;
+                }
+
+                // Formatear Exp. Ventas
+                let salesExpText;
+                if (emp.hasSalesExperience === true) {
+                    salesExpText = 'Sí';
+                } else if (emp.hasSalesExperience === false) {
+                    salesExpText = 'No';
+                } else {
+                    salesExpText = 'PENDIENTE';
+                }
+
+                // Clase para el promedio final (para resaltar)
+                let avgScoreClass = '';
+                if (empAvgScore !== null) {
+                    if (empAvgScore < 60) {
+                        avgScoreClass = 'days-critical';
+                    } else if (empAvgScore < 80) {
+                        avgScoreClass = 'days-warning';
+                    } else {
+                        avgScoreClass = 'days-normal';
+                    }
+                }
+
+                const workplaceDisplay = emp.previousWorkplace && emp.previousWorkplace.trim().length > 0 ? emp.previousWorkplace : 'N/A';
+                
+                const row = document.createElement('tr');
+                row.className = progressClass;
+                
+                row.innerHTML = `
+                    <td>${emp.id}</td>
+                    <td class="employee-name">${emp.name}</td>
+                    <td><span class="branch">${emp.branch}</span></td>
+                    <td>${emp.zone}</td>
+                    <td>${formatDate(emp.startDate)}</td>
+                    <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
+                    <td>${salesExpText}</td>
+                    <td>${workplaceDisplay}</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%; background-color: ${getProgressColor(progress)}"></div>
+                            <div class="progress-text">${progress}%</div>
+                        </div>
+                    </td>
+                    <td>${emp.feedback1Completed ? emp.feedback1 : 'N/A'}</td>
+                    <td>${emp.feedback2Completed ? emp.feedback2 : 'N/A'}</td>
+                    <td class="${avgScoreClass}">${averageScore}</td>
+                    <td><span class="feedback-status status-${emp.status.toLowerCase().replace(/ /g, '-')}">${emp.status}</span></td>
+                    <td>${emp.observations || 'N/A'}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        function renderAnalyticsCharts(totalFiltered, statusCounts, progressCounts) {
+            const statusChartContainer = document.getElementById('status-chart');
+            const progressChartContainer = document.getElementById('progress-chart');
+            
+            if (!statusChartContainer || !progressChartContainer) return;
+            
+            // --- Chart Status ---
+            let statusHtml = '<div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Estatus Final</div><div class="chart-bar-container">';
+            Object.keys(statusCounts).forEach(status => {
+                const count = statusCounts[status];
+                const percentage = totalFiltered > 0 ? ((count / totalFiltered) * 100).toFixed(0) : 0;
+                const statusClass = `status-${status.toLowerCase().replace(/ /g, '-')}`;
+                if (count > 0) {
+                    statusHtml += `
+                        <div class="chart-bar-item">
+                            <span class="chart-label">${status} (${percentage}%)</span>
+                            <div class="chart-bar-wrapper">
+                                <div class="chart-bar-fill ${statusClass}" style="width: ${percentage}%">${count}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            statusHtml += '</div>';
+            statusChartContainer.innerHTML = statusHtml;
+
+            // --- Chart Progress ---
+            let progressHtml = '<div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Progreso Capacitación</div><div class="chart-bar-container">';
+            const progressLabels = {
+                'COMPLETED': '100% Completo',
+                'INCOMPLETE': '0-99% Incompleto',
+                'PENDING': '0% Pendiente'
+            };
+            Object.keys(progressCounts).forEach(progressKey => {
+                const count = progressCounts[progressKey];
+                const percentage = totalFiltered > 0 ? ((count / totalFiltered) * 100).toFixed(0) : 0;
+                const progressClass = `progress-${progressKey.toLowerCase()}`;
+                if (count > 0) {
+                    progressHtml += `
+                        <div class="chart-bar-item">
+                            <span class="chart-label">${progressLabels[progressKey]} (${percentage}%)</span>
+                            <div class="chart-bar-wrapper">
+                                <div class="chart-bar-fill ${progressClass}" style="width: ${percentage}%">${count}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            progressHtml += '</div>';
+            progressChartContainer.innerHTML = progressHtml;
+        }
+
+        function clearAnalyticsFilters() {
+            document.getElementById('zone-filter-analytics').value = 'ALL';
+            document.getElementById('status-filter-analytics').value = 'ALL';
+            document.getElementById('sales-exp-filter-analytics').value = 'ALL';
+            document.getElementById('previous-workplace-filter').value = 'ALL'; 
+            document.getElementById('progress-filter-analytics').value = 'ALL';
+            document.getElementById('avg-score-filter-analytics').value = 'ALL';
+            document.getElementById('feedback1-filter-analytics').value = 'ALL';
+            document.getElementById('feedback2-filter-analytics').value = 'ALL'; 
+            document.getElementById('search-analytics').value = '';
+            updateAnalyticsTab();
+            showNotification('Filtros de Análisis restablecidos');
+        }
+
+
+        /* ===========================
+           FUNCIONES AUXILIARES EXISTENTES
+           =========================== */
+
         function calculateProgress(employee) {
             let progress = 0;
             if (employee.sacCourse) progress += 20;
@@ -1386,7 +1914,8 @@
                 feedback2Completed: false,
                 status: 'En proceso',
                 hasSalesExperience: 'PENDIENTE', // Valor inicial por defecto
-                previousWorkplace: '', 
+                previousWorkplace: '',
+                observations: '', // NUEVO CAMPO
             };
             
             employees.push(newEmployee);
@@ -1603,7 +2132,7 @@
             // Ordenar por fecha de inicio (más antigua primero)
             filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
             
-            const headers = ['ID', 'Nombre', 'Sucursal', 'Zona', 'Fecha Inicio', 'Fecha Término', 'Días Restantes', 'Exp. Ventas', 'Lugar Anterior', 'Curso SAC', 'Video 1', 'Video 2', 'Video 3', 'Video 4', 'Progreso Total', 'Retro 1', 'Calif 1', 'Retro 2', 'Calif 2', 'Suma Total', 'Promedio', 'Estado Final'];
+            const headers = ['ID', 'Nombre', 'Sucursal', 'Zona', 'Fecha Inicio', 'Fecha Término', 'Días Restantes', 'Exp. Ventas', 'Lugar Anterior', 'Curso SAC', 'Video 1', 'Video 2', 'Video 3', 'Video 4', 'Progreso Total', 'Retro 1', 'Calif 1', 'Retro 2', 'Calif 2', 'Suma Total', 'Promedio', 'Estado Final', 'Observaciones'];
             
             let csvContent = headers.join(',') + '\n';
             
@@ -1614,7 +2143,8 @@
                 let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 const progress = calculateProgress(emp);
                 const totalScore = emp.feedback1 + emp.feedback2;
-                const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
+                const totalCount = (emp.feedback1Completed ? 1 : 0) + (emp.feedback2Completed ? 1 : 0);
+                const averageScore = totalCount > 0 ? (totalScore / totalCount).toFixed(1) : 0;
                 
                 if (emp.status === 'Baja' || emp.status === 'Renuncia') {
                     daysRemaining = 0;
@@ -1629,6 +2159,10 @@
                 } else {
                     salesExpText = 'PENDIENTE';
                 }
+                
+                // Limpiar observaciones para CSV (eliminar saltos de línea)
+                const observationsCleaned = `"${(emp.observations || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
+
 
                 const row = [
                     emp.id,
@@ -1652,7 +2186,8 @@
                     emp.feedback2,
                     totalScore,
                     averageScore,
-                    emp.status
+                    emp.status,
+                    observationsCleaned // NUEVO CAMPO
                 ];
                 
                 csvContent += row.join(',') + '\n';
@@ -1706,7 +2241,8 @@
                 let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 const progress = calculateProgress(emp);
                 const totalScore = emp.feedback1 + emp.feedback2;
-                const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
+                const totalCount = (emp.feedback1Completed ? 1 : 0) + (emp.feedback2Completed ? 1 : 0);
+                const averageScore = totalCount > 0 ? (totalScore / totalCount).toFixed(1) : 0;
                 
                 if (emp.status === 'Baja' || emp.status === 'Renuncia') {
                     daysRemaining = 0;
@@ -1741,16 +2277,17 @@
                     emp.feedback2,
                     totalScore,
                     averageScore,
-                    emp.status
+                    emp.status,
+                    emp.observations || '' // NUEVO CAMPO
                 ]);
             });
             
-            // Encabezados de la tabla
+            // Encabezados de la tabla (Ajustar para incluir Observaciones)
             const headers = [
-                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Días', 'Exp. Ventas', 'Lugar Ant.', 'Progreso', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus']
+                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Días', 'Exp. Ventas', 'Lugar Ant.', 'Progreso', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus', 'Obs.']
             ];
             
-            // Generar tabla
+            // Generar tabla (Ajustar cellWidth para que quepa Obs.)
             doc.autoTable({
                 head: headers,
                 body: tableData,
@@ -1762,24 +2299,25 @@
                 margin: { top: 30, left: 5, right: 5, bottom: 5 },
                 columnStyles: {
                     0: { cellWidth: 8 }, // ID
-                    1: { cellWidth: 30 }, // Nombre
+                    1: { cellWidth: 25 }, // Nombre
                     2: { cellWidth: 15 }, // Sucursal
                     3: { cellWidth: 12 }, // Zona
                     4: { cellWidth: 15 }, // Inicio
                     5: { cellWidth: 8 }, // Días
-                    6: { cellWidth: 12 }, // Exp. Ventas 
-                    7: { cellWidth: 20 }, // Lugar Ant. 
+                    6: { cellWidth: 10 }, // Exp. Ventas 
+                    7: { cellWidth: 18 }, // Lugar Ant. 
                     8: { cellWidth: 12 }, // Progreso
                     9: { cellWidth: 8 }, // SAC
-                    10: { cellWidth: 6 }, // V1
-                    11: { cellWidth: 6 }, // V2
-                    12: { cellWidth: 6 }, // V3
-                    13: { cellWidth: 6 }, // V4
-                    14: { cellWidth: 10 }, // Retro1
-                    15: { cellWidth: 10 }, // Retro2
-                    16: { cellWidth: 10 }, // Suma
-                    17: { cellWidth: 12 }, // Promedio
-                    18: { cellWidth: 20 }  // Estatus
+                    10: { cellWidth: 5 }, // V1
+                    11: { cellWidth: 5 }, // V2
+                    12: { cellWidth: 5 }, // V3
+                    13: { cellWidth: 5 }, // V4
+                    14: { cellWidth: 9 }, // Retro1
+                    15: { cellWidth: 9 }, // Retro2
+                    16: { cellWidth: 9 }, // Suma
+                    17: { cellWidth: 11 }, // Promedio
+                    18: { cellWidth: 18 },  // Estatus
+                    19: { cellWidth: 18 }   // Observaciones (Ajustado)
                 }
             });
             
@@ -1825,7 +2363,8 @@
                 let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 const progress = calculateProgress(emp);
                 const totalScore = emp.feedback1 + emp.feedback2;
-                const averageScore = totalScore > 0 ? (totalScore / 2).toFixed(1) : 0;
+                const totalCount = (emp.feedback1Completed ? 1 : 0) + (emp.feedback2Completed ? 1 : 0);
+                const averageScore = totalCount > 0 ? (totalScore / totalCount).toFixed(1) : 0;
                 
                 if (emp.status === 'Baja' || emp.status === 'Renuncia') {
                     daysRemaining = 0;
@@ -1860,16 +2399,17 @@
                     emp.feedback2,
                     totalScore,
                     averageScore,
-                    emp.status
+                    emp.status,
+                    emp.observations || '' // NUEVO CAMPO
                 ]);
             });
             
-            // Encabezados de la tabla
+            // Encabezados de la tabla (Ajustar para incluir Observaciones)
             const headers = [
-                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Días', 'Exp. Ventas', 'Lugar Ant.', 'Progreso', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus']
+                ['ID', 'Nombre', 'Sucursal', 'Zona', 'Inicio', 'Días', 'Exp. Ventas', 'Lugar Ant.', 'Progreso', 'SAC', 'V1', 'V2', 'V3', 'V4', 'Retro1', 'Retro2', 'Suma', 'Promedio', 'Estatus', 'Obs.']
             ];
             
-            // Generar tabla
+            // Generar tabla (Ajustar cellWidth para que quepa Obs.)
             doc.autoTable({
                 head: headers,
                 body: tableData,
@@ -1881,27 +2421,28 @@
                 margin: { top: 30, left: 5, right: 5, bottom: 5 },
                 columnStyles: {
                     0: { cellWidth: 8 }, // ID
-                    1: { cellWidth: 30 }, // Nombre
+                    1: { cellWidth: 25 }, // Nombre
                     2: { cellWidth: 15 }, // Sucursal
                     3: { cellWidth: 12 }, // Zona
                     4: { cellWidth: 15 }, // Inicio
                     5: { cellWidth: 8 }, // Días
-                    6: { cellWidth: 12 }, // Exp. Ventas 
-                    7: { cellWidth: 20 }, // Lugar Ant. 
+                    6: { cellWidth: 10 }, // Exp. Ventas 
+                    7: { cellWidth: 18 }, // Lugar Ant. 
                     8: { cellWidth: 12 }, // Progreso
                     9: { cellWidth: 8 }, // SAC
-                    10: { cellWidth: 6 }, // V1
-                    11: { cellWidth: 6 }, // V2
-                    12: { cellWidth: 6 }, // V3
-                    13: { cellWidth: 6 }, // V4
-                    14: { cellWidth: 10 }, // Retro1
-                    15: { cellWidth: 10 }, // Retro2
-                    16: { cellWidth: 10 }, // Suma
-                    17: { cellWidth: 12 }, // Promedio
-                    18: { cellWidth: 20 }  // Estatus
+                    10: { cellWidth: 5 }, // V1
+                    11: { cellWidth: 5 }, // V2
+                    12: { cellWidth: 5 }, // V3
+                    13: { cellWidth: 5 }, // V4
+                    14: { cellWidth: 9 }, // Retro1
+                    15: { cellWidth: 9 }, // Retro2
+                    16: { cellWidth: 9 }, // Suma
+                    17: { cellWidth: 11 }, // Promedio
+                    18: { cellWidth: 18 },  // Estatus
+                    19: { cellWidth: 18 }   // Observaciones (Ajustado)
                 }
             });
-            
+
             // Estadísticas al final
             const finalY = doc.lastAutoTable.finalY + 5;
             doc.setFontSize(10);
@@ -2165,6 +2706,7 @@
                 status: 'En proceso',
                 hasSalesExperience: 'PENDIENTE', // Valor inicial por defecto
                 previousWorkplace: '', 
+                observations: '',
             };
             
             employees = [exampleEmployee];
@@ -2221,6 +2763,11 @@
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                     tab.classList.add('active');
                     document.getElementById(target).classList.add('active');
+
+                    // Llamar a la función de actualización específica para la pestaña de Análisis si es la seleccionada
+                    if (target === 'analytics') {
+                        updateAnalyticsTab();
+                    }
                 });
             });
             
