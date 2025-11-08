@@ -1552,6 +1552,255 @@
         }
 
         /* ===========================
+           ANÁLISIS DE DATOS - FILTRADO (CORREGIDO)
+           =========================== */
+
+        function getEmployeeAverageScore(emp) {
+            const totalScore = emp.feedback1 + emp.feedback2;
+            const totalCount = (emp.feedback1Completed ? 1 : 0) + (emp.feedback2Completed ? 1 : 0);
+            return totalCount > 0 ? (totalScore / totalCount) : null; 
+        }
+
+        function updateAnalyticsTab() {
+            const tableBody = document.getElementById('analytics-table-body');
+            if (!tableBody) return;
+
+            // Obtener todos los valores de filtro
+            const zoneFilter = document.getElementById('zone-filter-analytics').value;
+            const statusFilter = document.getElementById('status-filter-analytics').value;
+            const salesExpFilter = document.getElementById('sales-exp-filter-analytics').value;
+            const previousWorkplaceFilter = document.getElementById('previous-workplace-filter').value;
+            const progressFilter = document.getElementById('progress-filter-analytics').value;
+            const avgScoreFilter = document.getElementById('avg-score-filter-analytics').value;
+            const feedback1Filter = document.getElementById('feedback1-filter-analytics').value;
+            const feedback2Filter = document.getElementById('feedback2-filter-analytics').value;
+            const searchName = document.getElementById('search-analytics').value.trim().toUpperCase();
+
+            // 1. Filtrado de Empleados
+            let filteredEmployees = employees.filter(emp => {
+                const empProgress = calculateProgress(emp);
+                const empAvgScore = getEmployeeAverageScore(emp);
+                
+                // Zona
+                if (zoneFilter !== 'ALL' && emp.zone !== zoneFilter) return false;
+                
+                // Estatus Final
+                if (statusFilter !== 'ALL' && emp.status !== statusFilter) return false;
+                
+                // Experiencia en Ventas
+                if (salesExpFilter !== 'ALL') {
+                    let filterValue;
+                    if (salesExpFilter === 'true') filterValue = true;
+                    else if (salesExpFilter === 'false') filterValue = false;
+                    else filterValue = 'PENDIENTE';
+
+                    if (emp.hasSalesExperience !== filterValue) return false;
+                }
+                
+                // Lugar Anterior 
+                if (previousWorkplaceFilter !== 'ALL') {
+                    const hasWorkplace = emp.previousWorkplace && emp.previousWorkplace.trim().length > 0;
+                    if (previousWorkplaceFilter === 'SPECIFIED' && !hasWorkplace) return false;
+                    if (previousWorkplaceFilter === 'N/A' && hasWorkplace) return false;
+                }
+
+                // Progreso de Capacitación
+                if (progressFilter !== 'ALL') {
+                    if (progressFilter === 'COMPLETED' && empProgress !== 100) return false;
+                    if (progressFilter === 'INCOMPLETE' && (empProgress === 100 || empProgress === 0)) return false;
+                    if (progressFilter === 'PENDING' && empProgress !== 0) return false;
+                }
+
+                // Estatus Retroalimentación 1
+                if (feedback1Filter !== 'ALL') {
+                    if (feedback1Filter === 'COMPLETED' && emp.feedback1Completed !== true) return false;
+                    if (feedback1Filter === 'PENDING' && emp.feedback1Completed !== false) return false;
+                }
+                
+                // Estatus Retroalimentación 2
+                if (feedback2Filter !== 'ALL') {
+                    if (feedback2Filter === 'COMPLETED' && emp.feedback2Completed !== true) return false;
+                    if (feedback2Filter === 'PENDING' && emp.feedback2Completed !== false) return false;
+                }
+
+                // Promedio de Calificación 
+                if (avgScoreFilter !== 'ALL') {
+                    if (avgScoreFilter === 'N/A' && empAvgScore !== null) return false;
+                    if (empAvgScore !== null) {
+                        if (avgScoreFilter === 'HIGH' && (empAvgScore < 80 || empAvgScore > 100)) return false;
+                        if (avgScoreFilter === 'MEDIUM' && (empAvgScore < 60 || empAvgScore >= 80)) return false;
+                        if (avgScoreFilter === 'LOW' && (empAvgScore >= 0 && empAvgScore < 60)) return false;
+                    } else if (avgScoreFilter !== 'N/A') {
+                        return false; 
+                    }
+                }
+
+                // Búsqueda por Nombre / Sucursal
+                if (searchName) {
+                    if (!emp.name.toUpperCase().includes(searchName) && !emp.branch.toUpperCase().includes(searchName)) return false;
+                }
+
+                return true;
+            });
+            
+            // Ordenar por fecha de inicio (más antigua primero)
+            filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
+
+            // Actualizar la variable global para los reportes
+            currentFilteredAnalyticsEmployees = filteredEmployees; 
+            document.getElementById('analytics-total-employees').textContent = filteredEmployees.length;
+
+            // 2. Cálculo de Estadísticas y Gráficos
+            let salesExperienceCount = 0;
+            let sumFeedback1 = 0;
+            let countFeedback1 = 0;
+            let sumFeedback2 = 0;
+            let countFeedback2 = 0;
+            let inactiveCount = 0;
+            
+            const statusCounts = { 'Aprobado': 0, 'No Aprobado': 0, 'En proceso': 0, 'Baja': 0, 'Renuncia': 0 };
+            const progressCounts = { 'COMPLETED': 0, 'INCOMPLETE': 0, 'PENDING': 0 };
+
+
+            filteredEmployees.forEach(emp => {
+                const empProgress = calculateProgress(emp);
+                
+                // Stat Boxes
+                if (emp.hasSalesExperience === true) {
+                    salesExperienceCount++;
+                }
+                if (emp.status === 'Baja' || emp.status === 'Renuncia') {
+                    inactiveCount++;
+                }
+                if (emp.feedback1Completed) {
+                    sumFeedback1 += emp.feedback1;
+                    countFeedback1++;
+                }
+                if (emp.feedback2Completed) {
+                    sumFeedback2 += emp.feedback2;
+                    countFeedback2++;
+                }
+                
+                // Chart Data - Status
+                if (statusCounts.hasOwnProperty(emp.status)) {
+                    statusCounts[emp.status]++;
+                } else {
+                    statusCounts[emp.status] = 1; 
+                }
+
+                // Chart Data - Progress
+                if (empProgress === 100) {
+                    progressCounts['COMPLETED']++;
+                } else if (empProgress > 0) {
+                    progressCounts['INCOMPLETE']++;
+                } else {
+                    progressCounts['PENDING']++;
+                }
+            });
+
+            // Actualizar Stats Boxes
+            const avgFeedback1 = countFeedback1 > 0 ? (sumFeedback1 / countFeedback1).toFixed(1) : 'N/A';
+            const avgFeedback2 = countFeedback2 > 0 ? (sumFeedback2 / countFeedback2).toFixed(1) : 'N/A';
+            
+            document.getElementById('sales-experience-count').textContent = salesExperienceCount;
+            document.getElementById('avg-feedback1').textContent = avgFeedback1;
+            document.getElementById('avg-feedback2').textContent = avgFeedback2;
+            document.getElementById('inactive-personnel').textContent = inactiveCount;
+            
+            // Renderizar Gráficos
+            renderAnalyticsCharts(filteredEmployees.length, statusCounts, progressCounts);
+
+
+            // 3. Renderizado de la Tabla
+            tableBody.innerHTML = '';
+            
+            filteredEmployees.forEach(emp => {
+                const startDate = parseDateFromInput(emp.startDate);
+                const endDate = parseDateFromInput(emp.endDate);
+                const today = todayLocal();
+                let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                
+                const progress = calculateProgress(emp);
+                const empAvgScore = getEmployeeAverageScore(emp);
+                const averageScore = empAvgScore !== null ? empAvgScore.toFixed(1) : 'N/A';
+                
+                const progressClass = getProgressClass(0, 0, emp.status);
+                
+                if (emp.status === 'Baja' || emp.status === 'Renuncia') {
+                    daysRemaining = 0;
+                }
+
+                // Formatear Exp. Ventas
+                let salesExpText;
+                if (emp.hasSalesExperience === true) {
+                    salesExpText = 'Sí';
+                } else if (emp.hasSalesExperience === false) {
+                    salesExpText = 'No';
+                } else {
+                    salesExpText = 'PENDIENTE';
+                }
+
+                // Clase para el promedio final (para resaltar)
+                let avgScoreClass = '';
+                if (empAvgScore !== null) {
+                    if (empAvgScore < 60) {
+                        avgScoreClass = 'days-critical';
+                    } else if (empAvgScore < 80) {
+                        avgScoreClass = 'days-warning';
+                    } else {
+                        avgScoreClass = 'days-normal';
+                    }
+                }
+
+                const workplaceDisplay = emp.previousWorkplace && emp.previousWorkplace.trim().length > 0 ? emp.previousWorkplace : 'N/A';
+                
+                const row = document.createElement('tr');
+                row.className = progressClass;
+                
+                row.innerHTML = `
+                    <td>${emp.id}</td>
+                    <td class="employee-name">${emp.name}</td>
+                    <td><span class="branch">${emp.branch}</span></td>
+                    <td>${emp.zone}</td>
+                    <td>${formatDate(emp.startDate)}</td>
+                    <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
+                    <td>${salesExpText}</td>
+                    <td>${workplaceDisplay}</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%; background-color: ${getProgressColor(progress)}"></div>
+                            <div class="progress-text">${progress}%</div>
+                        </div>
+                    </td>
+                    <td>${emp.feedback1Completed ? emp.feedback1 : 'N/A'}</td>
+                    <td>${emp.feedback2Completed ? emp.feedback2 : 'N/A'}</td>
+                    <td class="${avgScoreClass}">${averageScore}</td>
+                    <td><span class="feedback-status status-${emp.status.toLowerCase().replace(/ /g, '-')}">${emp.status}</span></td>
+                    <td>${emp.observations || 'N/A'}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        function clearAnalyticsFilters() {
+            document.getElementById('zone-filter-analytics').value = 'ALL';
+            document.getElementById('status-filter-analytics').value = 'ALL';
+            document.getElementById('sales-exp-filter-analytics').value = 'ALL';
+            document.getElementById('previous-workplace-filter').value = 'ALL'; 
+            document.getElementById('progress-filter-analytics').value = 'ALL';
+            document.getElementById('avg-score-filter-analytics').value = 'ALL';
+            document.getElementById('feedback1-filter-analytics').value = 'ALL';
+            document.getElementById('feedback2-filter-analytics').value = 'ALL'; 
+            document.getElementById('search-analytics').value = '';
+            
+            // CRITICAL FIX: Llamar a la función de actualización después de resetear los filtros
+            updateAnalyticsTab(); 
+            
+            showNotification('Filtros de Análisis restablecidos');
+        }
+
+        /* ===========================
            FUNCIONES AUXILIARES EXISTENTES
            =========================== */
 
@@ -1596,7 +1845,7 @@
         }
 
         /* ===========================
-           FUNCIONES DE FIREBASE STORAGE (ACTUALIZADAS Y CORREGIDAS)
+           FUNCIONES DE FIREBASE STORAGE
            =========================== */
 
         function uploadPdf(id, feedbackNumber) {
@@ -1730,6 +1979,157 @@
         }
 
         /* ===========================
+           GESTIÓN DE EMPLEADOS
+           =========================== */
+        function addEmployee() {
+            const name = document.getElementById('new-name').value.trim();
+            const branch = document.getElementById('new-branch').value.trim();
+            const zone = document.getElementById('new-zone').value;
+            const startDateInput = document.getElementById('new-start-date').value;
+            
+            if (!name || !branch || !startDateInput) {
+                showNotification('Por favor complete todos los campos obligatorios', true);
+                return;
+            }
+            
+            // Validar formato de fecha
+            if (!isValidDate(startDateInput)) {
+                document.getElementById('date-error').style.display = 'block';
+                return;
+            } else {
+                document.getElementById('date-error').style.display = 'none';
+            }
+            
+            // Verificar permisos para agregar empleados en esta zona
+            if (currentUser.zone !== 'ALL' && currentUser.zone !== zone) {
+                showNotification('Solo puede agregar empleados a su zona asignada', true);
+                return;
+            }
+            
+            // Calcular fecha de término: 90 días contando el día de inicio => +89
+            const startDate = parseDateFromInput(startDateInput);
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + 89); // +89 para que inclusive contemos 90 días
+            
+            // Obtener el siguiente ID (asegurando enteros)
+            const nextId = employees.length > 0 ? (Math.max(...employees.map(e => Number(e.id || 0))) + 1) : 1;
+            
+            const newEmployee = {
+                id: String(nextId),
+                name: name.toUpperCase(),
+                branch: branch.toUpperCase(),
+                zone: zone,
+                startDate: formatDateISO(startDate),
+                endDate: formatDateISO(endDate),
+                sacCourse: false,
+                video1: false,
+                video2: false,
+                video3: false,
+                video4: false,
+                feedback1: 0,
+                feedback2: 0,
+                feedback1Completed: false,
+                feedback2Completed: false,
+                status: 'En proceso',
+                hasSalesExperience: 'PENDIENTE', // Valor inicial por defecto
+                previousWorkplace: '',
+                observations: '', // NUEVO CAMPO
+                // Inicializar campos de PDF
+                feedback1PdfUrl: null,
+                feedback2PdfUrl: null,
+                feedback1PdfPath: null,
+                feedback2PdfPath: null,
+            };
+            
+            employees.push(newEmployee);
+            saveData();
+            
+            // Limpiar formulario
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-branch').value = '';
+            document.getElementById('new-start-date').value = '';
+            document.getElementById('new-end-date').value = '';
+            
+            showNotification('Empleado agregado correctamente');
+        }
+
+        function deleteEmployee(id) {
+            const employee = employees.find(emp => emp.id === id);
+            
+            if (!employee) return;
+            
+            // Verificar permisos
+            if (!checkAccess(employee.zone)) {
+                showNotification('No tiene permisos para eliminar empleados de esta zona', true);
+                return;
+            }
+            
+            if (!confirm('¿Está seguro de que desea eliminar este empleado? Esta acción no se puede deshacer.')) {
+                return;
+            }
+            
+            employees = employees.filter(emp => emp.id !== id);
+            saveData();
+            showNotification('Empleado eliminado correctamente');
+        }
+
+        function updateEndDate() {
+            const startDateInput = document.getElementById('new-start-date');
+            const endDateInput = document.getElementById('new-end-date');
+            
+            if (startDateInput.value) {
+                if (!isValidDate(startDateInput.value)) {
+                    document.getElementById('date-error').style.display = 'block';
+                    endDateInput.value = '';
+                    return;
+                }
+                document.getElementById('date-error').style.display = 'none';
+                const startDate = parseDateFromInput(startDateInput.value);
+                const endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 89); // +89 para incluir el día inicial
+                endDateInput.value = formatDateISO(endDate);
+            } else {
+                endDateInput.value = '';
+            }
+        }
+
+        function isValidDate(dateString) {
+            const regEx = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateString.match(regEx)) return false;
+            const parts = dateString.split('-');
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10);
+            const day = parseInt(parts[2], 10);
+            const d = new Date(year, month - 1, day);
+            return d && (d.getFullYear() === year) && (d.getMonth() + 1 === month) && (d.getDate() === day);
+        }
+        
+        /* ===========================
+           EXPORTACIÓN DE DATOS Y ADMIN (Omitidas por brevedad, asumiendo su existencia)
+           =========================== */
+        function exportToCSV() { /* ... */ }
+        function generatePDF() { /* ... */ }
+        function downloadPDF() { /* ... */ }
+        function printPDF() { /* ... */ }
+        function closePdfPreview() { /* ... */ }
+        function forceSaveNow() { saveData(); }
+        function toUpperCaseSafe(str) { /* ... */ return str.toUpperCase(); } // Re-incluida para consistencia
+
+        function renderAnalyticsCharts(totalFiltered, statusCounts, progressCounts) { /* ... */ }
+        function exportAnalyticsToCSV() { /* ... */ }
+        function generateAnalyticsPDF() { /* ... */ }
+        function backupData() { /* ... */ }
+        function restoreData() { /* ... */ }
+        function showPasswordModal(action) { /* ... */ }
+        function closePasswordModal() { /* ... */ }
+        function confirmAction() { /* ... */ }
+        function resetData() { /* ... */ }
+        function formatDateForFilename(date) { /* ... */ }
+        function sortTable(field) { /* ... */ }
+        function sortEvaluationsTable(field) { /* ... */ }
+        function sortManagementTable(field) { /* ... */ }
+
+        /* ===========================
            GUARDADO EN FIREBASE / LOCAL
            =========================== */
         function saveData() {
@@ -1770,38 +2170,6 @@
                 }
             }
         }
-        
-        // --- Funciones omitidas por brevedad (asume que están en el código real) ---
-        function updateUserManagementTable() { /* ... */ }
-        function updateStats() { /* ... */ }
-        function updateAnalyticsTab() { /* ... */ }
-        function renderAnalyticsCharts(totalFiltered, statusCounts, progressCounts) { /* ... */ }
-        function clearAnalyticsFilters() { /* ... */ }
-        function exportAnalyticsToCSV() { /* ... */ }
-        function generateAnalyticsPDF() { /* ... */ }
-        function backupData() { /* ... */ }
-        function restoreData() { /* ... */ }
-        function showPasswordModal(action) { /* ... */ }
-        function closePasswordModal() { /* ... */ }
-        function confirmAction() { /* ... */ }
-        function resetData() { /* ... */ }
-        function formatDateForFilename(date) { /* ... */ }
-        function forceSaveNow() { saveData(); }
-        function sortTable(field) { /* ... */ }
-        function sortEvaluationsTable(field) { /* ... */ }
-        function sortManagementTable(field) { /* ... */ }
-        function exportToCSV() { /* ... */ }
-        function generatePDF() { /* ... */ }
-        function downloadPDF() { /* ... */ }
-        function printPDF() { /* ... */ }
-        function fallbackOpenAndPrint(src) { /* ... */ }
-        function closePdfPreview() { /* ... */ }
-        function addEmployee() { /* ... */ }
-        function deleteEmployee(id) { /* ... */ }
-        function updateEndDate() { /* ... */ }
-        function isValidDate(dateString) { /* ... */ }
-        function toUpperCaseSafe(str) { /* ... */ }
-        function showNotification(message, isError = false) { /* ... */ }
 
         /* ===========================
            INICIALIZACIÓN AL CARGAR LA PÁGINA
