@@ -351,9 +351,27 @@
             opacity: 0.8;
             transition: opacity 0.2s;
             line-height: 1;
+            /* Asegura que el botón de eliminar también esté gris/deshabilitado si el permiso lo indica */
         }
         .pdf-delete-btn:hover {
             opacity: 1;
+        }
+
+        /* Estilo para barra de progreso de subida de PDF */
+        .upload-progress-bar {
+            width: 100%;
+            height: 5px;
+            background: #eee;
+            margin-top: 2px;
+            border-radius: 3px;
+        }
+
+        .upload-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-color);
+            transition: width 0.1s;
+            border-radius: 3px;
         }
 
         /* Aplica estilo gris a todas las celdas de la fila inactiva en la tabla de evaluaciones */
@@ -840,6 +858,15 @@
 
     <div class="save-notification" id="saveNotification" style="display:none;"><i class="fas fa-check-circle"></i> <span id="notification-text"></span></div>
     <div class="error-notification" id="errorNotification" style="display:none;"><i class="fas fa-exclamation-circle"></i> <span id="error-text"></span></div>
+    
+    <div id="uploadProgressNotification" class="save-notification" style="display:none; background: var(--info-color);">
+        <i class="fas fa-cloud-upload-alt"></i> 
+        <span id="upload-notification-text">Subiendo...</span>
+        <div class="upload-progress-bar" style="margin-left: 10px;">
+            <div id="upload-progress-fill" class="upload-progress-fill"></div>
+        </div>
+        <span id="upload-progress-percent" style="margin-left: 10px; font-weight: bold;">0%</span>
+    </div>
 
     <script>
         // Inicializar jsPDF
@@ -1445,8 +1472,9 @@
                 let salesExpSelectedNo = salesExpValue === false ? 'selected' : '';
 
                 // Lógica de visualización de PDF
-                const pdf1Controls = getPdfControls(emp.id, 1, emp.feedback1PdfUrl, emp.feedback1PdfPath, isStatusObservationDisabled);
-                const pdf2Controls = getPdfControls(emp.id, 2, emp.feedback2PdfUrl, emp.feedback2PdfPath, isStatusObservationDisabled);
+                // El estado 'disabled' en getPdfControls ahora solo afecta la carga/eliminación si el usuario NO tiene permisos.
+                const pdf1Controls = getPdfControls(emp.id, 1, emp.feedback1PdfUrl, emp.feedback1PdfPath, !canEdit);
+                const pdf2Controls = getPdfControls(emp.id, 2, emp.feedback2PdfUrl, emp.feedback2PdfPath, !canEdit);
 
 
                 row.innerHTML = `
@@ -1510,15 +1538,24 @@
 
         /**
          * Genera el HTML para los controles de Subir/Ver/Eliminar PDF.
+         * @param {string} id - ID del empleado.
+         * @param {number} feedbackNumber - 1 o 2.
+         * @param {string | null} pdfUrl - URL de descarga del PDF.
+         * @param {string | null} pdfPath - Path en Firebase Storage.
+         * @param {boolean} isDisabled - Si el control debe estar deshabilitado por falta de permisos.
          */
-        function getPdfControls(id, feedbackNumber, pdfUrl, pdfPath, disabledState) {
+        function getPdfControls(id, feedbackNumber, pdfUrl, pdfPath, isDisabled) {
             const isUploaded = !!pdfUrl;
-            const uploadDisabled = isUploaded || disabledState ? 'disabled' : '';
-            const finalDisabledState = disabledState; // Usamos el estado base (permiso o inactivo)
+            const finalDisabled = isDisabled ? 'disabled' : ''; 
 
             let controls = `
                 <div class="pdf-upload-container">
-                    <input type="file" id="upload-pdf-${feedbackNumber}-${id}" accept="application/pdf" style="display: none;" onchange="uploadPdf('${id}', ${feedbackNumber})">
+                    <input type="file" 
+                           id="upload-pdf-${feedbackNumber}-${id}" 
+                           accept="application/pdf" 
+                           style="display: none;" 
+                           onchange="uploadPdf('${id}', ${feedbackNumber}, this.files[0])"
+                           ${finalDisabled}>
             `;
 
             if (isUploaded) {
@@ -1528,7 +1565,7 @@
                         <a href="${pdfUrl}" target="_blank" class="btn btn-sm btn-success" style="flex-grow: 1; text-decoration: none;">
                             <i class="fas fa-eye"></i> Ver PDF
                         </a>
-                        <button class="pdf-delete-btn" onclick="deletePdf('${id}', ${feedbackNumber}, '${pdfPath}')" ${finalDisabledState}>
+                        <button class="pdf-delete-btn" onclick="deletePdf('${id}', ${feedbackNumber}, '${pdfPath}')" ${finalDisabled}>
                             <i class="fas fa-times-circle"></i> 
                         </button>
                     </div>
@@ -1538,7 +1575,7 @@
                 controls += `
                     <button class="btn btn-sm btn-primary" 
                             onclick="document.getElementById('upload-pdf-${feedbackNumber}-${id}').click()" 
-                            ${finalDisabledState} ${uploadDisabled}>
+                            ${finalDisabled}>
                         <i class="fas fa-upload"></i> Subir PDF
                     </button>
                     <button class="btn btn-sm btn-secondary" disabled>
@@ -1843,85 +1880,131 @@
             date.setDate(date.getDate() + daysAfter);
             return formatDateISO(date);
         }
+        
+        // --- FUNCIÓN DE NOTIFICACIÓN DE PROGRESO DE SUBIDA (NUEVA) ---
+        function showUploadProgress(show, percent = 0, message = 'Subiendo...') {
+            const notification = document.getElementById('uploadProgressNotification');
+            const fill = document.getElementById('upload-progress-fill');
+            const text = document.getElementById('upload-notification-text');
+            const percentText = document.getElementById('upload-progress-percent');
 
+            if (show) {
+                notification.style.display = 'flex';
+                fill.style.width = `${percent}%`;
+                text.textContent = message;
+                percentText.textContent = `${percent}%`;
+            } else {
+                notification.style.display = 'none';
+                fill.style.width = '0%';
+                percentText.textContent = '0%';
+            }
+        }
+        
         /* ===========================
-           FUNCIONES DE FIREBASE STORAGE
+           FUNCIONES DE FIREBASE STORAGE (CORREGIDAS/MEJORADAS)
            =========================== */
 
-        function uploadPdf(id, feedbackNumber) {
+        /**
+         * Maneja la subida del archivo PDF a Firebase Storage.
+         * @param {string} id - ID del empleado.
+         * @param {number} feedbackNumber - 1 o 2.
+         * @param {File} file - El objeto File seleccionado.
+         */
+        function uploadPdf(id, feedbackNumber, file) {
             if (!firebaseConnected || !storage) {
                 showNotification('Error de conexión: No se puede acceder a Firebase Storage.', true);
                 return;
             }
-
-            const fileInput = document.getElementById(`upload-pdf-${feedbackNumber}-${id}`);
-            const file = fileInput.files[0];
             
-            // 1. VALIDACIÓN DE TIPO Y TAMAÑO
+            // Validar que se haya seleccionado un archivo.
             if (!file) {
-                fileInput.value = '';
+                showNotification('No se ha seleccionado ningún archivo.', true);
+                // Limpiar el input file si no se cargó nada
+                document.getElementById(`upload-pdf-${feedbackNumber}-${id}`).value = '';
                 return;
             }
+            
+            // 1. VALIDACIÓN DE TIPO Y TAMAÑO
             if (file.type !== 'application/pdf') {
                 showNotification('Solo se permiten archivos de tipo PDF.', true);
-                fileInput.value = '';
+                document.getElementById(`upload-pdf-${feedbackNumber}-${id}`).value = '';
                 return;
             }
             if (file.size > MAX_PDF_SIZE_BYTES) {
                 showNotification(`El archivo excede el límite de ${MAX_PDF_SIZE_BYTES / 1024 / 1024} MB.`, true);
-                fileInput.value = '';
+                document.getElementById(`upload-pdf-${feedbackNumber}-${id}`).value = '';
                 return;
             }
             
             const employee = employees.find(emp => emp.id === id);
             if (!employee || !checkAccess(employee.zone)) {
                 showNotification("No tiene permisos para subir archivos para este empleado.", true);
-                fileInput.value = ''; 
+                document.getElementById(`upload-pdf-${feedbackNumber}-${id}`).value = ''; 
                 return;
             }
 
             // Path: retroalimentaciones/{ID_EMPLEADO}/retro_1_{TIMESTAMP}_{NOMBRE_ORIGINAL}.pdf
             const timestamp = new Date().getTime();
+            // Asegurar que el nombre del archivo no contenga caracteres inválidos para la ruta de Firebase Storage
             const fileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_'); 
             const filePath = `retroalimentaciones/${id}/retro_${feedbackNumber}_${timestamp}_${fileName}`;
             
             const storageRef = storage.ref(filePath); 
             const uploadTask = storageRef.put(file);
 
-            showNotification(`Subiendo PDF de Retro ${feedbackNumber}. Por favor espere...`, false);
+            showUploadProgress(true, 0, `Subiendo PDF de Retro ${feedbackNumber}...`);
 
             uploadTask.on('state_changed', 
                 (snapshot) => {
-                    // Opcional: mostrar progreso
+                    // Mostrar progreso
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log(`Subida de Retro ${feedbackNumber} al ${progress.toFixed(0)}%`);
+                    const roundedProgress = Math.round(progress);
+                    showUploadProgress(true, roundedProgress, `Subiendo PDF de Retro ${feedbackNumber}...`);
+                    console.log(`Subida de Retro ${feedbackNumber} al ${roundedProgress}%`);
                 }, 
                 (error) => {
+                    // Manejar errores
                     console.error('Error al subir el PDF:', error);
+                    showUploadProgress(false); // Ocultar barra de progreso
                     showNotification(`Error al subir PDF: ${error.message}`, true);
-                    fileInput.value = '';
+                    document.getElementById(`upload-pdf-${feedbackNumber}-${id}`).value = '';
                 }, 
                 () => {
+                    // Finalización exitosa
                     uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
                         const urlField = `feedback${feedbackNumber}PdfUrl`;
                         const pathField = `feedback${feedbackNumber}PdfPath`;
                         
+                        // Limpiar el input file después de la subida
+                        document.getElementById(`upload-pdf-${feedbackNumber}-${id}`).value = '';
+                        
+                        // Si ya existía un path, se podría borrar aquí para evitar huérfanos, 
+                        // pero por simplicidad de código y uso de Storage, se recomienda que el usuario elimine manualmente el anterior si es una "sustitución".
+                        // La eliminación es el único punto donde se garantiza el borrado de Storage.
+
                         // Almacenar la nueva URL y PATH
                         employee[urlField] = downloadURL;
                         employee[pathField] = filePath;
                         
-                        saveData(); 
+                        saveData(); // Guardar cambios en Realtime Database
+                        showUploadProgress(false); // Ocultar barra de progreso
                         showNotification(`PDF de Retro ${feedbackNumber} subido correctamente.`);
                         updateEvaluationsTable(); 
                     }).catch(error => {
                         console.error('Error al obtener URL:', error);
+                        showUploadProgress(false);
                         showNotification('Error al obtener la URL de descarga.', true);
                     });
-                    fileInput.value = '';
                 }
             );
         }
 
+        /**
+         * Maneja la eliminación del archivo PDF de Firebase Storage y limpia la base de datos.
+         * @param {string} id - ID del empleado.
+         * @param {number} feedbackNumber - 1 o 2.
+         * @param {string} pdfPath - Path en Firebase Storage del archivo a eliminar.
+         */
         function deletePdf(id, feedbackNumber, pdfPath) {
             if (!firebaseConnected || !storage) {
                 showNotification('Error de conexión: No se puede acceder a Firebase Storage para eliminar.', true);
@@ -1943,6 +2026,8 @@
             if (!confirm(`¿Está seguro de que desea eliminar el PDF de Retroalimentación ${feedbackNumber}? Esta acción no se puede deshacer y **borrará el archivo de la nube**.`)) {
                 return;
             }
+            
+            showNotification(`Eliminando PDF de Retro ${feedbackNumber}. Por favor espere...`, false);
 
             // 1. Eliminar de Firebase Storage
             const storageRef = storage.ref(pdfPath);
@@ -1956,7 +2041,7 @@
                 employee[urlField] = null;
                 employee[pathField] = null;
                 
-                saveData(); 
+                saveData(); // Guardar cambios en Realtime Database
                 showNotification(`PDF de Retro ${feedbackNumber} eliminado y opción de subir habilitada.`);
                 updateEvaluationsTable(); 
                 
@@ -1977,6 +2062,7 @@
                 }
             });
         }
+
 
         /* ===========================
            GESTIÓN DE EMPLEADOS
@@ -2113,7 +2199,9 @@
         function printPDF() { /* ... */ }
         function closePdfPreview() { /* ... */ }
         function forceSaveNow() { saveData(); }
-        function toUpperCaseSafe(str) { /* ... */ return str.toUpperCase(); } // Re-incluida para consistencia
+        function toUpperCaseSafe(str) { 
+            return str ? str.toUpperCase() : ''; // Implementación simple
+        } 
 
         function renderAnalyticsCharts(totalFiltered, statusCounts, progressCounts) { /* ... */ }
         function exportAnalyticsToCSV() { /* ... */ }
@@ -2128,6 +2216,19 @@
         function sortTable(field) { /* ... */ }
         function sortEvaluationsTable(field) { /* ... */ }
         function sortManagementTable(field) { /* ... */ }
+        function updateStats() { /* ... */ }
+        function updateUserManagementTable() { /* ... */ }
+        function showNotification(message, isError = false) { /* ... */ 
+            const notification = isError ? document.getElementById('errorNotification') : document.getElementById('saveNotification');
+            const textElement = isError ? document.getElementById('error-text') : document.getElementById('notification-text');
+            
+            textElement.textContent = message;
+            notification.style.display = 'flex';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 5000);
+        }
 
         /* ===========================
            GUARDADO EN FIREBASE / LOCAL
