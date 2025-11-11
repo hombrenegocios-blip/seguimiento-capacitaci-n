@@ -881,6 +881,8 @@
         let lastSaveTime = null;
         let usingLocalStorage = false;
         let currentSort = { field: 'startDate', direction: 'asc' };
+        let currentSortManagement = { field: 'startDate', direction: 'asc' }; // Nuevo sort para Management
+        let currentSortEvaluations = { field: 'startDate', direction: 'asc' }; // Nuevo sort para Evaluations
         let currentUser = null;
         let database;
         let employeesRef;
@@ -1282,8 +1284,8 @@
         function updateUIAfterSave() {
             updateEmployeesTable();
             updateEvaluationsTable();
-            updateUserManagementTable();
-            updateStats();
+            updateUserManagementTable(); 
+            updateStats(); 
             updateAnalyticsTab(); 
         }
 
@@ -1305,8 +1307,26 @@
                 filteredEmployees = filteredEmployees.filter(emp => emp.status === 'En proceso');
             }
             
-            // Ordenar por fecha de inicio (más antigua primero)
-            filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
+            // Aplicar el ordenamiento actual (por campo y dirección)
+            const sortField = currentSort.field;
+            const sortDirection = currentSort.direction;
+            
+            filteredEmployees.sort((a, b) => {
+                let aValue = a[sortField];
+                let bValue = b[sortField];
+
+                if (sortField === 'name' || sortField === 'branch') {
+                    aValue = aValue.toUpperCase();
+                    bValue = bValue.toUpperCase();
+                } else if (sortField === 'startDate') {
+                    aValue = parseDateFromInput(aValue) || new Date(0);
+                    bValue = parseDateFromInput(bValue) || new Date(0);
+                }
+
+                if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
             
             tableBody.innerHTML = '';
             
@@ -1352,7 +1372,7 @@
                 tableBody.appendChild(row);
             });
             
-            document.getElementById('employees-count').textContent = filteredEmployees.length;
+            document.getElementById('employees-count').textContent = employees.length; // Cuenta total sin filtro de zona
         }
 
         function updateEmployeeField(id, field, value) {
@@ -1368,7 +1388,12 @@
                     return;
                 }
                 
-                employee[field] = value;
+                // Asegurar que solo se guarden valores apropiados para 'previousWorkplace'
+                if (field === 'previousWorkplace') {
+                     employee[field] = toUpperCaseSafe(value);
+                } else {
+                    employee[field] = value;
+                }
                 saveData();
             }
         }
@@ -1411,8 +1436,26 @@
                 filteredEmployees = employees.filter(emp => emp.zone === zoneFilter);
             }
             
-            // Ordenar por fecha de inicio (más antigua primero)
-            filteredEmployees.sort((a, b) => (parseDateFromInput(a.startDate) || todayLocal()) - (parseDateFromInput(b.startDate) || todayLocal()));
+            // Aplicar el ordenamiento actual de evaluaciones
+            const sortField = currentSortEvaluations.field;
+            const sortDirection = currentSortEvaluations.direction;
+            
+            filteredEmployees.sort((a, b) => {
+                let aValue = a[sortField];
+                let bValue = b[sortField];
+
+                if (sortField === 'name' || sortField === 'branch') {
+                    aValue = aValue.toUpperCase();
+                    bValue = bValue.toUpperCase();
+                } else if (sortField === 'startDate') {
+                    aValue = parseDateFromInput(aValue) || new Date(0);
+                    bValue = parseDateFromInput(bValue) || new Date(0);
+                }
+
+                if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
             
             tableBody.innerHTML = '';
             
@@ -1424,9 +1467,14 @@
             
             // Calcular estadísticas generales solo para empleados activos
             activeEmployees.forEach(emp => {
-                if (emp.feedback1Completed && emp.feedback2Completed) {
-                    totalSum += emp.feedback1 + emp.feedback2;
-                    totalCount += 2;
+                // Solo contar si la retroalimentación fue marcada como completada
+                if (emp.feedback1Completed) {
+                    totalSum += emp.feedback1;
+                    totalCount++;
+                }
+                if (emp.feedback2Completed) {
+                    totalSum += emp.feedback2;
+                    totalCount++;
                 }
             });
             
@@ -1533,8 +1581,80 @@
                 tableBody.appendChild(row);
             });
             
-            document.getElementById('evaluations-count').textContent = filteredEmployees.length;
+            document.getElementById('evaluations-count').textContent = employees.length;
         }
+        
+        // **FUNCIÓN CRÍTICA IMPLEMENTADA**
+        function updateUserManagementTable() {
+            const tableBody = document.getElementById('user-management-table-body');
+            if (!tableBody) return;
+
+            // Filtra solo los empleados de la zona del usuario o todos si es ALL
+            let filteredEmployees = employees;
+            if (currentUser.zone !== 'ALL') {
+                filteredEmployees = employees.filter(emp => emp.zone === currentUser.zone);
+            }
+
+            // Aplicar el ordenamiento actual de Management
+            const sortField = currentSortManagement.field;
+            const sortDirection = currentSortManagement.direction;
+            
+            filteredEmployees.sort((a, b) => {
+                let aValue = a[sortField];
+                let bValue = b[sortField];
+
+                if (sortField === 'name' || sortField === 'branch') {
+                    aValue = aValue.toUpperCase();
+                    bValue = bValue.toUpperCase();
+                } else if (sortField === 'startDate') {
+                    aValue = parseDateFromInput(aValue) || new Date(0);
+                    bValue = parseDateFromInput(bValue) || new Date(0);
+                }
+
+                if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            tableBody.innerHTML = '';
+
+            filteredEmployees.forEach(emp => {
+                const startDate = parseDateFromInput(emp.startDate);
+                const endDate = parseDateFromInput(emp.endDate);
+                const today = todayLocal();
+                let daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                
+                if (emp.status === 'Baja' || emp.status === 'Renuncia') {
+                    daysRemaining = 0;
+                }
+
+                const row = document.createElement('tr');
+                row.className = getProgressClass(0, 0, emp.status); 
+
+                // Un empleado solo se puede eliminar si el usuario tiene permiso sobre su zona
+                const deleteDisabled = !checkAccess(emp.zone) ? 'disabled' : '';
+
+                row.innerHTML = `
+                    <td>${emp.id}</td>
+                    <td class="employee-name">${emp.name}</td>
+                    <td><span class="branch">${emp.branch}</span></td>
+                    <td>${emp.zone}</td>
+                    <td>${formatDate(emp.startDate)}</td>
+                    <td>${formatDate(emp.endDate)}</td>
+                    <td class="${getDaysRemainingClass(daysRemaining)}">${daysRemaining}</td>
+                    <td>
+                        <button class="action-btn delete-btn btn-sm" onclick="deleteEmployee('${emp.id}')" ${deleteDisabled}>
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+            
+            document.getElementById('management-count').textContent = filteredEmployees.length;
+        }
+
 
         /**
          * Genera el HTML para los controles de Subir/Ver/Eliminar PDF.
@@ -2087,7 +2207,7 @@
             }
             
             // Verificar permisos para agregar empleados en esta zona
-            if (currentUser.zone !== 'ALL' && currentUser.zone !== zone) {
+            if (!checkAccess(zone)) {
                 showNotification('Solo puede agregar empleados a su zona asignada', true);
                 return;
             }
@@ -2098,12 +2218,13 @@
             endDate.setDate(endDate.getDate() + 89); // +89 para que inclusive contemos 90 días
             
             // Obtener el siguiente ID (asegurando enteros)
+            // CRÍTICO: Asegurarse de que el ID sea único y en formato string para Firebase
             const nextId = employees.length > 0 ? (Math.max(...employees.map(e => Number(e.id || 0))) + 1) : 1;
             
             const newEmployee = {
                 id: String(nextId),
-                name: name.toUpperCase(),
-                branch: branch.toUpperCase(),
+                name: toUpperCaseSafe(name),
+                branch: toUpperCaseSafe(branch),
                 zone: zone,
                 startDate: formatDateISO(startDate),
                 endDate: formatDateISO(endDate),
@@ -2119,7 +2240,7 @@
                 status: 'En proceso',
                 hasSalesExperience: 'PENDIENTE', // Valor inicial por defecto
                 previousWorkplace: '',
-                observations: '', // NUEVO CAMPO
+                observations: '', 
                 // Inicializar campos de PDF
                 feedback1PdfUrl: null,
                 feedback2PdfUrl: null,
@@ -2128,11 +2249,18 @@
             };
             
             employees.push(newEmployee);
-            saveData();
+            
+            // **IMPORTANTE**: Llamar a saveData() para guardar en Firebase/Local
+            // y disparar la actualización de la UI con el nuevo empleado.
+            saveData(); 
             
             // Limpiar formulario
             document.getElementById('new-name').value = '';
             document.getElementById('new-branch').value = '';
+            // No limpiar la zona si está deshabilitada (por el permiso de zona)
+            if (currentUser.zone === 'ALL') {
+                 document.getElementById('new-zone').value = 'ZONA 1';
+            }
             document.getElementById('new-start-date').value = '';
             document.getElementById('new-end-date').value = '';
             
@@ -2153,7 +2281,12 @@
             if (!confirm('¿Está seguro de que desea eliminar este empleado? Esta acción no se puede deshacer.')) {
                 return;
             }
-            
+
+            // Opcional: Eliminar archivos de Storage asociados (lógica simplificada, no crítica para la tarea)
+            // if (employee.feedback1PdfPath) { deletePdf(id, 1, employee.feedback1PdfPath); }
+            // if (employee.feedback2PdfPath) { deletePdf(id, 2, employee.feedback2PdfPath); }
+
+            // Filtrar el array para eliminar al empleado
             employees = employees.filter(emp => emp.id !== id);
             saveData();
             showNotification('Empleado eliminado correctamente');
@@ -2191,34 +2324,169 @@
         }
         
         /* ===========================
-           EXPORTACIÓN DE DATOS Y ADMIN (Omitidas por brevedad, asumiendo su existencia)
+           EXPORTACIÓN DE DATOS Y ADMIN 
            =========================== */
-        function exportToCSV() { /* ... */ }
-        function generatePDF() { /* ... */ }
-        function downloadPDF() { /* ... */ }
-        function printPDF() { /* ... */ }
-        function closePdfPreview() { /* ... */ }
+        function exportToCSV() { showNotification("Función de exportar a CSV no implementada en este script."); }
+        function generatePDF() { showNotification("Función de generar PDF no implementada en este script."); }
+        function downloadPDF() { showNotification("Función de descargar PDF no implementada en este script."); }
+        function printPDF() { showNotification("Función de imprimir PDF no implementada en este script."); }
+        function closePdfPreview() { document.getElementById('pdfPreviewModal').style.display = 'none'; }
         function forceSaveNow() { saveData(); }
+        
         function toUpperCaseSafe(str) { 
-            return str ? str.toUpperCase() : ''; // Implementación simple
+            return str ? String(str).toUpperCase() : ''; 
         } 
 
-        function renderAnalyticsCharts(totalFiltered, statusCounts, progressCounts) { /* ... */ }
-        function exportAnalyticsToCSV() { /* ... */ }
-        function generateAnalyticsPDF() { /* ... */ }
-        function backupData() { /* ... */ }
-        function restoreData() { /* ... */ }
-        function showPasswordModal(action) { /* ... */ }
-        function closePasswordModal() { /* ... */ }
-        function confirmAction() { /* ... */ }
-        function resetData() { /* ... */ }
+        function renderAnalyticsCharts(totalFiltered, statusCounts, progressCounts) { 
+            // Implementación simple del gráfico de Estatus Final
+            const statusChartDiv = document.getElementById('status-chart');
+            let statusHtml = '<div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Estatus Final</div><div class="chart-bar-container">';
+            let total = totalFiltered;
+
+            for (const status in statusCounts) {
+                const count = statusCounts[status];
+                const percent = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                const statusClass = `status-${status.toLowerCase().replace(/ /g, '-')}`;
+                statusHtml += `
+                    <div class="chart-bar-item">
+                        <span class="chart-label">${status}</span>
+                        <div class="chart-bar-wrapper">
+                            <div class="chart-bar-fill ${statusClass}" style="width: ${percent}%;">
+                                ${count} (${percent}%)
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            statusHtml += '</div>';
+            statusChartDiv.innerHTML = statusHtml;
+
+            // Implementación simple del gráfico de Progreso de Capacitación
+            const progressChartDiv = document.getElementById('progress-chart');
+            let progressHtml = '<div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">Progreso Capacitación</div><div class="chart-bar-container">';
+            
+            for (const status in progressCounts) {
+                const count = progressCounts[status];
+                const percent = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                let statusLabel = '';
+                let statusClass = '';
+                
+                if (status === 'COMPLETED') { statusLabel = '100% (Completo)'; statusClass = 'progress-complete'; }
+                else if (status === 'INCOMPLETE') { statusLabel = '1-99% (Incompleto)'; statusClass = 'progress-incomplete'; }
+                else if (status === 'PENDING') { statusLabel = '0% (Pendiente)'; statusClass = 'progress-pending'; }
+
+                progressHtml += `
+                    <div class="chart-bar-item">
+                        <span class="chart-label">${statusLabel}</span>
+                        <div class="chart-bar-wrapper">
+                            <div class="chart-bar-fill ${statusClass}" style="width: ${percent}%;">
+                                ${count} (${percent}%)
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            progressHtml += '</div>';
+            progressChartDiv.innerHTML = progressHtml;
+        }
+        function exportAnalyticsToCSV() { showNotification("Función de exportar Análisis a CSV no implementada en este script."); }
+        function generateAnalyticsPDF() { showNotification("Función de generar Análisis PDF no implementada en este script."); }
+        function backupData() { showNotification("Función de copia de seguridad no implementada en este script."); }
+        function restoreData() { showNotification("Función de restauración no implementada en este script."); }
+        function showPasswordModal(action) { 
+            currentAction = action;
+            document.getElementById('password-modal-title').textContent = action === 'reset' ? 'Confirmar Borrado Total' : 'Acceso de Administrador';
+            document.getElementById('password-modal-message').textContent = action === 'reset' ? 'ADVERTENCIA: Esta acción eliminará permanentemente todos los datos de Firebase.' : 'Esta acción requiere permisos de administrador.';
+            document.getElementById('passwordModal').style.display = 'flex';
+        }
+        function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+        function confirmAction() { 
+            const password = document.getElementById('reset-password').value;
+            // Solo para fines de demostración, se usa una contraseña de ejemplo
+            if (password === 'MasterKey123') { 
+                if (currentAction === 'reset') {
+                    resetData();
+                } else if (currentAction === 'restore') {
+                    restoreData();
+                }
+                closePasswordModal();
+            } else {
+                document.getElementById('password-error').style.display = 'block';
+            }
+        }
+        function resetData() { 
+            if (firebaseConnected) {
+                employeesRef.set(null).then(() => {
+                    employees = [];
+                    saveToLocalStorage();
+                    updateUIAfterSave();
+                    showNotification('Base de datos restablecida y borrada de Firebase.');
+                }).catch(error => {
+                    showNotification('Error al restablecer la base de datos: ' + error.message, true);
+                });
+            } else {
+                employees = [];
+                saveToLocalStorage();
+                updateUIAfterSave();
+                showNotification('Base de datos restablecida localmente.');
+            }
+        }
         function formatDateForFilename(date) { /* ... */ }
-        function sortTable(field) { /* ... */ }
-        function sortEvaluationsTable(field) { /* ... */ }
-        function sortManagementTable(field) { /* ... */ }
-        function updateStats() { /* ... */ }
-        function updateUserManagementTable() { /* ... */ }
-        function showNotification(message, isError = false) { /* ... */ 
+
+        function sortTable(field) {
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            updateEmployeesTable();
+        }
+
+        function sortEvaluationsTable(field) {
+            if (currentSortEvaluations.field === field) {
+                currentSortEvaluations.direction = currentSortEvaluations.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortEvaluations.field = field;
+                currentSortEvaluations.direction = 'asc';
+            }
+            updateEvaluationsTable();
+        }
+        
+        function sortManagementTable(field) {
+            if (currentSortManagement.field === field) {
+                currentSortManagement.direction = currentSortManagement.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortManagement.field = field;
+                currentSortManagement.direction = 'asc';
+            }
+            updateUserManagementTable();
+        }
+        
+        function updateStats() {
+            // Stats para el Dashboard
+            const activeEmployees = employees.filter(emp => emp.status === 'En proceso' || emp.status === 'Aprobado' || emp.status === 'No Aprobado');
+            document.getElementById('total-active-employees').textContent = activeEmployees.length;
+
+            const completedTraining = employees.filter(emp => calculateProgress(emp) === 100).length;
+            const completionPercentage = employees.length > 0 ? ((completedTraining / employees.length) * 100).toFixed(1) : 0;
+            document.getElementById('completed-training').textContent = `${completionPercentage}%`;
+            
+            const totalProgressSum = employees.reduce((sum, emp) => sum + calculateProgress(emp), 0);
+            const averageProgress = employees.length > 0 ? (totalProgressSum / employees.length).toFixed(1) : 0;
+            document.getElementById('average-progress').textContent = `${averageProgress}%`;
+
+            const today = todayLocal();
+            const expiringSoon = employees.filter(emp => {
+                const endDate = parseDateFromInput(emp.endDate);
+                if (!endDate || emp.status !== 'En proceso') return false;
+                const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                return daysRemaining >= 0 && daysRemaining < 10;
+            }).length;
+            document.getElementById('expiring-soon').textContent = expiringSoon;
+        }
+
+        function showNotification(message, isError = false) { 
             const notification = isError ? document.getElementById('errorNotification') : document.getElementById('saveNotification');
             const textElement = isError ? document.getElementById('error-text') : document.getElementById('notification-text');
             
@@ -2248,6 +2516,8 @@
                             lastSaveTime = new Date();
                             showNotification('Datos guardados en la nube correctamente');
                             saveToLocalStorage(); // También guardar localmente como respaldo
+                            // SOLUCIÓN CRÍTICA: Actualizar la UI inmediatamente después de guardar en Firebase
+                            updateUIAfterSave(); 
                         })
                         .catch(error => {
                             console.error('Error guardando en Firebase:', error);
@@ -2257,11 +2527,13 @@
                             } else {
                                 showNotification('Error guardando datos', true);
                             }
+                            updateUIAfterSave(); // Refrescar UI incluso con error
                         });
                 } catch (error) {
                     console.error('Error en saveData:', error);
                     saveToLocalStorage();
                     showNotification('Datos guardados localmente (error inesperado)', true);
+                    updateUIAfterSave(); // Refrescar UI incluso con error
                 }
             } else {
                 if (saveToLocalStorage()) {
@@ -2269,6 +2541,7 @@
                 } else {
                     showNotification('Error guardando datos localmente', true);
                 }
+                updateUIAfterSave(); // Refrescar UI si solo se guardó localmente
             }
         }
 
@@ -2295,12 +2568,17 @@
                     // Llamar a la función de actualización específica para la pestaña de Análisis si es la seleccionada
                     if (target === 'analytics') {
                         updateAnalyticsTab();
+                    } else if (target === 'user-management') {
+                        updateUserManagementTable();
                     }
                 });
             });
             
             // Verificar si hay una sesión existente
             checkExistingSession();
+            
+            // Si la sesión se cargó, forzar la primera actualización de la fecha de término
+            document.getElementById('new-start-date').addEventListener('change', updateEndDate);
             
             // Actualizar UI cada minuto para recalcular días restantes
             setInterval(updateUIAfterSave, 60000);
