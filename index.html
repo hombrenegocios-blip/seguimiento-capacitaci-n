@@ -379,6 +379,118 @@
             background-color: #cccccc !important;
             color: #666 !important;
         }
+        
+        /* **INICIO DE CAMBIO IMPLEMENTADO: Estilos del Buzón de Notificaciones** */
+        .notification-box {
+            position: absolute;
+            top: 20px;
+            right: 250px; /* Ajustar posición para que no choque con user-info */
+            z-index: 100;
+        }
+        .notification-header {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .notification-header:hover {
+            background: rgba(255,255,255,0.4);
+        }
+        .pending-count {
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 7px;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .message-center {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 50px;
+            width: 350px;
+            max-height: 400px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            padding: 15px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+        }
+        .message-center.open {
+            display: block;
+        }
+        .message-center-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            position: relative; /* Para posicionar el botón de cierre */
+        }
+        /* Estilo para el botón de cierre */
+        .message-center-close {
+            position: absolute;
+            top: 5px;
+            right: 0;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+        }
+        .message-center-close:hover {
+            color: #333;
+        }
+        .reminder-list {
+            margin-top: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .reminder-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            font-size: 13px;
+            border-left: 5px solid;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .reminder-item-urgent {
+            background: #f8d7da;
+            color: #721c24;
+            border-color: var(--danger-color);
+        }
+        .reminder-item-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-color: var(--warning-color);
+        }
+        .reminder-item-empty {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+        }
+        .reminder-count-button {
+            background: white;
+            color: var(--warning-color);
+            border-radius: 50%;
+            padding: 2px 7px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        /* **FIN DE CAMBIO IMPLEMENTADO** */
+
 
         @media (max-width:1200px) { .container { border-radius:10px; } .stats-container { flex-direction:column; } .stat-box { width:100%; } table { display:block; overflow-x:auto; } }
         @media (max-width:768px) { .tabs { flex-direction:column; } .tab { width:100%; text-align:center; } .controls { flex-direction:column; } .btn { width:100%; } }
@@ -407,7 +519,7 @@
     </div>
 
     <div id="firebaseStatus" class="firebase-status firebase-disconnected">
-        <i class="fas fa-exclamation-triangle"></i> Sin conexión a Firebase
+        <i class="fas fa-exclamation-triangle"></i> Sin conexión a Firebase - Usando almacenamiento local
     </div>
 
     <div class="container" id="main-container" style="display:none">
@@ -422,7 +534,27 @@
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
-        </header>
+            
+            <div id="notification-box" class="notification-box">
+                <div class="notification-header" onclick="toggleMessageCenter()">
+                    <i class="fas fa-bell"></i> 
+                    <span id="pending-count" class="pending-count">0</span>
+                </div>
+                <div id="message-center" class="message-center">
+                    <div class="message-center-title">
+                        <i class="fas fa-envelope"></i> Buzón de Mensajes
+                        <span class="message-center-close" onclick="closeMessageCenter()">&times;</span> 
+                    </div>
+                    <button class="btn btn-warning btn-sm" onclick="showFeedbackReminders()">
+                        <i class="fas fa-clipboard-list"></i> Recordatorios de Retroalimentaciones
+                        <span id="reminder-count-button" class="reminder-count-button">0</span>
+                    </button>
+                    <div id="reminder-list" class="reminder-list">
+                        <div class="reminder-item-empty">No hay retroalimentaciones por vencer o vencidas.</div>
+                    </div>
+                </div>
+            </div>
+            </header>
 
         <div class="tabs" id="tabsBar">
             <div class="tab active" data-target="dashboard"><i class="fas fa-chart-line"></i> Dashboard Principal</div>
@@ -1287,6 +1419,9 @@
             updateUserManagementTable(); 
             updateStats(); 
             updateAnalyticsTab(); 
+            
+            // **INTEGRACIÓN CRÍTICA**: Actualizar recordatorios cada vez que se actualiza la UI
+            showFeedbackReminders(); 
         }
 
         function updateEmployeesTable() {
@@ -1997,8 +2132,10 @@
         function getFeedbackDate(startDate, daysAfter) {
             const date = parseDateFromInput(startDate);
             if (!date) return 'N/A';
-            date.setDate(date.getDate() + daysAfter);
-            return formatDateISO(date);
+            // Clonar la fecha antes de modificarla
+            const targetDate = new Date(date); 
+            targetDate.setDate(targetDate.getDate() + daysAfter);
+            return formatDateISO(targetDate);
         }
         
         // --- FUNCIÓN DE NOTIFICACIÓN DE PROGRESO DE SUBIDA (NUEVA) ---
@@ -2499,6 +2636,120 @@
         }
 
         /* ===========================
+           FUNCIONES DE NOTIFICACIONES Y BUZÓN (MODIFICADAS)
+           =========================== */
+           
+        function toggleMessageCenter() {
+            const center = document.getElementById('message-center');
+            center.classList.toggle('open');
+            if (center.classList.contains('open')) {
+                // Forzar la visualización de los recordatorios al abrir
+                showFeedbackReminders(); 
+            }
+        }
+        
+        function closeMessageCenter() {
+            // Nueva función para cerrar el buzón
+            document.getElementById('message-center').classList.remove('open');
+        }
+
+        function showFeedbackReminders() {
+            // Esta función se llama para actualizar el contenido del buzón
+            const reminderList = document.getElementById('reminder-list');
+            const reminders = calculateFeedbackReminders();
+            const reminderCountButton = document.getElementById('reminder-count-button');
+            const pendingCountElement = document.getElementById('pending-count');
+            
+            reminderList.innerHTML = '';
+            
+            if (reminders.length === 0) {
+                reminderList.innerHTML = '<div class="reminder-item-empty">No hay retroalimentaciones por vencer o vencidas.</div>';
+            } else {
+                reminders.forEach(reminder => {
+                    const isUrgent = reminder.daysRemaining < 0;
+                    const statusClass = isUrgent ? 'reminder-item-urgent' : 'reminder-item-warning';
+                    const icon = isUrgent ? '<i class="fas fa-exclamation-triangle"></i>' : '<i class="fas fa-bell"></i>';
+                    const message = isUrgent 
+                        ? `¡VENCIDA hace ${Math.abs(reminder.daysRemaining)} días!` 
+                        : `Vence en ${reminder.daysRemaining} día(s).`;
+                    
+                    const item = document.createElement('div');
+                    item.className = `reminder-item ${statusClass}`;
+                    item.innerHTML = `
+                        ${icon} <strong>${reminder.name}</strong> (${reminder.branch}): 
+                        Retro ${reminder.retroNumber} - 
+                        ${message}
+                    `;
+                    reminderList.appendChild(item);
+                });
+            }
+            
+            // Actualizar contadores
+            reminderCountButton.textContent = reminders.length;
+            pendingCountElement.textContent = reminders.length;
+        }
+
+        /**
+         * Calcula y devuelve la lista de recordatorios de retroalimentación.
+         * Reglas: No debe estar completada Y (debe vencer en <= 3 días O debe estar vencida).
+         */
+        function calculateFeedbackReminders() {
+            const today = todayLocal();
+            const reminders = [];
+
+            employees.forEach(emp => {
+                // 1. IGNORAR estatus de Baja o Renuncia
+                if (emp.status === 'Baja' || emp.status === 'Renuncia') {
+                    return; 
+                }
+
+                // --- Retroalimentación 1 (30 días) ---
+                if (!emp.feedback1Completed) {
+                    const retro1DateString = getFeedbackDate(emp.startDate, 30);
+                    const retro1Date = parseDateFromInput(retro1DateString);
+                    
+                    // Solo considerar si la fecha es válida
+                    if (retro1Date) {
+                        const daysRemaining = Math.ceil((retro1Date - today) / (1000 * 60 * 60 * 24));
+                        
+                        // Si vence en 3 días o menos, o si ya está vencida
+                        if (daysRemaining <= 3) { 
+                            reminders.push({
+                                name: emp.name,
+                                branch: emp.branch,
+                                retroNumber: 1,
+                                daysRemaining: daysRemaining
+                            });
+                        }
+                    }
+                }
+
+                // --- Retroalimentación 2 (70 días) ---
+                if (!emp.feedback2Completed) {
+                    const retro2DateString = getFeedbackDate(emp.startDate, 70);
+                    const retro2Date = parseDateFromInput(retro2DateString);
+                    
+                    // Solo considerar si la fecha es válida
+                    if (retro2Date) {
+                        const daysRemaining = Math.ceil((retro2Date - today) / (1000 * 60 * 60 * 24));
+                        
+                        // Si vence en 3 días o menos, o si ya está vencida
+                        if (daysRemaining <= 3) {
+                            reminders.push({
+                                name: emp.name,
+                                branch: emp.branch,
+                                retroNumber: 2,
+                                daysRemaining: daysRemaining
+                            });
+                        }
+                    }
+                }
+            });
+
+            return reminders;
+        }
+
+        /* ===========================
            GUARDADO EN FIREBASE / LOCAL
            =========================== */
         function saveData() {
@@ -2580,8 +2831,11 @@
             // Si la sesión se cargó, forzar la primera actualización de la fecha de término
             document.getElementById('new-start-date').addEventListener('change', updateEndDate);
             
-            // Actualizar UI cada minuto para recalcular días restantes
+            // Actualizar UI cada minuto para recalcular días restantes y recordatorios
             setInterval(updateUIAfterSave, 60000);
+            
+            // **IMPORTANTE**: Ejecutar la primera actualización de recordatorios al inicio
+            showFeedbackReminders(); 
         });
     </script>
 </body>
