@@ -582,7 +582,9 @@
         const USERS = {
             "DAVID@UNIVERSIDADPRESTOCASH.MX": { pass: "DAVIDZONA123", zone: "ZONA 1", name: "David" },
             "EDUARDO@UNIVERSIDADPRESTOCASH.MX": { pass: "EDUARDOZONA245", zone: "ZONA 2", name: "Eduardo" },
-            "LUNA@UNIVERSIDADPRESTOCASH.MX": { pass: "LUNAZONA345", zone: "ZONA 3", name: "Luna" },
+            // LUNA AHORA TIENE UN ARRAY EN 'ZONE' PARA NUEVOS INGRESOS (Y OTRAS FUNCIONES GENERALES)
+            // LA RESTRICCION ESPECIFICA DE GERENCIALES SE MANEJA EN hasPermission
+            "LUNA@UNIVERSIDADPRESTOCASH.MX": { pass: "LUNAZONA345", zone: ["ZONA 1", "ZONA 3"], name: "Luna" },
             "ALEX@UNIVERSIDADPRESTOCASH.MX": { pass: "ALEX456", zone: "ZONA 4", name: "Alex" },
             "URISOL@UNIVERSIDADPRESTOCASH.MX": { pass: "URISOLMASTER1", zone: "ALL", name: "Urisol" },
             "EUGENIA@UNIVERSIDADPRESTOCASH.MX": { pass: "EUGENIAMASTER2", zone: "ALL", name: "Eugenia" },
@@ -634,6 +636,7 @@
                 });
 
                 document.getElementById('user-display').textContent = currentUser.name;
+                // Ajuste para ocultar tab de admin si no es ALL (Luna con array sigue sin ser 'ALL')
                 if(currentUser.zone !== 'ALL') document.getElementById('admin-tab-btn').style.display='none';
 
             } catch (e) { console.error("Error Firebase", e); }
@@ -718,6 +721,7 @@
             employees.sort((a,b) => parseDateFromInput(a.startDate) - parseDateFromInput(b.startDate));
 
             employees.forEach(e => {
+                // Filtro visual (dropdown)
                 if(zone !== 'ALL' && e.zone !== zone) return;
                 if(onlyActive && e.status !== 'En proceso') return;
 
@@ -832,7 +836,8 @@
         function renderNHManagement() {
             const tbody = document.getElementById('nh-mgmt-body'); tbody.innerHTML = '';
             employees.forEach(e => {
-                if(!hasPermission(e.zone)) return; 
+                // MODIFICADO: Pasamos contexto 'employees'
+                if(!hasPermission(e.zone, 'employees')) return; 
                 const days = getDays(e.endDate);
                 const isInactive = e.status === 'Baja' || e.status === 'Renuncia';
                 const rowClass = isInactive ? 'status-inactive' : '';
@@ -849,7 +854,6 @@
 
         // ================= GERENCIALES (MODIFICADO) =================
         
-        // Helper para clases de fila en Gerenciales
         function getMgrRowClass(status) {
             if (status === 'Aprobado') return 'mgr-row-aprobado mgr-frozen';
             if (status === 'Renuncia') return 'mgr-row-renuncia mgr-frozen';
@@ -989,8 +993,8 @@
                 const totalGrade = m.fb2 || 0;
                 const tr = document.createElement('tr');
                 let stClass = '';
-                if(m.status === 'Aprobado') stClass = 'status-aprobado'; // Ojo: clase css para el badge
-                else if(m.status === 'Renuncia') stClass = 'status-baja'; // Reutilizar rojo
+                if(m.status === 'Aprobado') stClass = 'status-aprobado'; 
+                else if(m.status === 'Renuncia') stClass = 'status-baja'; 
                 else if(m.status === 'Baja') stClass = 'status-baja';
                 else stClass = 'status-en-proceso';
 
@@ -1008,7 +1012,8 @@
         function renderMgrManagement() {
             const tbody = document.getElementById('mgr-mgmt-body'); tbody.innerHTML='';
             managers.forEach(m => {
-                if(!hasPermission(m.zone)) return;
+                // MODIFICADO: Contexto 'managers'
+                if(!hasPermission(m.zone, 'managers')) return;
                 const days = getDays(m.endDate);
                 const rowClass = getMgrRowClass(m.status);
                 
@@ -1024,13 +1029,34 @@
             });
         }
 
-        // ================= LOGICA COMUN =================
-        function hasPermission(zone) { return currentUser && (currentUser.zone === 'ALL' || currentUser.zone === zone); }
+        // ================= LOGICA COMUN (MODIFICADA PARA LUNA) =================
+        
+        // MODIFICADO: Acepta 'context' (employees o managers) para diferenciar permisos
+        function hasPermission(targetZone, context) {
+            if (!currentUser) return false;
+            if (currentUser.zone === 'ALL') return true;
+
+            // CASO ESPECIAL LUNA
+            if (currentUser.name === 'Luna') {
+                // Si es Gerenciales, solo Zona 3
+                if (context === 'managers') {
+                    return targetZone === 'ZONA 3';
+                }
+                // Si es Nuevos Ingresos (employees) o general, permite cualquiera de su lista (1 y 3)
+                if (Array.isArray(currentUser.zone)) {
+                    return currentUser.zone.includes(targetZone);
+                }
+            }
+
+            // CASO ESTANDAR (String normal)
+            return currentUser.zone === targetZone;
+        }
         
         function updEmp(id, field, val) {
             const item = employees.find(e=>e.id===id);
             if(!item) return;
-            if(!hasPermission(item.zone)) {
+            // MODIFICADO: pasamos 'employees'
+            if(!hasPermission(item.zone, 'employees')) {
                 alert("⛔ ACCESO DENEGADO: No tienes permiso para modificar la " + item.zone);
                 renderNHTable(); renderNHEvaluations(); 
                 return;
@@ -1040,7 +1066,8 @@
         function updMgr(id, field, val) {
             const item = managers.find(m=>m.id===id);
             if(!item) return;
-            if(!hasPermission(item.zone)) {
+            // MODIFICADO: pasamos 'managers'
+            if(!hasPermission(item.zone, 'managers')) {
                 alert("⛔ ACCESO DENEGADO: No tienes permiso para modificar la " + item.zone);
                 renderMgrTable(); renderMgrEvaluations();
                 return;
@@ -1054,7 +1081,8 @@
             const zone = document.getElementById('nh-new-zone').value;
             const date = document.getElementById('nh-new-date').value;
             if(!name || !date) return alert("Faltan datos");
-            if(!hasPermission(zone)) return alert("⛔ ACCESO DENEGADO: No puedes agregar usuarios a esta zona.");
+            // MODIFICADO: pasamos 'employees'
+            if(!hasPermission(zone, 'employees')) return alert("⛔ ACCESO DENEGADO: No puedes agregar usuarios a esta zona.");
             
             const maxId = employees.reduce((max, e) => Math.max(max, parseInt(e.id || 0)), 0);
             const id = (maxId + 1).toString();
@@ -1072,7 +1100,8 @@
             const zone = document.getElementById('mgr-new-zone').value;
             const date = document.getElementById('mgr-new-date').value;
             if(!name || !date) return alert("Faltan datos");
-            if(!hasPermission(zone)) return alert("⛔ ACCESO DENEGADO: No puedes agregar usuarios a esta zona.");
+            // MODIFICADO: pasamos 'managers'
+            if(!hasPermission(zone, 'managers')) return alert("⛔ ACCESO DENEGADO: No puedes agregar usuarios a esta zona.");
 
             const maxId = managers.reduce((max, m) => Math.max(max, parseInt(m.id || 0)), 0);
             const id = (maxId + 1).toString();
@@ -1085,7 +1114,9 @@
         function delItem(col, id) { 
             const item = col==='employees' ? employees.find(e=>e.id===id) : managers.find(m=>m.id===id);
             if(!item) return;
-            if(!hasPermission(item.zone)) return alert("⛔ ACCESO DENEGADO: No tienes permiso para eliminar este registro.");
+            // MODIFICADO: detectamos contexto para pasar a hasPermission
+            const context = col === 'employees' ? 'employees' : 'managers';
+            if(!hasPermission(item.zone, context)) return alert("⛔ ACCESO DENEGADO: No tienes permiso para eliminar este registro.");
             
             if(!confirm("¿Eliminar?")) return; 
             (col==='employees'?empRef:mgrRef).child(id).remove().then(showCloudSave); 
