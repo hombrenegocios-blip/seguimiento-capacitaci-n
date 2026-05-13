@@ -363,7 +363,7 @@
                         <label style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#333;"><input type="checkbox" id="nh-an-active-only" onchange="renderNHAnalytics()"> Solo En Proceso</label>
                         <span class="filter-label">Zona:</span> <select id="nh-an-zone" class="filter-select" onchange="renderNHAnalytics()"><option value="ALL">Todas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
                         <span class="filter-label">Estatus Final:</span> <select id="nh-an-status" class="filter-select" onchange="renderNHAnalytics()"><option value="ALL">Todos</option><option value="En proceso">En Proceso</option><option value="Aprobado">Aprobado</option><option value="No Aprobado">No Aprobado</option><option value="Baja">Baja</option><option value="Renuncia">Renuncia</option></select>
-                        <input type="text" id="nh-an-search" placeholder="🔍 Buscar..." class="filter-select" style="margin-top:5px" onkeyup="renderNHAnalytics()">
+                        <input type="text" id="nh-an-search" placeholder="🔍 Buscar nombre o sucursal..." class="filter-select" style="margin-top:5px" oninput="renderNHAnalytics()">
                         <button class="btn btn-sm btn-danger" style="margin-top:5px" onclick="clearNHFilters()">Limpiar</button>
                     </div>
                     <div class="filter-group">
@@ -396,10 +396,12 @@
                 <div class="controls">
                     <label>Filtro Zona:</label> <select id="nh-eval-zone" onchange="renderNHEvaluations()"><option value="ALL">Todas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
                     <label>Estatus:</label> <select id="nh-eval-status" onchange="renderNHEvaluations()"><option value="ALL">Todos</option><option value="En proceso">En Proceso</option><option value="Aprobado">Aprobado</option><option value="No Aprobado">No Aprobado</option><option value="Baja">Baja</option></select>
+                    <input type="text" id="nh-eval-search" placeholder="🔍 Nombre, sucursal o zona..." style="padding:5px 8px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:200px;" oninput="renderNHEvaluations()">
+                    <button class="btn btn-sm btn-danger" onclick="clearNHEvalSearch()"><i class="fas fa-times"></i> Limpiar</button>
                 </div>
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th>Nombre</th><th>Zona</th><th>Días</th><th>Exp.</th><th>Lugar</th><th>Retro 1</th><th>PDF 1</th><th>Calif 1</th><th>Retro 2</th><th>PDF 2</th><th>Calif 2</th><th>Prom</th><th>Estatus</th><th>Obs</th></tr></thead>
+                        <thead><tr><th>Nombre</th><th>Sucursal</th><th>Zona</th><th style="min-width:70px">F. Inicio</th><th style="min-width:70px">F. Término</th><th>Días</th><th>Exp.</th><th>Lugar</th><th>Retro 1</th><th>PDF 1</th><th>Calif 1</th><th>Retro 2</th><th>PDF 2</th><th>Calif 2</th><th>Prom</th><th>Estatus</th><th>Obs</th></tr></thead>
                         <tbody id="nh-eval-body"></tbody>
                     </table>
                 </div>
@@ -751,10 +753,12 @@
             const tbody = document.getElementById('nh-eval-body'); tbody.innerHTML = '';
             const zone = document.getElementById('nh-eval-zone').value;
             const status = document.getElementById('nh-eval-status').value;
+            const search = document.getElementById('nh-eval-search').value.toUpperCase().trim();
 
             employees.forEach(e => {
                 if(zone !== 'ALL' && e.zone !== zone) return;
                 if(status !== 'ALL' && e.status !== status) return;
+                if(search && !e.name.toUpperCase().includes(search) && !(e.branch||'').toUpperCase().includes(search) && !(e.zone||'').toUpperCase().includes(search)) return;
 
                 const days = getDays(e.endDate);
                 const avg = calcAvg(e.feedback1, e.feedback2, e.feedback1Completed, e.feedback2Completed);
@@ -768,7 +772,10 @@
                 tr.className = rowClass;
                 tr.innerHTML = `
                     <td style="text-align:left">${e.name}</td>
+                    <td style="white-space:nowrap;font-size:10px">${e.branch||'-'}</td>
                     <td>${e.zone}</td>
+                    <td style="white-space:nowrap;font-size:10px">${formatDate(e.startDate)}</td>
+                    <td style="white-space:nowrap;font-size:10px">${formatDate(e.endDate)}</td>
                     <td class="${getDayClass(days, e.status)}">${isInactive?'-':days}</td>
                     <td><select class="evaluation-select-small" onchange="updEmp('${e.id}','hasSalesExperience',this.value==='T'?true:(this.value==='F'?false:'PEND'))"><option value="PEND" ${e.hasSalesExperience==='PEND'?'selected':''}>Pend.</option><option value="T" ${e.hasSalesExperience===true?'selected':''}>Sí</option><option value="F" ${e.hasSalesExperience===false?'selected':''}>No</option></select></td>
                     <td><input type="text" value="${e.previousWorkplace||''}" onchange="updEmp('${e.id}','previousWorkplace',this.value.toUpperCase())" style="width:80px; font-size:11px"></td>
@@ -798,7 +805,7 @@
                 if(activeOnly && e.status !== 'En proceso') return false;
                 if(z !== 'ALL' && e.zone !== z) return false;
                 if(s !== 'ALL' && e.status !== s) return false;
-                if(search && !e.name.includes(search)) return false;
+                if(search && !e.name.includes(search) && !(e.branch||'').toUpperCase().includes(search)) return false;
                 return true;
             });
             
@@ -1248,7 +1255,8 @@
             labels.forEach(l => { const c = counts[l]||0; const p = data.length?(c/data.length*100).toFixed(0):0; let cls = l==='Aprobado'?'status-aprobado':(l==='Baja'?'status-baja':'status-en-proceso'); html += `<div class="chart-bar-item"><span class="chart-label">${l}</span><div class="chart-bar-wrapper"><div class="chart-bar-fill ${cls}" style="width:${p}%">${c}</div></div></div>`; });
             document.getElementById(id).innerHTML = html + '</div>';
         }
-        function clearNHFilters() { document.getElementById('nh-an-active-only').checked = false; document.getElementById('nh-an-zone').value = 'ALL'; document.getElementById('nh-an-status').value = 'ALL'; renderNHAnalytics(); }
+        function clearNHFilters() { document.getElementById('nh-an-active-only').checked = false; document.getElementById('nh-an-zone').value = 'ALL'; document.getElementById('nh-an-status').value = 'ALL'; document.getElementById('nh-an-prog').value = 'ALL'; document.getElementById('nh-an-score').value = 'ALL'; document.getElementById('nh-an-search').value = ''; renderNHAnalytics(); }
+        function clearNHEvalSearch() { document.getElementById('nh-eval-search').value = ''; document.getElementById('nh-eval-zone').value = 'ALL'; document.getElementById('nh-eval-status').value = 'ALL'; renderNHEvaluations(); }
         
         // Reloj estabilizado (Declarado una sola vez)
         setInterval(() => { 
