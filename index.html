@@ -721,7 +721,7 @@
         };
 
         let db, storage;
-        let empRef, mgrRef;
+        let empRef, mgrRef, backupLogRef;
         let employees = []; 
         let managers = [];
         let currentUser = null;
@@ -736,6 +736,30 @@
                 storage = firebase.storage();
                 empRef = db.ref('employees');
                 mgrRef = db.ref('managers');
+                backupLogRef = db.ref('backupLog');
+
+                // Escucha en tiempo real el log de respaldos
+                backupLogRef.on('value', snap => {
+                    const data = snap.val() || {};
+                    const dl = document.getElementById('log-last-download');
+                    const em = document.getElementById('log-last-email');
+                    if (dl) {
+                        if (data.lastDownload) {
+                            dl.textContent = `${data.lastDownload.date} ${data.lastDownload.time} · ${data.lastDownload.type} · ${data.lastDownload.user}`;
+                        } else { dl.textContent = '—'; }
+                    }
+                    if (em) {
+                        if (data.lastEmail) {
+                            em.textContent = `${data.lastEmail.date} ${data.lastEmail.time} · ${data.lastEmail.type} · por ${data.lastEmail.user}`;
+                        } else { em.textContent = '—'; }
+                    }
+                    // Actualizar estado del recordatorio de lunes
+                    const weekKey = _getWeekKey(new Date());
+                    const alreadySentFB = data.lastEmail && data.lastEmail.weekKey === weekKey;
+                    if (alreadySentFB) {
+                        localStorage.setItem('rpt_week_sent', weekKey); // sincronizar local también
+                    }
+                });
 
                 setInterval(updateClock, 1000);
                 updateClock();
@@ -1628,8 +1652,7 @@
                     XLSX.utils.book_append_sheet(wb, _buildNHDataSheet(),     'Datos - Nuevos Ingresos');
                     XLSX.utils.book_append_sheet(wb, _buildNHSummarySheet(),  'Resumen - Nuevos Ingresos');
                     XLSX.writeFile(wb, _getFileName('NuevosIngresos'));
-                    localStorage.setItem('rpt_last_download', _nowStr() + ' · Nuevos Ingresos');
-                    updateBackupLog();
+                    _writeDownloadLog('Nuevos Ingresos');
                     _btnFeedback(btn, true);
                 }catch(e){console.error(e);alert('Error al generar el reporte.');btn.disabled=false;btn.innerHTML=btn._orig||btn.innerHTML;}
             },300);
@@ -1645,8 +1668,7 @@
                     XLSX.utils.book_append_sheet(wb, _buildMGRDataSheet(),    'Datos - Gerenciales');
                     XLSX.utils.book_append_sheet(wb, _buildMGRSummarySheet(), 'Resumen - Gerenciales');
                     XLSX.writeFile(wb, _getFileName('Gerenciales'));
-                    localStorage.setItem('rpt_last_download', _nowStr() + ' · Gerenciales');
-                    updateBackupLog();
+                    _writeDownloadLog('Gerenciales');
                     _btnFeedback(btn, true);
                 }catch(e){console.error(e);alert('Error al generar el reporte.');btn.disabled=false;btn.innerHTML=btn._orig||btn.innerHTML;}
             },300);
@@ -1664,8 +1686,7 @@
                     XLSX.utils.book_append_sheet(wb, _buildMGRDataSheet(),    'Datos - Gerenciales');
                     XLSX.utils.book_append_sheet(wb, _buildMGRSummarySheet(), 'Resumen - Gerenciales');
                     XLSX.writeFile(wb, _getFileName('Reporte_Completo_Capacitacion'));
-                    localStorage.setItem('rpt_last_download', _nowStr() + ' · Reporte Completo');
-                    updateBackupLog();
+                    _writeDownloadLog('Reporte Completo');
                     _btnFeedback(btn, true);
                 }catch(e){console.error(e);alert('Error al generar el reporte.');btn.disabled=false;btn.innerHTML=btn._orig||btn.innerHTML;}
             },300);
@@ -1674,6 +1695,39 @@
         // ============================================================
         //  CORREO + REGISTRO DE RESPALDOS + RECORDATORIO LUNES
         // ============================================================
+
+        // ---- Escritura en Firebase del log ----
+        function _writeDownloadLog(type) {
+            const now  = new Date();
+            const data = {
+                date    : now.toLocaleDateString('es-MX'),
+                time    : now.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}),
+                type    : type,
+                user    : currentUser ? currentUser.name : 'Desconocido',
+                weekKey : _getWeekKey(now),
+                ts      : now.getTime()
+            };
+            if (backupLogRef) {
+                backupLogRef.child('lastDownload').set(data);
+            }
+        }
+
+        function _writeEmailLog(type) {
+            const now  = new Date();
+            const data = {
+                date    : now.toLocaleDateString('es-MX'),
+                time    : now.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}),
+                type    : type,
+                user    : currentUser ? currentUser.name : 'Desconocido',
+                weekKey : _getWeekKey(now),
+                ts      : now.getTime()
+            };
+            if (backupLogRef) {
+                backupLogRef.child('lastEmail').set(data);
+            }
+            // Fallback localStorage para checkMondayReminder si Firebase tarda
+            localStorage.setItem('rpt_week_sent', data.weekKey);
+        }
 
         const FIXED_EMAILS = [
             'eduardo.rodriguez@prestocash.mx',
@@ -1701,12 +1755,10 @@
         }
 
         // ---- Actualizar panel de log ----
+        // El listener de backupLogRef en Firebase actualiza dl y em en tiempo real.
+        // Esta función solo refresca el campo estático "Próximo lunes".
         function updateBackupLog() {
-            const dl = document.getElementById('log-last-download');
-            const em = document.getElementById('log-last-email');
             const nx = document.getElementById('log-next-monday');
-            if (dl) dl.textContent = localStorage.getItem('rpt_last_download') || '—';
-            if (em) em.textContent = localStorage.getItem('rpt_last_email')    || '—';
             if (nx) nx.textContent = _nextMonday() + ' · 8:00 AM';
         }
 
@@ -1729,14 +1781,27 @@
         function checkMondayReminder() {
             if (localStorage.getItem('rpt_reminder_on') !== '1') return;
             const now  = new Date();
-            const isMonday  = now.getDay() === 1;
-            const isAfter8  = now.getHours() >= 8;
-            const weekKey   = _getWeekKey(now);
-            const alreadySent      = localStorage.getItem('rpt_week_sent')        === weekKey;
+            if (now.getDay() !== 1 || now.getHours() < 8) return;
+            const weekKey          = _getWeekKey(now);
             const bannerDismissed  = localStorage.getItem('rpt_banner_dismissed') === weekKey;
-            if (isMonday && isAfter8 && !alreadySent && !bannerDismissed) {
-                const b = document.getElementById('monday-banner');
-                if (b) b.style.display = 'flex';
+            if (bannerDismissed) return;
+            // Consultar Firebase para ver si ya se envió esta semana
+            if (backupLogRef) {
+                backupLogRef.child('lastEmail').once('value', snap => {
+                    const data = snap.val();
+                    const alreadySent = data && data.weekKey === weekKey;
+                    if (!alreadySent) {
+                        const b = document.getElementById('monday-banner');
+                        if (b) b.style.display = 'flex';
+                    }
+                });
+            } else {
+                // Fallback a localStorage si Firebase no está listo
+                const alreadySent = localStorage.getItem('rpt_week_sent') === weekKey;
+                if (!alreadySent) {
+                    const b = document.getElementById('monday-banner');
+                    if (b) b.style.display = 'flex';
+                }
             }
         }
         function dismissMondayBanner() {
@@ -1828,10 +1893,9 @@ Sistema de Seguimiento de Capacitacion — PrestoCash`;
                 // 1. Descargar Excel
                 _downloadExcelForEmail(type);
 
-                // 2. Registrar envío en log
-                const ts = _nowStr();
-                localStorage.setItem('rpt_last_email', ts);
-                localStorage.setItem('rpt_week_sent', _getWeekKey(new Date()));
+                // 2. Registrar envío en Firebase
+                const tipoEnvio = type === 'nh' ? 'Nuevos Ingresos' : type === 'mgr' ? 'Gerenciales' : 'Reporte Completo';
+                _writeEmailLog(tipoEnvio);
                 updateBackupLog();
 
                 // 3. Abrir cliente de correo
