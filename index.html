@@ -11,6 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         :root {
@@ -558,10 +559,136 @@
         </section>
 
         <section id="section-admin" class="main-section">
-            <div style="padding:20px; background:#eee; border-radius:8px;">
-                <h3>Administración</h3>
-                <p>Solo Master. Descargar Backup JSON.</p>
-                <button class="btn btn-warning" onclick="downloadBackup()">Descargar JSON</button>
+            <div style="padding:20px;">
+
+                <!-- ===== BANNER RECORDATORIO LUNES (auto-visible) ===== -->
+                <div id="monday-banner" style="display:none;background:linear-gradient(135deg,#bf360c,#e64a19);color:white;border-radius:10px;padding:14px 20px;margin-bottom:18px;align-items:center;gap:14px;box-shadow:0 4px 20px rgba(191,54,12,0.45);">
+                    <i class="fas fa-bell fa-2x" style="flex-shrink:0;animation:pulse 1.4s infinite;"></i>
+                    <div style="flex:1;">
+                        <strong style="font-size:15px;">¡Es lunes! — Recordatorio de respaldo semanal</strong>
+                        <p style="margin:4px 0 0 0;font-size:11.5px;opacity:0.9;">El reporte semanal de esta semana aún no ha sido enviado. Descárgalo y envíalo a la lista de distribución.</p>
+                    </div>
+                    <button onclick="triggerWeeklyReport()" style="background:white;color:#bf360c;border:none;border-radius:7px;padding:9px 18px;font-weight:bold;cursor:pointer;font-size:13px;flex-shrink:0;white-space:nowrap;">
+                        <i class="fas fa-rocket"></i>&nbsp;Enviar ahora
+                    </button>
+                    <button onclick="dismissMondayBanner()" style="background:rgba(255,255,255,0.15);color:white;border:none;border-radius:7px;padding:9px 12px;cursor:pointer;flex-shrink:0;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- ===== ENCABEZADO + LOG DE RESPALDOS ===== -->
+                <div style="background:linear-gradient(135deg,#1a252f,#2c3e50);border-radius:12px;padding:18px 22px;color:white;margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+                    <i class="fas fa-cloud-download-alt fa-2x" style="color:#4CAF50;flex-shrink:0;"></i>
+                    <div style="flex:1;min-width:200px;">
+                        <h2 style="margin:0 0 3px 0;font-size:17px;">Respaldo y Reportes de Capacitación</h2>
+                        <p style="margin:0;opacity:0.7;font-size:11.5px;">Reportes individuales con datos completos + resumen estadístico por zona.</p>
+                    </div>
+                    <!-- LOG DERECHO -->
+                    <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:9px;padding:10px 16px;min-width:220px;font-size:11px;line-height:1.9;">
+                        <div style="font-weight:bold;opacity:0.6;margin-bottom:4px;letter-spacing:.5px;">REGISTRO DE RESPALDOS</div>
+                        <div><i class="fas fa-download" style="color:#69f0ae;width:14px;"></i>&nbsp;Última descarga:&nbsp;<span id="log-last-download" style="font-weight:bold;">—</span></div>
+                        <div><i class="fas fa-paper-plane" style="color:#ffcc02;width:14px;"></i>&nbsp;Último envío:&nbsp;<span id="log-last-email" style="font-weight:bold;">—</span></div>
+                        <div><i class="fas fa-calendar-week" style="color:#80d8ff;width:14px;"></i>&nbsp;Próximo lunes:&nbsp;<span id="log-next-monday" style="font-weight:bold;">—</span></div>
+                    </div>
+                </div>
+
+                <!-- ===== DESCARGAS ===== -->
+                <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
+                    <div style="flex:1;min-width:250px;background:#f0f4ff;border:1px solid #c5cae9;border-radius:10px;padding:16px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                            <i class="fas fa-users" style="color:var(--primary-color);"></i>
+                            <strong style="color:var(--primary-color);font-size:13px;">Nuevos Ingresos</strong>
+                        </div>
+                        <p style="font-size:11px;color:#666;margin:0 0 12px 0;">Datos completos · Resumen por estatus, zona y progreso</p>
+                        <button id="btn-nh-excel" onclick="downloadNHExcel(this)"
+                            style="width:100%;background:linear-gradient(135deg,#1565c0,#2196f3);color:white;border:none;border-radius:7px;padding:10px 0;font-size:13px;font-weight:bold;cursor:pointer;">
+                            <i class="fas fa-file-excel"></i>&nbsp;Descargar Nuevos Ingresos
+                        </button>
+                    </div>
+                    <div style="flex:1;min-width:250px;background:#f1f8f1;border:1px solid #c8e6c9;border-radius:10px;padding:16px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                            <i class="fas fa-user-tie" style="color:var(--manager-color);"></i>
+                            <strong style="color:var(--manager-color);font-size:13px;">Gerenciales</strong>
+                        </div>
+                        <p style="font-size:11px;color:#666;margin:0 0 12px 0;">Datos completos · Resumen, ranking de calificaciones por zona</p>
+                        <button id="btn-mgr-excel" onclick="downloadMGRExcel(this)"
+                            style="width:100%;background:linear-gradient(135deg,#1b5e20,#4CAF50);color:white;border:none;border-radius:7px;padding:10px 0;font-size:13px;font-weight:bold;cursor:pointer;">
+                            <i class="fas fa-file-excel"></i>&nbsp;Descargar Gerenciales
+                        </button>
+                    </div>
+                </div>
+                <div style="text-align:center;margin-bottom:20px;">
+                    <button id="btn-excel-report" onclick="downloadExcelReport(this)"
+                        style="background:linear-gradient(135deg,#4a148c,#7b1fa2);color:white;border:none;border-radius:8px;padding:11px 34px;font-size:13px;font-weight:bold;cursor:pointer;box-shadow:0 3px 14px rgba(123,31,162,0.35);">
+                        <i class="fas fa-database"></i>&nbsp;Descargar Reporte Completo — NH + Gerenciales (4 hojas)
+                    </button>
+                </div>
+
+                <!-- ===== SECCIÓN CORREO ===== -->
+                <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:18px;">
+
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                        <i class="fas fa-envelope" style="color:#f57f17;font-size:18px;"></i>
+                        <strong style="color:#e65100;font-size:14px;">Enviar Reporte por Correo</strong>
+                    </div>
+                    <p style="font-size:11.5px;color:#777;margin:0 0 14px 0;">
+                        El Excel se descarga automáticamente y se abre tu cliente de correo con el asunto, destinatarios y resumen listos.<br>
+                        <strong style="color:#bf360c;">Paso final:</strong> arrastra el archivo descargado al correo y presiona Enviar.
+                        <span style="color:#aaa;font-size:10.5px;">&nbsp;(Los navegadores no permiten adjuntar archivos automáticamente por seguridad)</span>
+                    </p>
+
+                    <!-- Lista fija -->
+                    <div style="background:white;border:1px solid #ffe082;border-radius:8px;padding:12px;margin-bottom:12px;">
+                        <div style="font-size:10.5px;color:#888;font-weight:bold;letter-spacing:.4px;margin-bottom:8px;"><i class="fas fa-users"></i>&nbsp;LISTA FIJA DE DISTRIBUCIÓN</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                            <span style="background:#e3f2fd;border:1px solid #90caf9;border-radius:20px;padding:3px 11px;font-size:11px;color:#1565c0;"><i class="fas fa-user"></i>&nbsp;Eduardo Rodríguez</span>
+                            <span style="background:#e3f2fd;border:1px solid #90caf9;border-radius:20px;padding:3px 11px;font-size:11px;color:#1565c0;"><i class="fas fa-user"></i>&nbsp;Luna Rosas</span>
+                            <span style="background:#e3f2fd;border:1px solid #90caf9;border-radius:20px;padding:3px 11px;font-size:11px;color:#1565c0;"><i class="fas fa-user"></i>&nbsp;Alejandro Hernández</span>
+                            <span style="background:#e3f2fd;border:1px solid #90caf9;border-radius:20px;padding:3px 11px;font-size:11px;color:#1565c0;"><i class="fas fa-user"></i>&nbsp;Urisol Tenorio</span>
+                            <span style="background:#e3f2fd;border:1px solid #90caf9;border-radius:20px;padding:3px 11px;font-size:11px;color:#1565c0;"><i class="fas fa-user"></i>&nbsp;Eugenia Scull</span>
+                        </div>
+                        <div style="font-size:10.5px;color:#aaa;margin-bottom:5px;font-weight:bold;"><i class="fas fa-plus-circle" style="color:#ff9800;"></i>&nbsp;CORREO ADICIONAL (copia extra — opcional)</div>
+                        <input id="email-extra" type="email" placeholder="copia@empresa.com"
+                            style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;"
+                            oninput="localStorage.setItem('rpt_extra_email', this.value)">
+                    </div>
+
+                    <!-- Controles -->
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+                        <select id="email-report-type" style="padding:8px 12px;border:1px solid #ffca28;border-radius:6px;font-size:12px;background:white;">
+                            <option value="all">Reporte Completo</option>
+                            <option value="nh">Solo Nuevos Ingresos</option>
+                            <option value="mgr">Solo Gerenciales</option>
+                        </select>
+                        <select id="email-client" style="padding:8px 12px;border:1px solid #ffca28;border-radius:6px;font-size:12px;background:white;">
+                            <option value="gmail">Abrir en Gmail (navegador)</option>
+                            <option value="outlook">Abrir en Outlook Web</option>
+                            <option value="mailto">Cliente local (Outlook app, etc.)</option>
+                        </select>
+                    </div>
+
+                    <button onclick="sendReportByEmail(false)"
+                        style="background:linear-gradient(135deg,#e65100,#ff9800);color:white;border:none;border-radius:8px;padding:11px 26px;font-size:13px;font-weight:bold;cursor:pointer;box-shadow:0 3px 12px rgba(230,81,0,0.4);">
+                        <i class="fas fa-paper-plane"></i>&nbsp;Preparar correo + Descargar Excel
+                    </button>
+
+                    <!-- RECORDATORIO LUNES -->
+                    <div style="margin-top:16px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:14px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                            <i class="fas fa-clock" style="color:#2e7d32;"></i>
+                            <strong style="color:#1b5e20;font-size:13px;">Recordatorio Automático — Lunes 8:00 AM</strong>
+                        </div>
+                        <p style="font-size:11.5px;color:#555;margin:0 0 10px 0;">Al abrir la plataforma cada lunes después de las 8:00 AM aparecerá automáticamente el aviso naranja de envío semanal. Si ya se envió esa semana, no vuelve a aparecer.</p>
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                            <label style="display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;user-select:none;">
+                                <input type="checkbox" id="auto-reminder-cb" onchange="toggleAutoReminder(this.checked)" style="width:16px;height:16px;cursor:pointer;">
+                                <span>Activar recordatorio de lunes</span>
+                            </label>
+                            <span id="reminder-status-text" style="font-size:11px;color:#666;"></span>
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </section>
     </div>
@@ -638,8 +765,7 @@
                 });
 
                 document.getElementById('user-display').textContent = currentUser.name;
-                // Ajuste para ocultar tab de admin si no es ALL (Luna con array sigue sin ser 'ALL')
-                if(currentUser.zone !== 'ALL') document.getElementById('admin-tab-btn').style.display='none';
+                // Pestaña Admin visible para todos los usuarios
 
             } catch (e) { console.error("Error Firebase", e); }
         }
@@ -1264,7 +1390,503 @@
             document.getElementById('live-clock').textContent = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${d.toLocaleTimeString()}`; 
         }, 1000);
         
-        window.onload = () => { const u = localStorage.getItem('currentUser'); if(u) { currentUser = JSON.parse(u); document.getElementById('loginModal').style.display='none'; initSystem(); } };
+        // ================= UTILIDADES EXCEL =================
+        const _safeStr = v => (v === undefined || v === null) ? '' : String(v);
+        const _bool    = v => v === true ? 'SÍ' : (v === false ? 'NO' : 'PENDIENTE');
+        const _hdrNH   = { font:{bold:true,color:{rgb:"FFFFFF"},sz:11}, fill:{fgColor:{rgb:"1A3A6B"}}, alignment:{horizontal:"center",vertical:"center",wrapText:true} };
+        const _hdrGR   = { font:{bold:true,color:{rgb:"FFFFFF"},sz:11}, fill:{fgColor:{rgb:"1B5E20"}}, alignment:{horizontal:"center",vertical:"center",wrapText:true} };
+        const _hdrSum  = { font:{bold:true,color:{rgb:"FFFFFF"},sz:11}, fill:{fgColor:{rgb:"37474F"}}, alignment:{horizontal:"center",vertical:"center"} };
+        const _cC      = { alignment:{horizontal:"center",vertical:"center"} };
+        const _cL      = { alignment:{horizontal:"left",vertical:"center"} };
+        const _cBold   = { font:{bold:true}, alignment:{horizontal:"left",vertical:"center"} };
+        const _cNum    = { font:{bold:true,color:{rgb:"1A3A6B"}}, alignment:{horizontal:"center",vertical:"center"} };
+        const _cNumG   = { font:{bold:true,color:{rgb:"1B5E20"}}, alignment:{horizontal:"center",vertical:"center"} };
+
+        function _applyStyles(ws, headers, rows, hdrStyle, altColor) {
+            headers.forEach((_, ci) => { const c = XLSX.utils.encode_cell({r:0,c:ci}); if(ws[c]) ws[c].s = hdrStyle; });
+            rows.forEach((row, ri) => {
+                const bg = ri%2===0 ? "FFFFFF" : altColor;
+                row.forEach((_, ci) => {
+                    const c = XLSX.utils.encode_cell({r:ri+1,c:ci});
+                    if(ws[c]) ws[c].s = { ...(ci<=2||ci===18||ci===23?_cL:_cC), fill:{fgColor:{rgb:bg}} };
+                });
+            });
+        }
+
+        function _buildNHDataSheet() {
+            const headers = ['N°','Nombre','Sucursal','Zona','Fecha Inicio','Fecha Término',
+                'Curso SAC','Video 1','Video 2','Video 3','Video 4','Progreso (%)',
+                'Estatus','Calif. Retro 1','Retro 1 Realizada','Calif. Retro 2','Retro 2 Realizada',
+                'Promedio Retros','Observaciones'];
+            const rows = employees.map((e,i) => [
+                i+1, _safeStr(e.name), _safeStr(e.branch), _safeStr(e.zone),
+                _safeStr(formatDate(e.startDate)), _safeStr(formatDate(e.endDate)),
+                _bool(e.sacCourse), _bool(e.video1), _bool(e.video2), _bool(e.video3), _bool(e.video4),
+                calcNHProg(e)+'%', _safeStr(e.status),
+                e.feedback1Completed ? _safeStr(e.feedback1) : 'Pendiente', _bool(e.feedback1Completed),
+                e.feedback2Completed ? _safeStr(e.feedback2) : 'Pendiente', _bool(e.feedback2Completed),
+                calcAvg(e.feedback1,e.feedback2,e.feedback1Completed,e.feedback2Completed),
+                _safeStr(e.observations)
+            ]);
+            const ws = XLSX.utils.aoa_to_sheet([headers,...rows]);
+            ws['!cols'] = [{wch:5},{wch:28},{wch:20},{wch:10},{wch:13},{wch:13},{wch:10},{wch:9},{wch:9},{wch:9},{wch:9},{wch:12},{wch:12},{wch:13},{wch:14},{wch:13},{wch:14},{wch:14},{wch:35}];
+            ws['!rows'] = [{hpt:26}];
+            _applyStyles(ws, headers, rows, _hdrNH, "EEF2FF");
+            return ws;
+        }
+
+        function _buildNHSummarySheet() {
+            const total = employees.length;
+            const byStatus = {};
+            const byZone   = {};
+            let sumProg=0, retro1done=0, retro2done=0, sacDone=0, v1=0,v2=0,v3=0,v4=0;
+
+            employees.forEach(e => {
+                byStatus[e.status]  = (byStatus[e.status]||0)+1;
+                byZone[e.zone]      = (byZone[e.zone]||[]);
+                byZone[e.zone].push(e);
+                sumProg += calcNHProg(e);
+                if(e.feedback1Completed) retro1done++;
+                if(e.feedback2Completed) retro2done++;
+                if(e.sacCourse) sacDone++;
+                if(e.video1) v1++; if(e.video2) v2++; if(e.video3) v3++; if(e.video4) v4++;
+            });
+
+            const rows = [];
+            rows.push(['RESUMEN — NUEVOS INGRESOS','','','','']);
+            rows.push(['Generado el', new Date().toLocaleDateString('es-MX'),'','','']);
+            rows.push(['','','','','']);
+
+            rows.push(['📊 TOTALES POR ESTATUS','Cantidad','Porcentaje','','']);
+            ['En proceso','Aprobado','No Aprobado','Baja','Renuncia'].forEach(s => {
+                const n = byStatus[s]||0;
+                rows.push([s, n, total ? (n/total*100).toFixed(1)+'%' : '0%','','']);
+            });
+            rows.push(['TOTAL GENERAL', total, '100%','','']);
+            rows.push(['','','','','']);
+
+            rows.push(['📈 INDICADORES GENERALES','','','','']);
+            rows.push(['Progreso promedio de capacitación', (total?(sumProg/total).toFixed(1):0)+'%','','','']);
+            rows.push(['Empleados con Curso SAC completado', sacDone+' / '+total,'','','']);
+            rows.push(['Empleados con Video 1 completado',  v1+' / '+total,'','','']);
+            rows.push(['Empleados con Video 2 completado',  v2+' / '+total,'','','']);
+            rows.push(['Empleados con Video 3 completado',  v3+' / '+total,'','','']);
+            rows.push(['Empleados con Video 4 completado',  v4+' / '+total,'','','']);
+            rows.push(['Retroalimentación 1 realizada',     retro1done+' / '+total,'','','']);
+            rows.push(['Retroalimentación 2 realizada',     retro2done+' / '+total,'','','']);
+            rows.push(['','','','','']);
+
+            rows.push(['🗂 RESUMEN POR ZONA','Total','En Proceso','Aprobados','Promedio Retros']);
+            Object.keys(byZone).sort().forEach(z => {
+                const arr = byZone[z];
+                const enP = arr.filter(e=>e.status==='En proceso').length;
+                const apr = arr.filter(e=>e.status==='Aprobado').length;
+                const avgs = arr.map(e=>parseFloat(calcAvg(e.feedback1,e.feedback2,e.feedback1Completed,e.feedback2Completed))).filter(n=>n>0);
+                const avgZ = avgs.length ? (avgs.reduce((a,b)=>a+b,0)/avgs.length).toFixed(1) : '-';
+                rows.push([z, arr.length, enP, apr, avgZ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{wch:38},{wch:16},{wch:14},{wch:14},{wch:18}];
+            // Estilos de sección
+            rows.forEach((row, ri) => {
+                const cell0 = XLSX.utils.encode_cell({r:ri,c:0});
+                if(!ws[cell0]) return;
+                const v = String(row[0]||'');
+                if(v.startsWith('📊')||v.startsWith('📈')||v.startsWith('🗂')) {
+                    [0,1,2,3,4].forEach(ci => {
+                        const c = XLSX.utils.encode_cell({r:ri,c:ci});
+                        if(ws[c]) ws[c].s = _hdrSum;
+                    });
+                } else if(v === 'TOTAL GENERAL' || v === 'RESUMEN — NUEVOS INGRESOS') {
+                    [0,1,2].forEach(ci => { const c = XLSX.utils.encode_cell({r:ri,c:ci}); if(ws[c]) ws[c].s = _cBold; });
+                } else if(v === 'Cantidad'||v === 'Total') {
+                    // header subrow - skip
+                } else {
+                    [0,1,2,3,4].forEach(ci => {
+                        const c = XLSX.utils.encode_cell({r:ri,c:ci});
+                        if(ws[c]) ws[c].s = { ...(ci===0?_cL:_cC), fill:{fgColor:{rgb: ri%2===0?"FFFFFF":"F3F4FF"}} };
+                    });
+                }
+            });
+            return ws;
+        }
+
+        function _buildMGRDataSheet() {
+            const headers = ['N°','Nombre','Puesto','Sucursal','Zona','Origen',
+                'Fecha Inicio','Fecha Término',
+                'Tema P1','Tema P2','Tema P3','Tema P4','Tema P5',
+                'Ev.Proceso','Corridas','Bajas','Precios','Llamadas','Efectivo','Clientes',
+                'Promedio Temas (%)','Calif. Total','Estatus','Observaciones'];
+            const rows = managers.map((m,i) => [
+                i+1, _safeStr(m.name), _safeStr(m.post), _safeStr(m.branch), _safeStr(m.zone), _safeStr(m.origin),
+                _safeStr(formatDate(m.startDate)), _safeStr(formatDate(m.endDate)),
+                _safeStr(m.p1)||'0', _safeStr(m.p2)||'0', _safeStr(m.p3)||'0', _safeStr(m.p4)||'0', _safeStr(m.p5)||'0',
+                _safeStr(m.evProc)||'0', _safeStr(m.runs)||'0', _safeStr(m.drops)||'0',
+                _safeStr(m.prices)||'0', _safeStr(m.calls)||'0', _safeStr(m.cash)||'0', _safeStr(m.cust)||'0',
+                calcMgrTopics(m)+'%', _safeStr(m.fb2)||'0', _safeStr(m.status), _safeStr(m.obs)
+            ]);
+            const ws = XLSX.utils.aoa_to_sheet([headers,...rows]);
+            ws['!cols'] = [{wch:5},{wch:28},{wch:16},{wch:18},{wch:10},{wch:12},{wch:13},{wch:13},{wch:9},{wch:9},{wch:9},{wch:9},{wch:9},{wch:11},{wch:11},{wch:9},{wch:9},{wch:11},{wch:11},{wch:11},{wch:16},{wch:12},{wch:12},{wch:35}];
+            ws['!rows'] = [{hpt:26}];
+            _applyStyles(ws, headers, rows, _hdrGR, "F1F8E9");
+            return ws;
+        }
+
+        function _buildMGRSummarySheet() {
+            const total = managers.length;
+            const byStatus = {};
+            const byZone   = {};
+            let sumCalif=0, califCount=0;
+
+            managers.forEach(m => {
+                byStatus[m.status]  = (byStatus[m.status]||0)+1;
+                byZone[m.zone]      = (byZone[m.zone]||[]);
+                byZone[m.zone].push(m);
+                const c = parseFloat(m.fb2)||0;
+                if(c>0){ sumCalif+=c; califCount++; }
+            });
+
+            const rows = [];
+            rows.push(['RESUMEN — GERENCIALES','','','','']);
+            rows.push(['Generado el', new Date().toLocaleDateString('es-MX'),'','','']);
+            rows.push(['','','','','']);
+
+            rows.push(['📊 TOTALES POR ESTATUS','Cantidad','Porcentaje','','']);
+            ['En proceso','Aprobado','Renuncia','Baja'].forEach(s => {
+                const n = byStatus[s]||0;
+                rows.push([s, n, total?(n/total*100).toFixed(1)+'%':'0%','','']);
+            });
+            rows.push(['TOTAL GENERAL', total, '100%','','']);
+            rows.push(['','','','','']);
+
+            rows.push(['📈 INDICADORES GENERALES','','','','']);
+            rows.push(['Calificación promedio total', califCount?(sumCalif/califCount).toFixed(1):'N/D','','','']);
+            const interno = managers.filter(m=>m.origin==='Interno').length;
+            const externo = managers.filter(m=>m.origin==='Externo').length;
+            rows.push(['Gerenciales de origen Interno', interno+' / '+total,'','','']);
+            rows.push(['Gerenciales de origen Externo', externo+' / '+total,'','','']);
+            rows.push(['','','','','']);
+
+            rows.push(['🗂 RESUMEN POR ZONA','Total','En Proceso','Aprobados','Promedio Calif.']);
+            Object.keys(byZone).sort().forEach(z => {
+                const arr = byZone[z];
+                const enP = arr.filter(m=>m.status==='En proceso').length;
+                const apr = arr.filter(m=>m.status==='Aprobado').length;
+                const califs = arr.map(m=>parseFloat(m.fb2)||0).filter(n=>n>0);
+                const avgC  = califs.length ? (califs.reduce((a,b)=>a+b,0)/califs.length).toFixed(1) : '-';
+                rows.push([z, arr.length, enP, apr, avgC]);
+            });
+
+            rows.push(['','','','','']);
+            rows.push(['🏅 RANKING — TOP CALIFICACIONES','Calificación','Zona','Puesto','']);
+            const ranked = [...managers].filter(m=>m.fb2>0).sort((a,b)=>(parseFloat(b.fb2)||0)-(parseFloat(a.fb2)||0)).slice(0,10);
+            ranked.forEach((m,i)=>rows.push([`${i+1}. ${_safeStr(m.name)}`, _safeStr(m.fb2), _safeStr(m.zone), _safeStr(m.post),'']));
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{wch:38},{wch:16},{wch:14},{wch:16},{wch:14}];
+            rows.forEach((row,ri) => {
+                const cell0 = XLSX.utils.encode_cell({r:ri,c:0});
+                if(!ws[cell0]) return;
+                const v = String(row[0]||'');
+                if(v.startsWith('📊')||v.startsWith('📈')||v.startsWith('🗂')||v.startsWith('🏅')) {
+                    [0,1,2,3,4].forEach(ci => { const c=XLSX.utils.encode_cell({r:ri,c:ci}); if(ws[c]) ws[c].s = _hdrSum; });
+                } else if(v==='TOTAL GENERAL'||v==='RESUMEN — GERENCIALES') {
+                    [0,1,2].forEach(ci => { const c=XLSX.utils.encode_cell({r:ri,c:ci}); if(ws[c]) ws[c].s = _cBold; });
+                } else {
+                    [0,1,2,3,4].forEach(ci => {
+                        const c=XLSX.utils.encode_cell({r:ri,c:ci});
+                        if(ws[c]) ws[c].s = { ...(ci===0?_cL:_cC), fill:{fgColor:{rgb:ri%2===0?"FFFFFF":"F0FAF0"}} };
+                    });
+                }
+            });
+            return ws;
+        }
+
+        function _getFileName(prefix) {
+            const d = new Date();
+            return `${prefix}_${d.getDate().toString().padStart(2,'0')}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getFullYear()}.xlsx`;
+        }
+
+        function _btnFeedback(btn, ok) {
+            const orig = btn._orig || btn.innerHTML;
+            btn._orig = orig;
+            btn.disabled = true;
+            btn.innerHTML = ok
+                ? '<i class="fas fa-check-circle"></i>&nbsp; ¡Descargado!'
+                : '<i class="fas fa-spinner fa-spin"></i>&nbsp; Generando...';
+            if(ok) setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; btn._orig=null; },3000);
+        }
+
+        // ================= DESCARGA NUEVOS INGRESOS =================
+        function downloadNHExcel(btn) {
+            if(typeof XLSX==='undefined'){alert('Librería cargando, intenta de nuevo.');return;}
+            _btnFeedback(btn, false);
+            setTimeout(()=>{
+                try{
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, _buildNHDataSheet(),     'Datos - Nuevos Ingresos');
+                    XLSX.utils.book_append_sheet(wb, _buildNHSummarySheet(),  'Resumen - Nuevos Ingresos');
+                    XLSX.writeFile(wb, _getFileName('NuevosIngresos'));
+                    localStorage.setItem('rpt_last_download', _nowStr() + ' · Nuevos Ingresos');
+                    updateBackupLog();
+                    _btnFeedback(btn, true);
+                }catch(e){console.error(e);alert('Error al generar el reporte.');btn.disabled=false;btn.innerHTML=btn._orig||btn.innerHTML;}
+            },300);
+        }
+
+        // ================= DESCARGA GERENCIALES =================
+        function downloadMGRExcel(btn) {
+            if(typeof XLSX==='undefined'){alert('Librería cargando, intenta de nuevo.');return;}
+            _btnFeedback(btn, false);
+            setTimeout(()=>{
+                try{
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, _buildMGRDataSheet(),    'Datos - Gerenciales');
+                    XLSX.utils.book_append_sheet(wb, _buildMGRSummarySheet(), 'Resumen - Gerenciales');
+                    XLSX.writeFile(wb, _getFileName('Gerenciales'));
+                    localStorage.setItem('rpt_last_download', _nowStr() + ' · Gerenciales');
+                    updateBackupLog();
+                    _btnFeedback(btn, true);
+                }catch(e){console.error(e);alert('Error al generar el reporte.');btn.disabled=false;btn.innerHTML=btn._orig||btn.innerHTML;}
+            },300);
+        }
+
+        // ================= DESCARGA REPORTE COMPLETO =================
+        function downloadExcelReport(btn) {
+            if(typeof XLSX==='undefined'){alert('Librería cargando, intenta de nuevo.');return;}
+            _btnFeedback(btn, false);
+            setTimeout(()=>{
+                try{
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, _buildNHDataSheet(),     'Datos - Nuevos Ingresos');
+                    XLSX.utils.book_append_sheet(wb, _buildNHSummarySheet(),  'Resumen - Nuevos Ingresos');
+                    XLSX.utils.book_append_sheet(wb, _buildMGRDataSheet(),    'Datos - Gerenciales');
+                    XLSX.utils.book_append_sheet(wb, _buildMGRSummarySheet(), 'Resumen - Gerenciales');
+                    XLSX.writeFile(wb, _getFileName('Reporte_Completo_Capacitacion'));
+                    localStorage.setItem('rpt_last_download', _nowStr() + ' · Reporte Completo');
+                    updateBackupLog();
+                    _btnFeedback(btn, true);
+                }catch(e){console.error(e);alert('Error al generar el reporte.');btn.disabled=false;btn.innerHTML=btn._orig||btn.innerHTML;}
+            },300);
+        }
+
+        // ============================================================
+        //  CORREO + REGISTRO DE RESPALDOS + RECORDATORIO LUNES
+        // ============================================================
+
+        const FIXED_EMAILS = [
+            'eduardo.rodriguez@prestocash.mx',
+            'luna.rosas@prestocash.mx',
+            'alejandro.hernandez@prestocash.mx',
+            'urisol.tenorio@prestocash.mx',
+            'eugenia.scull@prestocash.mx'
+        ];
+
+        // ---- Utilidades de fecha y semana ----
+        function _nowStr() {
+            const n = new Date();
+            return n.toLocaleDateString('es-MX') + ' ' + n.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+        }
+        function _getWeekKey(d) {
+            const jan1 = new Date(d.getFullYear(), 0, 1);
+            const week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+            return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+        }
+        function _nextMonday() {
+            const d = new Date();
+            const diff = (1 - d.getDay() + 7) % 7 || 7;
+            const nm = new Date(d); nm.setDate(d.getDate() + diff);
+            return nm.toLocaleDateString('es-MX');
+        }
+
+        // ---- Actualizar panel de log ----
+        function updateBackupLog() {
+            const dl = document.getElementById('log-last-download');
+            const em = document.getElementById('log-last-email');
+            const nx = document.getElementById('log-next-monday');
+            if (dl) dl.textContent = localStorage.getItem('rpt_last_download') || '—';
+            if (em) em.textContent = localStorage.getItem('rpt_last_email')    || '—';
+            if (nx) nx.textContent = _nextMonday() + ' · 8:00 AM';
+        }
+
+        // ---- Estado del recordatorio ----
+        function updateReminderUI() {
+            const on = localStorage.getItem('rpt_reminder_on') === '1';
+            const cb = document.getElementById('auto-reminder-cb');
+            const st = document.getElementById('reminder-status-text');
+            if (cb) cb.checked = on;
+            if (st) st.textContent = on
+                ? '✅ Activo — aparecerá cada lunes al abrir la plataforma'
+                : '⬜ Inactivo';
+        }
+        function toggleAutoReminder(enabled) {
+            localStorage.setItem('rpt_reminder_on', enabled ? '1' : '0');
+            updateReminderUI();
+        }
+
+        // ---- Banner lunes ----
+        function checkMondayReminder() {
+            if (localStorage.getItem('rpt_reminder_on') !== '1') return;
+            const now  = new Date();
+            const isMonday  = now.getDay() === 1;
+            const isAfter8  = now.getHours() >= 8;
+            const weekKey   = _getWeekKey(now);
+            const alreadySent      = localStorage.getItem('rpt_week_sent')        === weekKey;
+            const bannerDismissed  = localStorage.getItem('rpt_banner_dismissed') === weekKey;
+            if (isMonday && isAfter8 && !alreadySent && !bannerDismissed) {
+                const b = document.getElementById('monday-banner');
+                if (b) b.style.display = 'flex';
+            }
+        }
+        function dismissMondayBanner() {
+            localStorage.setItem('rpt_banner_dismissed', _getWeekKey(new Date()));
+            const b = document.getElementById('monday-banner');
+            if (b) b.style.display = 'none';
+        }
+        function triggerWeeklyReport() {
+            dismissMondayBanner();
+            // Ir a la pestaña admin y lanzar envío
+            switchMainTab('section-admin');
+            sendReportByEmail(true);
+        }
+
+        // ---- Construir cuerpo del correo ----
+        function _buildEmailContent(type) {
+            const today     = new Date().toLocaleDateString('es-MX');
+            const totalNH   = employees.length;
+            const aprobNH   = employees.filter(e => e.status === 'Aprobado').length;
+            const procesoNH = employees.filter(e => e.status === 'En proceso').length;
+            const bajaНН    = employees.filter(e => e.status === 'Baja' || e.status === 'Renuncia').length;
+            const totalMGR  = managers.length;
+            const aprobMGR  = managers.filter(m => m.status === 'Aprobado').length;
+            const procesoMGR= managers.filter(m => m.status === 'En proceso').length;
+            const tipoLabel = type === 'nh' ? 'Nuevos Ingresos' : type === 'mgr' ? 'Gerenciales' : 'Completo (Nuevos Ingresos + Gerenciales)';
+
+            const subject = `Reporte Semanal de Capacitación — ${tipoLabel} — ${today}`;
+            const body =
+`Estimado/a equipo,
+
+Se adjunta el reporte semanal de capacitación generado el ${today}.
+Tipo: ${tipoLabel}
+
+RESUMEN NUEVOS INGRESOS
+  Total registrados : ${totalNH}
+  En proceso        : ${procesoNH}
+  Aprobados         : ${aprobNH}
+  Bajas / Renuncia  : ${bajaНН}
+
+RESUMEN GERENCIALES
+  Total registrados : ${totalMGR}
+  En proceso        : ${procesoMGR}
+  Aprobados         : ${aprobMGR}
+
+INSTRUCCION: Por favor adjunta el archivo Excel descargado antes de enviar.
+
+Saludos,
+Sistema de Seguimiento de Capacitacion — PrestoCash`;
+            return { subject, body, tipoLabel };
+        }
+
+        // ---- Generar y descargar Excel para correo ----
+        function _downloadExcelForEmail(type) {
+            const wb = XLSX.utils.book_new();
+            let fileName;
+            if (type === 'nh') {
+                XLSX.utils.book_append_sheet(wb, _buildNHDataSheet(),    'Datos - Nuevos Ingresos');
+                XLSX.utils.book_append_sheet(wb, _buildNHSummarySheet(), 'Resumen - Nuevos Ingresos');
+                fileName = _getFileName('NuevosIngresos');
+            } else if (type === 'mgr') {
+                XLSX.utils.book_append_sheet(wb, _buildMGRDataSheet(),    'Datos - Gerenciales');
+                XLSX.utils.book_append_sheet(wb, _buildMGRSummarySheet(), 'Resumen - Gerenciales');
+                fileName = _getFileName('Gerenciales');
+            } else {
+                XLSX.utils.book_append_sheet(wb, _buildNHDataSheet(),     'Datos - Nuevos Ingresos');
+                XLSX.utils.book_append_sheet(wb, _buildNHSummarySheet(),  'Resumen - Nuevos Ingresos');
+                XLSX.utils.book_append_sheet(wb, _buildMGRDataSheet(),    'Datos - Gerenciales');
+                XLSX.utils.book_append_sheet(wb, _buildMGRSummarySheet(), 'Resumen - Gerenciales');
+                fileName = _getFileName('Reporte_Completo_Capacitacion');
+            }
+            XLSX.writeFile(wb, fileName);
+            return fileName;
+        }
+
+        // ---- ENVIAR POR CORREO (función principal) ----
+        function sendReportByEmail(isAuto) {
+            if (typeof XLSX === 'undefined') { alert('La librería Excel aún se está cargando. Intenta en un momento.'); return; }
+
+            const type   = (document.getElementById('email-report-type') || {}).value || 'all';
+            const client = (document.getElementById('email-client')      || {}).value || 'gmail';
+            const extra  = ((document.getElementById('email-extra')      || {}).value || '').trim();
+
+            // Armar lista completa de destinatarios
+            const allEmails = [...FIXED_EMAILS];
+            if (extra) extra.split(',').map(e => e.trim()).filter(Boolean).forEach(e => allEmails.push(e));
+            const toStr = allEmails.join(',');
+
+            try {
+                // 1. Descargar Excel
+                _downloadExcelForEmail(type);
+
+                // 2. Registrar envío en log
+                const ts = _nowStr();
+                localStorage.setItem('rpt_last_email', ts);
+                localStorage.setItem('rpt_week_sent', _getWeekKey(new Date()));
+                updateBackupLog();
+
+                // 3. Abrir cliente de correo
+                const { subject, body } = _buildEmailContent(type);
+                const subj = encodeURIComponent(subject);
+                const bdy  = encodeURIComponent(body);
+
+                setTimeout(() => {
+                    if (client === 'gmail') {
+                        window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(toStr)}&su=${subj}&body=${bdy}`, '_blank');
+                    } else if (client === 'outlook') {
+                        window.open(`https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(toStr)}&subject=${subj}&body=${bdy}`, '_blank');
+                    } else {
+                        window.location.href = `mailto:${toStr}?subject=${subj}&body=${bdy}`;
+                    }
+
+                    // Notificación visual
+                    const n = document.getElementById('saveNotification');
+                    if (n) {
+                        n.style.display = 'block';
+                        n.style.background = '#e65100';
+                        n.textContent = '📧 Correo listo — adjunta el archivo Excel descargado y envía';
+                        setTimeout(() => { n.style.display = 'none'; }, 6000);
+                    }
+                }, 700);
+
+            } catch (e) {
+                console.error('Error al preparar el correo:', e);
+                alert('Ocurrió un error al preparar el correo. Verifica la consola.');
+            }
+        }
+
+        // ---- window.onload único ----
+        window.onload = () => {
+            // Sesión guardada
+            const u = localStorage.getItem('currentUser');
+            if (u) {
+                currentUser = JSON.parse(u);
+                document.getElementById('loginModal').style.display = 'none';
+                initSystem();
+            }
+            // Restaurar correo extra guardado
+            const savedExtra = localStorage.getItem('rpt_extra_email');
+            const extraEl = document.getElementById('email-extra');
+            if (savedExtra && extraEl) extraEl.value = savedExtra;
+
+            // Panel de log y estado recordatorio
+            updateBackupLog();
+            updateReminderUI();
+
+            // Verificar recordatorio lunes (con pequeño delay para que cargue todo)
+            setTimeout(checkMondayReminder, 1800);
+            // Re-verificar cada hora mientras la página está abierta
+            setInterval(checkMondayReminder, 3600000);
+        };
     </script>
 </body>
 </html>
