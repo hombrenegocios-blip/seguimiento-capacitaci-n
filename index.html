@@ -242,6 +242,25 @@
         </div>
     </div>
 
+    <div id="confirmAddModal" class="login-modal" style="display:none;">
+        <div class="login-content" style="max-width:460px; text-align:left;">
+            <h2 style="color:var(--primary-color); text-align:center;"><i class="fas fa-user-check"></i> Confirmar Nuevo Ingreso</h2>
+            <br>
+            <div style="background:#f0f4f8; padding:15px 20px; border-radius:8px; font-size:14px; line-height:2;">
+                <p><strong>Nombre:</strong> <span id="confirm-nh-name"></span></p>
+                <p><strong>Sucursal:</strong> <span id="confirm-nh-branch"></span></p>
+                <p><strong>Zona:</strong> <span id="confirm-nh-zone"></span></p>
+                <p><strong>Fecha Ingreso:</strong> <span id="confirm-nh-date"></span></p>
+                <p><strong>Fecha Término (89 días):</strong> <span id="confirm-nh-enddate"></span></p>
+            </div>
+            <p style="margin-top:15px; text-align:center; color:#666; font-size:13px;">¿La información es correcta?</p>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn" style="flex:1; justify-content:center; background:#e0e0e0; color:#333;" onclick="cancelAddEmployee()"><i class="fas fa-edit"></i> Modificar</button>
+                <button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="confirmAddEmployee()"><i class="fas fa-check"></i> Confirmar y Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <header>
         <div class="logo-area">
             <i class="fas fa-graduation-cap fa-lg"></i>
@@ -711,10 +730,10 @@
         const USERS = {
             "DAVID@UNIVERSIDADPRESTOCASH.MX": { pass: "DAVIDZONA123", zone: "ZONA 1", name: "David" },
             "EDUARDO@UNIVERSIDADPRESTOCASH.MX": { pass: "EDUARDOZONA245", zone: "ZONA 2", name: "Eduardo" },
-            // LUNA AHORA TIENE UN ARRAY EN 'ZONE' PARA NUEVOS INGRESOS (Y OTRAS FUNCIONES GENERALES)
-            // LA RESTRICCION ESPECIFICA DE GERENCIALES SE MANEJA EN hasPermission
-            "LUNA@UNIVERSIDADPRESTOCASH.MX": { pass: "LUNAZONA345", zone: ["ZONA 1", "ZONA 3"], name: "Luna" },
-            "ALEX@UNIVERSIDADPRESTOCASH.MX": { pass: "ALEX456", zone: "ZONA 4", name: "Alex" },
+            // LUNA: ACCESO RESTRINGIDO UNICAMENTE A ZONA 3 (actualizado 02/07/2026)
+            "LUNA@UNIVERSIDADPRESTOCASH.MX": { pass: "LUNAZONA345", zone: "ZONA 3", name: "Luna" },
+            // ALEX: AHORA CON ACCESO A ZONA 4 Y ZONA 1 (actualizado 02/07/2026)
+            "ALEX@UNIVERSIDADPRESTOCASH.MX": { pass: "ALEX456", zone: ["ZONA 4", "ZONA 1"], name: "Alex" },
             "URISOL@UNIVERSIDADPRESTOCASH.MX": { pass: "URISOLMASTER1", zone: "ALL", name: "Urisol" },
             "EUGENIA@UNIVERSIDADPRESTOCASH.MX": { pass: "EUGENIAMASTER2", zone: "ALL", name: "Eugenia" },
             "EDUARDO.MASTER@UNIVERSIDADPRESTOCASH.MX": { pass: "EDUARDO.MASTER", zone: "ALL", name: "Eduardo Master" }
@@ -870,9 +889,10 @@
             const zone = document.getElementById('nh-filter-zone').value;
             const onlyActive = document.getElementById('nh-filter-active').checked;
 
-            employees.sort((a,b) => parseDateFromInput(a.startDate) - parseDateFromInput(b.startDate));
+            // ORDEN: más recientes primero (por Fecha Ingreso), los más antiguos al final
+            const sortedForDashboard = [...employees].sort((a,b) => parseDateFromInput(b.startDate) - parseDateFromInput(a.startDate));
 
-            employees.forEach(e => {
+            sortedForDashboard.forEach(e => {
                 // Filtro visual (dropdown)
                 if(zone !== 'ALL' && e.zone !== zone) return;
                 if(onlyActive && e.status !== 'En proceso') return;
@@ -905,7 +925,10 @@
             const status = document.getElementById('nh-eval-status').value;
             const search = document.getElementById('nh-eval-search').value.toUpperCase().trim();
 
-            employees.forEach(e => {
+            // Se conserva el orden original (más antiguos primero) para no alterar esta pestaña
+            const sortedForEvaluations = [...employees].sort((a,b) => parseDateFromInput(a.startDate) - parseDateFromInput(b.startDate));
+
+            sortedForEvaluations.forEach(e => {
                 if(zone !== 'ALL' && e.zone !== zone) return;
                 if(status !== 'ALL' && e.status !== status) return;
                 if(search && !e.name.toUpperCase().includes(search) && !(e.branch||'').toUpperCase().includes(search) && !(e.zone||'').toUpperCase().includes(search)) return;
@@ -992,7 +1015,9 @@
 
         function renderNHManagement() {
             const tbody = document.getElementById('nh-mgmt-body'); tbody.innerHTML = '';
-            employees.forEach(e => {
+            // ORDEN: más recientes primero (por Fecha Ingreso), los más antiguos al final
+            const sortedForManagement = [...employees].sort((a,b) => parseDateFromInput(b.startDate) - parseDateFromInput(a.startDate));
+            sortedForManagement.forEach(e => {
                 // MODIFICADO: Pasamos contexto 'employees'
                 if(!hasPermission(e.zone, 'employees')) return; 
                 const days = getDays(e.endDate);
@@ -1193,16 +1218,14 @@
             if (!currentUser) return false;
             if (currentUser.zone === 'ALL') return true;
 
-            // CASO ESPECIAL LUNA
-            if (currentUser.name === 'Luna') {
-                // Si es Gerenciales, solo Zona 3
-                if (context === 'managers') {
-                    return targetZone === 'ZONA 3';
-                }
-                // Si es Nuevos Ingresos (employees) o general, permite cualquiera de su lista (1 y 3)
-                if (Array.isArray(currentUser.zone)) {
-                    return currentUser.zone.includes(targetZone);
-                }
+            // CASO ESPECIAL LUNA: en Gerenciales solo tiene permiso sobre Zona 3
+            if (currentUser.name === 'Luna' && context === 'managers') {
+                return targetZone === 'ZONA 3';
+            }
+
+            // SOPORTE GENERAL PARA USUARIOS CON MULTIPLES ZONAS (ej. Alex: Zona 4 y Zona 1)
+            if (Array.isArray(currentUser.zone)) {
+                return currentUser.zone.includes(targetZone);
             }
 
             // CASO ESTANDAR (String normal)
@@ -1232,6 +1255,8 @@
             mgrRef.child(id).update({ [field]: val }).then(showCloudSave).catch(()=>showLocalSave());
         }
 
+        let pendingNewEmployee = null;
+
         function addEmployee() {
             const name = document.getElementById('nh-new-name').value.toUpperCase();
             const branch = document.getElementById('nh-new-branch').value.toUpperCase();
@@ -1240,13 +1265,52 @@
             if(!name || !date) return alert("Faltan datos");
             // MODIFICADO: pasamos 'employees'
             if(!hasPermission(zone, 'employees')) return alert("⛔ ACCESO DENEGADO: No puedes agregar usuarios a esta zona.");
-            
+
             const maxId = employees.reduce((max, e) => Math.max(max, parseInt(e.id || 0)), 0);
             const id = (maxId + 1).toString();
             const start = parseDateFromInput(date);
             const end = new Date(start); end.setDate(end.getDate()+89);
             const endStr = end.toISOString().split('T')[0];
-            empRef.child(id).set({ id, name, branch, zone, startDate: date, endDate: endStr, status: 'En proceso', hasSalesExperience: 'PEND' }).then(() => { document.getElementById('nh-new-name').value = ''; showCloudSave(); }).catch(showLocalSave);
+
+            // En vez de guardar directo, se arma el registro pendiente y se muestra ventana de confirmación
+            pendingNewEmployee = { id, name, branch, zone, startDate: date, endDate: endStr, status: 'En proceso', hasSalesExperience: 'PEND' };
+
+            document.getElementById('confirm-nh-name').textContent = name;
+            document.getElementById('confirm-nh-branch').textContent = branch || '-';
+            document.getElementById('confirm-nh-zone').textContent = zone;
+            document.getElementById('confirm-nh-date').textContent = formatDate(date);
+            document.getElementById('confirm-nh-enddate').textContent = formatDate(endStr);
+            document.getElementById('confirmAddModal').style.display = 'flex';
+        }
+
+        function cancelAddEmployee() {
+            // Cierra la ventana sin guardar; los datos capturados permanecen en el formulario para editarlos
+            document.getElementById('confirmAddModal').style.display = 'none';
+            pendingNewEmployee = null;
+        }
+
+        function confirmAddEmployee() {
+            if(!pendingNewEmployee) { document.getElementById('confirmAddModal').style.display = 'none'; return; }
+            const data = pendingNewEmployee;
+            empRef.child(data.id).set(data).then(() => {
+                document.getElementById('nh-new-name').value = '';
+                document.getElementById('nh-new-branch').value = '';
+                document.getElementById('nh-new-zone').selectedIndex = 0;
+                document.getElementById('nh-new-date').value = '';
+                document.getElementById('confirmAddModal').style.display = 'none';
+                pendingNewEmployee = null;
+                showAddSuccess();
+            }).catch(() => {
+                document.getElementById('confirmAddModal').style.display = 'none';
+                pendingNewEmployee = null;
+                showLocalSave();
+            });
+        }
+
+        function showAddSuccess() {
+            const n = document.getElementById('saveNotification');
+            n.style.display='block'; n.style.background='#2e7d32'; n.textContent='✅ Usuario agregado exitosamente';
+            setTimeout(()=>n.style.display='none', 2500);
         }
 
         function addManager() {
@@ -1442,7 +1506,8 @@
                 'Curso SAC','Video 1','Video 2','Video 3','Video 4','Progreso (%)',
                 'Estatus','Calif. Retro 1','Retro 1 Realizada','Calif. Retro 2','Retro 2 Realizada',
                 'Promedio Retros','Observaciones'];
-            const rows = employees.map((e,i) => [
+            const sortedForExport = [...employees].sort((a,b) => parseDateFromInput(a.startDate) - parseDateFromInput(b.startDate));
+            const rows = sortedForExport.map((e,i) => [
                 i+1, _safeStr(e.name), _safeStr(e.branch), _safeStr(e.zone),
                 _safeStr(formatDate(e.startDate)), _safeStr(formatDate(e.endDate)),
                 _bool(e.sacCourse), _bool(e.video1), _bool(e.video2), _bool(e.video3), _bool(e.video4),
