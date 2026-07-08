@@ -1371,17 +1371,47 @@
         function updateNHNotifications() {
             const list = document.getElementById('reminder-list-nh'); list.innerHTML='';
             let count = 0; const today = new Date(); today.setHours(0,0,0,0);
-            
+            const items = [];
+
+            // Calcula un rojo cada vez más intenso mientras más días de retraso acumule
+            const getVencidoStyle = (diasVencido) => {
+                const t = Math.min(diasVencido / 30, 1); // 30+ días = intensidad máxima
+                const lightness = 90 - t * 55;           // 90% (rosa claro) -> 35% (rojo oscuro)
+                const borderLight = Math.max(lightness - 25, 15);
+                const bg = `hsl(0, 75%, ${lightness}%)`;
+                const border = `hsl(0, 85%, ${borderLight}%)`;
+                const text = lightness < 55 ? '#ffffff' : '#7f0000';
+                return `background:${bg} !important; border-left-color:${border} !important; color:${text};`;
+            };
+
             const check = (name, place, start, done, n) => {
                 if(!start || done) return;
                 const d = parseDateFromInput(start); d.setDate(d.getDate()+(n===1?30:70));
                 const diff = Math.ceil((d-today)/(1000*60*60*24));
                 if(diff<=3) {
                     count++;
-                    list.innerHTML += `<div class="reminder-item ${diff<0?'urgent':'warning'}"><strong>${name}</strong> (${place}) - Retro ${n}: ${diff<0?'Vencida hace '+Math.abs(diff)+' días':'Vence en '+diff+' días'}</div>`;
+                    const isVencido = diff < 0;
+                    const cls = 'reminder-item ' + (isVencido ? 'urgent' : 'warning');
+                    const style = isVencido ? ` style="${getVencidoStyle(Math.abs(diff))}"` : '';
+                    const msg = isVencido ? 'Vencida hace '+Math.abs(diff)+' días' : 'Vence en '+diff+' días';
+                    const html = `<div class="${cls}"${style}><strong>${name}</strong> (${place}) - Retro ${n}: ${msg}</div>`;
+                    items.push({ html, n, diff, isVencido });
                 }
             };
             employees.forEach(e => { if(e.status==='En proceso') { check(e.name, e.branch, e.startDate, e.feedback1Completed, 1); check(e.name, e.branch, e.startDate, e.feedback2Completed, 2); }});
+
+            // Prioridad: 1) Vencidos de Retro 2  2) Resto de vencidos (más días primero)  3) Próximos a vencer
+            items.sort((a, b) => {
+                if (a.isVencido !== b.isVencido) return a.isVencido ? -1 : 1;
+                if (a.isVencido) {
+                    const aR2 = a.n === 2, bR2 = b.n === 2;
+                    if (aR2 !== bR2) return aR2 ? -1 : 1;
+                    return a.diff - b.diff; // más negativo = más días vencido, va primero
+                }
+                return a.diff - b.diff; // próximos a vencer, el más cercano primero
+            });
+
+            list.innerHTML = items.map(it => it.html).join('');
             document.getElementById('pending-count-nh').textContent = count;
             if(count===0) list.innerHTML = '<div style="padding:10px;text-align:center">No hay pendientes</div>';
         }
