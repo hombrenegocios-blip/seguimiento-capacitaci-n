@@ -17,7 +17,7 @@
         :root {
             /* Variables Globales */
             --primary-color: #2c5aa0;     /* Azul Nuevos Ingresos */
-            --manager-color: #2e7d32;     /* Verde Gerenciales */
+            --manager-color: #1a237e;     /* Azul Rey Gerenciales */
             --secondary-color: #4CAF50;
             --accent-color: #ff9800;
             --danger-color: #f44336;
@@ -106,8 +106,11 @@
         /* 2. Renuncia (Rojo) */
         .mgr-row-renuncia td { background-color: #ffcdd2 !important; color: #c62828; }
         
-        /* 3. Baja (Gris - Igual que antes) */
-        .mgr-row-baja td { background-color: #e0e0e0 !important; color: #666; }
+        /* 3. Baja (Rojo) */
+        .mgr-row-baja td { background-color: #ffcdd2 !important; color: #c62828; }
+
+        /* 4. No Aprobado (Rojo) */
+        .mgr-row-noaprobado td { background-color: #ffcdd2 !important; color: #c62828; }
 
         /* BLOQUEO DE EDICION PARA ESTADOS FINALIZADOS */
         /* Bloquea inputs, botones pdf, textareas, etc. */
@@ -227,6 +230,11 @@
         .login-modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
         .login-content { background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; }
         .firebase-status { position: fixed; bottom: 10px; left: 10px; padding: 5px 10px; background: #333; color: white; font-size: 10px; border-radius: 4px; opacity: 0.7; z-index: 9999; }
+        .topic-inactive { opacity: 0.35; background: #eee !important; }
+        .topics-btn { background:#616161; color:white; border:none; border-radius:5px; padding:5px 9px; font-size:11px; cursor:pointer; white-space:nowrap; }
+        .topics-btn:hover { background:#424242; }
+        .topic-check-row { display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid #eee; font-size:13px; }
+        .topic-check-row input[type="number"] { width:60px; padding:3px; }
     </style>
 </head>
 <body>
@@ -239,6 +247,130 @@
             <input type="password" id="login-password" placeholder="Contraseña" style="width:100%; padding:10px; margin-bottom:20px;">
             <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="login()">Entrar</button>
             <p id="login-error" style="color:red; display:none; margin-top:10px;">Datos incorrectos</p>
+        </div>
+    </div>
+
+    <div id="themeSettingsModal" class="login-modal" style="display:none; z-index:2300;">
+        <div class="login-content" style="max-width:420px; text-align:left;">
+            <h2 style="text-align:center; font-size:17px; margin:0 0 4px 0;"><i class="fas fa-palette"></i> Tema Visual</h2>
+            <p style="font-size:11.5px;color:#888;text-align:center;margin:0 0 14px 0;">Elige los colores de la plataforma. Se guarda en este dispositivo.</p>
+            <div id="theme-options-body" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <div style="margin-top:15px;">
+                <button class="btn" style="width:100%; justify-content:center; background:#e0e0e0; color:#333;" onclick="closeThemeSettings()"><i class="fas fa-times"></i> Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mgrDetailModal" class="login-modal" style="display:none; z-index:2180;">
+        <div class="login-content" style="max-width:480px; text-align:left; max-height:90vh; overflow-y:auto;">
+            <h2 style="color:var(--manager-color); text-align:center; font-size:16px; margin:0 0 10px 0;"><i class="fas fa-id-card"></i> Detalle Completo</h2>
+            <div id="mgr-detail-body"></div>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button class="btn" style="flex:1; justify-content:center; background:#e0e0e0; color:#333;" onclick="closeMgrDetail()"><i class="fas fa-times"></i> Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mgrExtensionModal" class="login-modal" style="display:none; z-index:2170;">
+        <div class="login-content" style="max-width:400px; text-align:left;">
+            <h2 style="color:#6a1b9a; text-align:center; font-size:18px;"><i class="fas fa-calendar-plus"></i> Extensión de Periodo</h2>
+            <p style="font-size:11px;color:#888;text-align:center;margin:0 0 12px 0;">Alarga la fecha de término. La fecha original se conserva para consulta.</p>
+            <div style="background:#f0f4f8; padding:10px 14px; border-radius:8px; font-size:12.5px; margin-bottom:12px;">
+                <p style="margin:0;"><strong>Persona:</strong> <span id="ext-mgr-name"></span></p>
+                <p style="margin:4px 0 0 0;"><strong>Fecha de término actual:</strong> <span id="ext-mgr-current-end"></span></p>
+                <p id="ext-mgr-original-wrap" style="margin:4px 0 0 0; display:none;"><strong>Fecha original (primer periodo):</strong> <span id="ext-mgr-original-end"></span></p>
+            </div>
+            <label style="font-size:12px;font-weight:bold;">Nueva fecha de término</label>
+            <input type="date" id="ext-mgr-new-date" style="width:100%;margin-bottom:8px;">
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button class="btn" style="flex:1; justify-content:center; background:#e0e0e0; color:#333;" onclick="closeMgrExtension()"><i class="fas fa-times"></i> Cancelar</button>
+                <button class="btn btn-success" style="flex:1; justify-content:center; background:#6a1b9a;" onclick="saveMgrExtension()"><i class="fas fa-check"></i> Guardar Extensión</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmAddMgrModal" class="login-modal" style="display:none; z-index:2160;">
+        <div class="login-content" style="max-width:520px; text-align:left; max-height:88vh; overflow-y:auto;">
+            <h2 style="color:var(--manager-color); text-align:center; font-size:18px;"><i class="fas fa-user-check"></i> Confirmar Nuevo Gerente/Externo</h2>
+            <div style="background:#f0f4f8; padding:12px 16px; border-radius:8px; font-size:13px; line-height:1.9;">
+                <p><strong>Nombre:</strong> <span id="confirm-mgr-name"></span></p>
+                <p><strong>Puesto:</strong> <span id="confirm-mgr-post"></span> — <strong>Origen:</strong> <span id="confirm-mgr-origin"></span></p>
+                <p><strong>Sucursal:</strong> <span id="confirm-mgr-branch"></span> — <strong>Zona:</strong> <span id="confirm-mgr-zone"></span></p>
+                <p><strong>Inicio:</strong> <span id="confirm-mgr-date"></span> — <strong>Término (89 días):</strong> <span id="confirm-mgr-enddate"></span></p>
+            </div>
+            <p style="margin:12px 0 4px 0; font-size:12.5px; color:#555;"><strong>¿Qué temas se le van a evaluar?</strong> Marca los que apliquen y captura su calificación inicial (puedes dejarla en 0 y llenarla después). Lo que no marques queda como N/A y no se cuenta en su promedio.</p>
+            <div id="confirm-mgr-topics-body"></div>
+            <div style="background:#f0f4f8; padding:8px 14px; border-radius:8px; margin-top:8px; font-size:12px;">
+                Temas activos: <strong id="confirm-mgr-topics-count">0</strong>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn" style="flex:1; justify-content:center; background:#e0e0e0; color:#333;" onclick="cancelAddManager()"><i class="fas fa-edit"></i> Modificar</button>
+                <button class="btn btn-success" style="flex:1; justify-content:center;" onclick="confirmAddManagerFinal()"><i class="fas fa-check"></i> Confirmar y Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editMgrInfoModal" class="login-modal" style="display:none; z-index:2150;">
+        <div class="login-content" style="max-width:420px; text-align:left;">
+            <h2 style="color:#0277bd; text-align:center; font-size:18px;"><i class="fas fa-pen"></i> Editar Datos</h2>
+            <p style="font-size:11px;color:#888;text-align:center;margin:0 0 12px 0;">Corrige nombre, puesto, sucursal, zona, origen o fechas. Las calificaciones no se tocan aquí.</p>
+            <label style="font-size:12px;font-weight:bold;">Nombre</label>
+            <input type="text" id="edit-mgr-name" style="width:100%;margin-bottom:8px;">
+            <div style="display:flex; gap:10px; margin-bottom:8px;">
+                <div style="flex:1"><label style="font-size:12px;font-weight:bold;">Puesto</label>
+                    <select id="edit-mgr-post" style="width:100%"><option value="GERENTE">GERENTE</option><option value="SUBGERENTE">SUBGERENTE</option></select>
+                </div>
+                <div style="flex:1"><label style="font-size:12px;font-weight:bold;">Origen</label>
+                    <select id="edit-mgr-origin" style="width:100%"><option value="INTERNO">INTERNO</option><option value="EXTERNO">EXTERNO</option></select>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:8px;">
+                <div style="flex:1"><label style="font-size:12px;font-weight:bold;">Sucursal</label>
+                    <input type="text" id="edit-mgr-branch" style="width:100%">
+                </div>
+                <div style="flex:1"><label style="font-size:12px;font-weight:bold;">Zona</label>
+                    <select id="edit-mgr-zone" style="width:100%"><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:8px;">
+                <div style="flex:1"><label style="font-size:12px;font-weight:bold;">Inicio</label>
+                    <input type="date" id="edit-mgr-start" style="width:100%">
+                </div>
+                <div style="flex:1"><label style="font-size:12px;font-weight:bold;">Término</label>
+                    <input type="date" id="edit-mgr-end" style="width:100%">
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button class="btn" style="flex:1; justify-content:center; background:#e0e0e0; color:#333;" onclick="closeEditMgrInfo()"><i class="fas fa-times"></i> Cancelar</button>
+                <button class="btn btn-success" style="flex:1; justify-content:center;" onclick="saveMgrInfo()"><i class="fas fa-check"></i> Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="excelImportModal" class="login-modal" style="display:none; z-index:2200;">
+        <div class="login-content" style="max-width:640px; text-align:left; max-height:88vh; overflow-y:auto;">
+            <h2 style="color:#1565c0; text-align:center; font-size:18px;"><i class="fas fa-file-excel"></i> Importar Progreso Gerencial 2026</h2>
+            <div id="excel-import-summary" style="font-size:12.5px; line-height:1.6;"></div>
+            <div style="margin-top:15px; display:flex; gap:10px;">
+                <button class="btn" style="flex:1; justify-content:center; background:#e0e0e0; color:#333;" onclick="closeExcelImportReview()"><i class="fas fa-times"></i> Cancelar</button>
+                <button class="btn btn-success" style="flex:1; justify-content:center;" onclick="confirmExcelImport()"><i class="fas fa-check"></i> Confirmar Importación</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mgrTopicsSelectModal" class="login-modal" style="display:none; z-index:2100;">
+        <div class="login-content" style="max-width:480px; text-align:left; max-height:85vh; overflow-y:auto;">
+            <h2 style="color:#e65100; text-align:center; font-size:18px;"><i class="fas fa-list-check"></i> Temas para <span id="mgr-topics-select-name" style="color:var(--manager-color)"></span></h2>
+            <p style="font-size:11.5px;color:#777;text-align:center;margin:4px 0 12px 0;">Marca los temas que aplican para esta persona. El promedio se ajusta automáticamente sin importar cuántos elijas.</p>
+            <div id="mgr-topics-select-body"></div>
+            <div style="background:#f0f4f8; padding:10px 14px; border-radius:8px; margin-top:10px; font-size:12.5px; display:flex; justify-content:space-between;">
+                <span>Temas activos: <strong id="mgr-topics-select-count">0</strong></span>
+                <span>Promedio de Temas resultante: <strong id="mgr-topics-select-preview">0%</strong></span>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn" style="flex:1; justify-content:center; background:#e0e0e0; color:#333;" onclick="closeMgrTopicsSelect()"><i class="fas fa-times"></i> Cancelar</button>
+                <button class="btn btn-success" style="flex:1; justify-content:center;" onclick="saveMgrActiveTopics()"><i class="fas fa-check"></i> Guardar</button>
+            </div>
         </div>
     </div>
 
@@ -273,6 +405,7 @@
         <div style="display: flex; align-items: center; gap: 20px;">
             <div class="user-info">
                 <span class="user-name" id="user-display">Usuario</span>
+                <button class="logout-btn" style="background:rgba(255,255,255,0.15);" onclick="openThemeSettings()" title="Elegir tema visual"><i class="fas fa-palette"></i> Ajustes</button>
                 <span class="live-clock" id="live-clock">--/--/---- --:--:--</span>
                 <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
             </div>
@@ -353,6 +486,7 @@
                     <label><input type="checkbox" id="nh-filter-active" checked onchange="renderNHSection()"> Solo En Proceso</label>
                     <select id="nh-filter-zone" onchange="renderNHSection()">
                         <option value="ALL">Todas las Zonas</option>
+                        <option value="MINE">Mis Zonas</option>
                         <option value="ZONA 1">ZONA 1</option>
                         <option value="ZONA 2">ZONA 2</option>
                         <option value="ZONA 3">ZONA 3</option>
@@ -381,7 +515,7 @@
                     <div class="filter-group">
                         <h4 style="color: var(--primary-color); margin-bottom: 5px; font-size:14px"><i class="fas fa-filter"></i> Contexto</h4>
                         <label style="font-size:12px; font-weight:bold; margin-bottom:5px; color:#333;"><input type="checkbox" id="nh-an-active-only" onchange="renderNHAnalytics()"> Solo En Proceso</label>
-                        <span class="filter-label">Zona:</span> <select id="nh-an-zone" class="filter-select" onchange="renderNHAnalytics()"><option value="ALL">Todas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
+                        <span class="filter-label">Zona:</span> <select id="nh-an-zone" class="filter-select" onchange="renderNHAnalytics()"><option value="ALL">Todas</option><option value="MINE">Mis Zonas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
                         <span class="filter-label">Estatus Final:</span> <select id="nh-an-status" class="filter-select" onchange="renderNHAnalytics()"><option value="ALL">Todos</option><option value="En proceso">En Proceso</option><option value="Aprobado">Aprobado</option><option value="No Aprobado">No Aprobado</option><option value="Baja">Baja</option><option value="Renuncia">Renuncia</option></select>
                         <input type="text" id="nh-an-search" placeholder="🔍 Buscar nombre o sucursal..." class="filter-select" style="margin-top:5px" oninput="renderNHAnalytics()">
                         <button class="btn btn-sm btn-danger" style="margin-top:5px" onclick="clearNHFilters()">Limpiar</button>
@@ -414,7 +548,7 @@
 
             <div id="nh-evaluations" class="sub-content">
                 <div class="controls">
-                    <label>Filtro Zona:</label> <select id="nh-eval-zone" onchange="renderNHEvaluations()"><option value="ALL">Todas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
+                    <label>Filtro Zona:</label> <select id="nh-eval-zone" onchange="renderNHEvaluations()"><option value="ALL">Todas</option><option value="MINE">Mis Zonas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
                     <label>Estatus:</label> <select id="nh-eval-status" onchange="renderNHEvaluations()"><option value="ALL">Todos</option><option value="En proceso">En Proceso</option><option value="Aprobado">Aprobado</option><option value="No Aprobado">No Aprobado</option><option value="Baja">Baja</option></select>
                     <input type="text" id="nh-eval-search" placeholder="🔍 Nombre, sucursal o zona..." style="padding:5px 8px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:200px;" oninput="renderNHEvaluations()">
                     <button class="btn btn-sm btn-danger" onclick="clearNHEvalSearch()"><i class="fas fa-times"></i> Limpiar</button>
@@ -473,13 +607,17 @@
                 </div>
 
                 <div class="controls">
+                    <label><input type="checkbox" id="mgr-filter-active" checked onchange="renderManagersSection()"> Solo En Proceso</label>
                     <select id="mgr-filter-zone" onchange="renderManagersSection()">
                         <option value="ALL">Todas las Zonas</option>
+                        <option value="MINE">Mis Zonas</option>
                         <option value="ZONA 1">ZONA 1</option>
                         <option value="ZONA 2">ZONA 2</option>
                         <option value="ZONA 3">ZONA 3</option>
                         <option value="ZONA 4">ZONA 4</option>
                     </select>
+                    <input type="text" id="mgr-dash-search" placeholder="🔍 Buscar nombre..." class="filter-select" style="width:200px" oninput="renderManagersSection()">
+                    <button class="btn btn-sm btn-danger" onclick="document.getElementById('mgr-dash-search').value=''; renderManagersSection();"><i class="fas fa-times"></i> Limpiar</button>
                     <button class="btn btn-sm btn-primary" onclick="exportTableToCSV('mgr-table-body', 'dashboard_gerenciales.csv', this)"><i class="fas fa-file-excel"></i> CSV</button>
                 </div>
 
@@ -487,7 +625,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Nombre</th><th>Puesto</th><th>Sucursal</th><th>Zona</th><th>Origen</th>
+                                <th>Acción</th><th>Nombre</th><th>Puesto</th><th>Sucursal</th><th>Zona</th><th>Origen</th>
                                 <th>Inicio</th><th>Término</th><th>Días Rest.</th>
                                 
                                 <th class="vertical-col"><div class="vertical-header">Realización de<br>Ejercicios Operativos</div></th>
@@ -496,12 +634,12 @@
                                 <th class="vertical-col"><div class="vertical-header">Manejo de<br>Estrategias</div></th>
                                 <th class="vertical-col"><div class="vertical-header">Interés en el<br>Entrenamiento</div></th>
                                 
-                                <th style="background:#fff3e0; color:#333;" title="Simbólico - Solo Externos">Examen<br>Asist.</th>
-                                <th style="background:#fff3e0; color:#333;" title="Simbólico - Solo Externos">Examen<br>Aux.</th>
+                                <th id="mgr-topic-th-examAsist" style="background:#fff3e0; color:#333;" title="Solo aplica a Externos. Cuenta en el promedio únicamente si está activado en 'Temas' para esa persona.">Examen<br>Asist.</th>
+                                <th id="mgr-topic-th-examAdmin" style="background:#fff3e0; color:#333;" title="Solo aplica a Externos. Cuenta en el promedio únicamente si está activado en 'Temas' para esa persona.">Examen<br>Aux.</th>
 
-                                <th>Valuación (15%)</th><th>Corridas (15%)</th><th>Precios (10%)</th><th>Llam (5%)</th><th>Cashimuro (15%)</th><th>Atn (20%)</th><th>Bajas (10%)</th>
+                                <th id="mgr-topic-th-evProc">PROCESO DE VALUACIÓN (15%)</th><th id="mgr-topic-th-runs">CORRIDAS (15%)</th><th id="mgr-topic-th-drops">BAJAS (10%)</th><th id="mgr-topic-th-prices">PRECIOS JUSTOS (10%)</th><th id="mgr-topic-th-calls">LLAMADAS/ CRÉDITOS (5%)</th><th id="mgr-topic-th-cash">ANALISIS DE CASHIMURO/ PRODUCTIVIDAD (15%)</th><th id="mgr-topic-th-cust">ATENCIÓN AL CLIENTE/ VENTAS E IMAGEN (20%)</th>
                                 
-                                <th>Calificación / Progreso</th><th>Estatus</th>
+                                <th title="Elige qué temas cuentan para cada persona">Temas</th><th>Calificación / Progreso</th><th>Estatus</th>
                             </tr>
                         </thead>
                         <tbody id="mgr-table-body"></tbody>
@@ -513,7 +651,7 @@
                 <div class="controls" style="justify-content:flex-start; gap:20px; background:#f9f9f9; padding:15px; border-radius:8px">
                     <div>
                         <h4 style="color: var(--manager-color); margin-bottom: 5px;">Filtros</h4>
-                        <span class="filter-label">Zona:</span> <select id="mgr-an-zone" class="filter-select" onchange="renderMGRAnalytics()"><option value="ALL">Todas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
+                        <span class="filter-label">Zona:</span> <select id="mgr-an-zone" class="filter-select" onchange="renderMGRAnalytics()"><option value="ALL">Todas</option><option value="MINE">Mis Zonas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
                         <span class="filter-label">Estatus:</span> <select id="mgr-an-status" class="filter-select" onchange="renderMGRAnalytics()"><option value="ALL">Todos</option><option value="En proceso">En Proceso</option><option value="Aprobado">Aprobado</option><option value="Renuncia">Renuncia</option><option value="Baja">Baja</option></select>
                         <input type="text" id="mgr-search" placeholder="Buscar..." class="filter-select" style="margin-top:5px" onkeyup="renderMGRAnalytics()">
                     </div>
@@ -525,7 +663,7 @@
                 </div>
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th>Nombre</th><th>Puesto</th><th>Zona</th><th>Origen</th><th>Prom. Temas</th><th>Calificación Total</th><th>Estatus</th></tr></thead>
+                        <thead><tr><th>Nombre</th><th>Puesto</th><th>Origen</th><th>Sucursal</th><th>Zona</th><th>Inicio</th><th>Término</th><th>Días Rest.</th><th>Calificación Total</th><th>Estatus</th><th>Detalle</th></tr></thead>
                         <tbody id="mgr-analytics-body"></tbody>
                     </table>
                 </div>
@@ -533,14 +671,16 @@
 
             <div id="mgr-evaluations" class="sub-content">
                 <div class="controls">
-                    <label>Filtro Zona:</label> <select id="mgr-eval-zone" onchange="renderMgrEvaluations()"><option value="ALL">Todas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
+                    <label>Filtro Zona:</label> <select id="mgr-eval-zone" onchange="renderMgrEvaluations()"><option value="ALL">Todas</option><option value="MINE">Mis Zonas</option><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
                     <label>Estatus:</label> <select id="mgr-eval-status" onchange="renderMgrEvaluations()"><option value="ALL">Todos</option><option value="En proceso">En Proceso</option><option value="Aprobado">Aprobado</option><option value="Renuncia">Renuncia</option><option value="Baja">Baja</option></select>
+                    <input type="text" id="mgr-eval-search" placeholder="🔍 Nombre, sucursal o zona..." style="padding:5px 8px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:200px;" oninput="renderMgrEvaluations()">
+                    <button class="btn btn-sm btn-danger" onclick="clearMgrEvalSearch()"><i class="fas fa-times"></i> Limpiar</button>
                 </div>
                 <div class="table-wrapper">
                     <table>
                         <thead>
                             <tr>
-                                <th>Nombre</th><th>Zona</th><th>Días</th>
+                                <th>Nombre</th><th>Zona</th><th>Inicio</th><th>Término</th><th>Días</th>
                                 <th>Check List Realizado</th>
                                 <th>Check List Seguridad (PDF)</th>
                                 <th>Retro (Fecha/PDF)</th>
@@ -556,7 +696,37 @@
             </div>
 
             <div id="mgr-management" class="sub-content">
-                <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <div id="mgr-excel-import-box" style="background:#e3f2fd; padding:16px 20px; border-radius:8px; margin-bottom:20px; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h4 style="color:#1565c0; margin:0;"><i class="fas fa-file-excel"></i>&nbsp; Importar Progreso Gerencial 2026 (Excel)</h4>
+                        <button class="btn btn-sm" style="background:#1565c0;color:white;" onclick="openExcelImportReview()"><i class="fas fa-eye"></i> Revisar e Importar</button>
+                    </div>
+                    <p style="font-size:11.5px;color:#666;margin:8px 0 0 0;">Carga única de "2026_FOR-CAP-007_Progreso_de_Entrenamiento_Gerencial". Solo visible para administradores. Se puede correr varias veces sin duplicar (detecta a quién ya importaste).</p>
+                </div>
+                <div style="background:#fff3e0; padding:16px 20px; border-radius:8px; margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleMgrTopicsPanel()">
+                        <h4 style="color:#e65100; margin:0;"><i class="fas fa-sliders-h"></i>&nbsp; Editar Temas y Porcentajes de Evaluación</h4>
+                        <button class="btn btn-sm" style="background:#e65100;color:white;" onclick="event.stopPropagation(); toggleMgrTopicsPanel()"><i class="fas fa-chevron-down" id="mgr-topics-toggle-icon"></i></button>
+                    </div>
+                    <div id="mgr-topics-panel" style="display:none; margin-top:14px;">
+                        <p style="font-size:11.5px;color:#777;margin:0 0 10px 0;">
+                            Cambia el nombre o el porcentaje de cada tema (columnas de la tabla de Gerenciales). Aplica para todos: Gerentes, Subgerentes y Externos. Deben sumar <strong>90%</strong> (el 10% restante ya lo cubren los 5 criterios de arriba: Ejercicios, Curso, Objetivos, Estrategias, Interés).
+                        </p>
+                        <table style="width:100%; max-width:520px;">
+                            <thead><tr><th style="text-align:left">Tema</th><th style="width:90px">%</th><th style="width:50px"></th></tr></thead>
+                            <tbody id="mgr-topics-edit-body"></tbody>
+                        </table>
+                        <p id="mgr-topics-readonly-notice" style="display:none; font-size:11px; color:#c62828; font-weight:bold; margin:8px 0 0 0;"><i class="fas fa-lock"></i> Solo un administrador puede agregar/quitar temas o cambiar sus porcentajes.</p>
+                        <button id="mgr-topics-add-btn" class="btn btn-sm" style="background:#e65100;color:white;margin-top:8px;" onclick="addMgrTopic()"><i class="fas fa-plus"></i> Agregar Tema</button>
+                        <p style="font-size:10.5px;color:#999;margin:8px 0 0 0;">Los 9 temas originales (incluidos los 2 de Examen para Externos) no se eliminan de aquí — para que un tema no cuente en el promedio de alguien en particular, usa el botón <strong>"Temas"</strong> de esa persona en la tabla.</p>
+                        <div style="margin-top:12px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                            <span>Suma actual: <strong id="mgr-topics-sum">0</strong>%</span>
+                            <button id="mgr-topics-save-btn" class="btn btn-success" onclick="saveMgrTopicsConfig()"><i class="fas fa-save"></i> Guardar Cambios</button>
+                            <span id="mgr-topics-save-msg" style="font-size:11px; font-weight:bold;"></span>
+                        </div>
+                    </div>
+                </div>
+                <div style="background: #e8eaf6; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                     <h4 style="color:var(--manager-color)">Agregar Gerente</h4>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
                         <input type="text" id="mgr-new-name" placeholder="Nombre" style="flex:2">
@@ -565,7 +735,7 @@
                         <select id="mgr-new-origin" style="flex:1"><option value="INTERNO">INTERNO</option><option value="EXTERNO">EXTERNO</option></select>
                         <select id="mgr-new-zone" style="flex:1"><option value="ZONA 1">ZONA 1</option><option value="ZONA 2">ZONA 2</option><option value="ZONA 3">ZONA 3</option><option value="ZONA 4">ZONA 4</option></select>
                         <input type="date" id="mgr-new-date" style="flex:1">
-                        <button class="btn btn-success" onclick="addManager()">Agregar</button>
+                        <button class="btn btn-success" onclick="requestAddManager()">Agregar</button>
                     </div>
                 </div>
                 <div class="table-wrapper">
@@ -708,6 +878,21 @@
                     </div>
 
                 </div>
+
+                <!-- ===== USUARIOS Y PERMISOS (solo administradores) ===== -->
+                <div id="users-permissions-box" style="display:none; margin-top:16px; background:#e8eaf6; border:1px solid #9fa8da; border-radius:10px; padding:18px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                        <i class="fas fa-user-shield" style="color:#1a237e;font-size:18px;"></i>
+                        <strong style="color:#1a237e;font-size:14px;">Usuarios y Permisos por Zona</strong>
+                    </div>
+                    <p style="font-size:11.5px;color:#666;margin:0 0 14px 0;">
+                        Marca a qué zonas tiene acceso cada usuario — por separado para Nuevos Ingresos y Gerenciales, ya que pueden diferir. Los cambios se guardan en la nube al instante.
+                    </p>
+                    <div id="users-permissions-body"></div>
+                    <div style="margin-top:10px;">
+                        <span id="users-permissions-msg" style="font-size:11px; font-weight:bold;"></span>
+                    </div>
+                </div>
             </div>
         </section>
     </div>
@@ -729,20 +914,81 @@
 
         const USERS = {
             "DAVID@UNIVERSIDADPRESTOCASH.MX": { pass: "DAVIDZONA123", zone: "ZONA 1", name: "David" },
-            "EDUARDO@UNIVERSIDADPRESTOCASH.MX": { pass: "EDUARDOZONA245", zone: "ZONA 2", name: "Eduardo" },
-            // LUNA: ACCESO RESTRINGIDO UNICAMENTE A ZONA 3 (actualizado 02/07/2026)
+            // EDUARDO: ACCESO A ZONA 1 Y ZONA 2 (actualizado)
+            "EDUARDO@UNIVERSIDADPRESTOCASH.MX": { pass: "EDUARDOZONA245", zone: ["ZONA 1", "ZONA 2"], name: "Eduardo" },
+            // LUNA: ACCESO UNICAMENTE A ZONA 3 (actualizado)
             "LUNA@UNIVERSIDADPRESTOCASH.MX": { pass: "LUNAZONA345", zone: "ZONA 3", name: "Luna" },
-            // ALEX: AHORA CON ACCESO A ZONA 4 Y ZONA 1 (actualizado 02/07/2026)
-            "ALEX@UNIVERSIDADPRESTOCASH.MX": { pass: "ALEX456", zone: ["ZONA 4", "ZONA 1"], name: "Alex" },
+            // ALEX: ACCESO UNICAMENTE A ZONA 4 (actualizado)
+            "ALEX@UNIVERSIDADPRESTOCASH.MX": { pass: "ALEX456", zone: "ZONA 4", name: "Alex" },
             "URISOL@UNIVERSIDADPRESTOCASH.MX": { pass: "URISOLMASTER1", zone: "ALL", name: "Urisol" },
             "EUGENIA@UNIVERSIDADPRESTOCASH.MX": { pass: "EUGENIAMASTER2", zone: "ALL", name: "Eugenia" },
             "EDUARDO.MASTER@UNIVERSIDADPRESTOCASH.MX": { pass: "EDUARDO.MASTER", zone: "ALL", name: "Eduardo Master" }
         };
 
+        // ===== Temas visuales (preferencia personal, guardada en este dispositivo) =====
+        const VISUAL_THEMES = {
+            clasico:   { label: 'Clásico',   swatch: ['#2c5aa0', '#1a237e'], primary: '#2c5aa0', manager: '#1a237e' },
+            esmeralda: { label: 'Esmeralda', swatch: ['#00695c', '#1b5e20'], primary: '#00695c', manager: '#1b5e20' },
+            atardecer: { label: 'Atardecer', swatch: ['#d84315', '#6a1b9a'], primary: '#d84315', manager: '#6a1b9a' }
+        };
+
+        function applyVisualTheme(key) {
+            const t = VISUAL_THEMES[key];
+            if (!t) return;
+            document.documentElement.style.setProperty('--primary-color', t.primary);
+            document.documentElement.style.setProperty('--manager-color', t.manager);
+            localStorage.setItem('visualTheme', key);
+            renderThemeOptions();
+        }
+
+        function renderThemeOptions() {
+            const body = document.getElementById('theme-options-body');
+            if (!body) return;
+            const current = localStorage.getItem('visualTheme') || 'clasico';
+            body.innerHTML = Object.keys(VISUAL_THEMES).map(key => {
+                const t = VISUAL_THEMES[key];
+                const active = key === current;
+                return `<div onclick="applyVisualTheme('${key}')" style="display:flex; align-items:center; gap:12px; padding:10px 12px; border:2px solid ${active?'#333':'#ddd'}; border-radius:8px; cursor:pointer; background:${active?'#f5f5f5':'white'};">
+                    <div style="display:flex; gap:4px;">
+                        <span style="width:22px;height:22px;border-radius:50%;background:${t.swatch[0]};display:inline-block;"></span>
+                        <span style="width:22px;height:22px;border-radius:50%;background:${t.swatch[1]};display:inline-block;"></span>
+                    </div>
+                    <span style="flex:1;font-size:13px;font-weight:${active?'bold':'normal'};">${t.label}</span>
+                    ${active ? '<i class="fas fa-check-circle" style="color:#2e7d32;"></i>' : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function openThemeSettings() {
+            renderThemeOptions();
+            document.getElementById('themeSettingsModal').style.display = 'flex';
+        }
+
+        function closeThemeSettings() {
+            document.getElementById('themeSettingsModal').style.display = 'none';
+        }
+
         let db, storage;
-        let empRef, mgrRef, backupLogRef;
+        let empRef, mgrRef, backupLogRef, mgrTopicsConfigRef;
         let employees = []; 
         let managers = [];
+        // Temas y % de evaluación de Gerenciales - editable desde el panel "Editar Temas y Porcentajes"
+        // core:true = tiene columna fija en la tabla. externoOnly:true = solo aplica/visible para Externos.
+        // Los temas que se agreguen desde el panel (sin core) capturan su calificación dentro del modal "Temas".
+        let mgrTopicsConfig = [
+            { id: 'evProc', name: 'PROCESO DE VALUACIÓN', pct: 15, core: true },
+            { id: 'runs',   name: 'CORRIDAS',  pct: 15, core: true },
+            { id: 'drops',  name: 'BAJAS',     pct: 10, core: true },
+            { id: 'prices', name: 'PRECIOS JUSTOS',   pct: 10, core: true },
+            { id: 'calls',  name: 'LLAMADAS/ CRÉDITOS',      pct: 5,  core: true },
+            { id: 'cash',   name: 'ANALISIS DE CASHIMURO/ PRODUCTIVIDAD', pct: 15, core: true },
+            { id: 'cust',   name: 'ATENCIÓN AL CLIENTE/ VENTAS E IMAGEN', pct: 20, core: true },
+            { id: 'examAsist', name: 'Examen Asist.', pct: 5, core: true, externoOnly: true },
+            { id: 'examAdmin', name: 'Examen Aux.',   pct: 5, core: true, externoOnly: true }
+        ];
+        let currentMgrTopicsManagerId = null; // gerente que se está editando en el modal "Temas"
+        let userPermissionsRef; // ref de Firebase con las zonas por usuario (NH y Gerenciales)
+        let allUserPermissions = {}; // { NombreUsuario: { nhZones:[...], mgrZones:[...] } }
         let currentUser = null;
         let currentFilteredNHEmployees = [];
         let isConnected = false;
@@ -750,12 +996,49 @@
         // INICIALIZACIÓN
         function initSystem() {
             if (typeof firebase !== 'undefined' && !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            const importBox = document.getElementById('mgr-excel-import-box');
+            if (importBox) importBox.style.display = (currentUser && currentUser.zone === 'ALL') ? 'block' : 'none';
+            // Deja listo un permiso base (por si Firebase tarda o falla) y muestra el panel de Usuarios
+            // de inmediato para administradores, sin esperar a que cargue userPermissions.
+            applyCurrentUserPermissions();
+            applyDefaultZoneFilters();
+            renderUsersPermissionsPanel();
             try {
                 db = firebase.database();
                 storage = firebase.storage();
                 empRef = db.ref('employees');
                 mgrRef = db.ref('managers');
                 backupLogRef = db.ref('backupLog');
+                mgrTopicsConfigRef = db.ref('mgrTopicsConfig');
+
+                // Escucha en tiempo real la configuración de Temas/Porcentajes de Gerenciales
+                mgrTopicsConfigRef.on('value', snap => {
+                    const data = snap.val();
+                    if (data && Array.isArray(data) && data.length === mgrTopicsConfig.length) {
+                        mgrTopicsConfig = data;
+                    }
+                    renderMgrTopicsHeader();
+                    renderManagersSection();
+                    const panel = document.getElementById('mgr-topics-panel');
+                    if (panel && panel.style.display !== 'none') renderMgrTopicsEditPanel();
+                });
+
+                // Escucha en tiempo real los permisos de zona por usuario (NH y Gerenciales)
+                userPermissionsRef = db.ref('userPermissions');
+                userPermissionsRef.on('value', snap => {
+                    try {
+                        allUserPermissions = snap.val() || {};
+                        applyCurrentUserPermissions();
+                        applyDefaultZoneFilters();
+                        renderUsersPermissionsPanel();
+                        renderNHSection(); renderNHAnalytics(); renderNHEvaluations();
+                        renderManagersSection(); renderMGRAnalytics(); renderMgrEvaluations();
+                    } catch (err) {
+                        console.error('Error aplicando permisos de usuario:', err);
+                    }
+                }, err => {
+                    console.error('No se pudo leer userPermissions de Firebase:', err);
+                });
 
                 // Escucha en tiempo real el log de respaldos
                 backupLogRef.on('value', snap => {
@@ -894,7 +1177,7 @@
 
             sortedForDashboard.forEach(e => {
                 // Filtro visual (dropdown)
-                if(zone !== 'ALL' && e.zone !== zone) return;
+                if(!zoneMatchesFilter(e.zone, zone, currentUser && currentUser.nhZones)) return;
                 if(onlyActive && e.status !== 'En proceso') return;
 
                 const days = getDays(e.endDate);
@@ -929,7 +1212,7 @@
             const sortedForEvaluations = [...employees].sort((a,b) => parseDateFromInput(a.startDate) - parseDateFromInput(b.startDate));
 
             sortedForEvaluations.forEach(e => {
-                if(zone !== 'ALL' && e.zone !== zone) return;
+                if(!zoneMatchesFilter(e.zone, zone, currentUser && currentUser.nhZones)) return;
                 if(status !== 'ALL' && e.status !== status) return;
                 if(search && !e.name.toUpperCase().includes(search) && !(e.branch||'').toUpperCase().includes(search) && !(e.zone||'').toUpperCase().includes(search)) return;
 
@@ -976,7 +1259,7 @@
 
             const filtered = employees.filter(e => {
                 if(activeOnly && e.status !== 'En proceso') return false;
-                if(z !== 'ALL' && e.zone !== z) return false;
+                if(!zoneMatchesFilter(e.zone, z, currentUser && currentUser.nhZones)) return false;
                 if(s !== 'ALL' && e.status !== s) return false;
                 if(search && !e.name.includes(search) && !(e.branch||'').toUpperCase().includes(search)) return false;
                 return true;
@@ -1040,6 +1323,7 @@
             if (status === 'Aprobado') return 'mgr-row-aprobado mgr-frozen';
             if (status === 'Renuncia') return 'mgr-row-renuncia mgr-frozen';
             if (status === 'Baja') return 'mgr-row-baja mgr-frozen';
+            if (status === 'No Aprobado') return 'mgr-row-noaprobado mgr-frozen';
             return '';
         }
 
@@ -1062,11 +1346,17 @@
         function renderMgrTable() {
             const tbody = document.getElementById('mgr-table-body'); tbody.innerHTML='';
             const zone = document.getElementById('mgr-filter-zone').value;
+            const activeOnlyEl = document.getElementById('mgr-filter-active');
+            const activeOnly = activeOnlyEl ? activeOnlyEl.checked : false;
+            const searchEl = document.getElementById('mgr-dash-search');
+            const search = searchEl ? searchEl.value.trim().toUpperCase() : '';
             
             managers.sort((a,b) => parseDateFromInput(a.startDate) - parseDateFromInput(b.startDate));
 
             managers.forEach(m => {
-                if(zone !== 'ALL' && m.zone !== zone) return;
+                if(!zoneMatchesFilter(m.zone, zone, currentUser && currentUser.mgrZones)) return;
+                if(activeOnly && m.status !== 'En proceso') return;
+                if(search && !(m.name||'').toUpperCase().includes(search)) return;
                 
                 const days = getDays(m.endDate);
                 const avgT = calcMgrTopics(m);
@@ -1074,18 +1364,40 @@
                 
                 const badge = m.origin === 'INTERNO' ? '<span class="badge-interno">INT</span>' : '<span class="badge-externo">EXT</span>';
                 const isExterno = m.origin === 'EXTERNO';
+                const activeIds = getManagerActiveTopics(m);
+                const locked = !!m.scoresLocked;
+                const inactiveCls = (f) => activeIds.includes(f) ? '' : ' topic-inactive';
+                const inactiveTitle = (f) => activeIds.includes(f) ? '' : ' title="No cuenta para el promedio de esta persona"';
+                const lockAttrs = locked ? 'disabled title="Calificación bloqueada. Usa el candado para desbloquear."' : '';
 
-                const inp100 = (f) => `<input type="number" min="0" max="100" value="${m[f]||0}" onchange="if(this.value>100)this.value=100; if(this.value<0)this.value=0; updMgr('${m.id}','${f}',this.value)">`;
+                const inp100 = (f) => `<input type="number" min="0" max="100" value="${m[f]||0}" class="${activeIds.includes(f)?'':'topic-inactive'}" ${locked?lockAttrs:inactiveTitle(f)} onchange="if(this.value>100)this.value=100; if(this.value<0)this.value=0; updMgr('${m.id}','${f}',this.value)">`;
                 const inp2 = (f) => `<input type="number" class="compact-input" min="0" max="2" value="${m[f]||0}" onchange="if(this.value>2)this.value=2; if(this.value<0)this.value=0; updMgr('${m.id}','${f}',this.value)">`;
-                const inpExam = (f) => isExterno ? `<input type="number" min="0" max="100" value="${m[f]||0}" onchange="if(this.value>100)this.value=100; if(this.value<0)this.value=0; updMgr('${m.id}','${f}',this.value)" style="background:#fff3e0; color:#333; font-weight:bold;">` : '<span style="color:#aaa; font-size:10px;">N/A</span>';
+                const inpExam = (f) => isExterno ? `<input type="number" min="0" max="100" value="${m[f]||0}" class="${activeIds.includes(f)?'':'topic-inactive'}" ${lockAttrs} onchange="if(this.value>100)this.value=100; if(this.value<0)this.value=0; updMgr('${m.id}','${f}',this.value)" style="background:${activeIds.includes(f)?'#fff3e0':''}; color:#333; font-weight:bold;">` : '<span style="color:#aaa; font-size:10px;">N/A</span>';
+
+                // Módulos Reprobados: dato informativo (1er intento), NO afecta el promedio. Se ve en rojo solo si existe,
+                // y solo se puede capturar/editar cuando esta persona tiene el modo "Mód. Rep." activado.
+                const showFails = mgrFailuresToggleOpen.has(m.id);
+                const failInput = (f) => {
+                    const has = m.moduleFailures && m.moduleFailures[f] !== undefined && m.moduleFailures[f] !== null;
+                    let html = '';
+                    if (has) html += `<div style="color:#c62828;font-size:9.5px;font-weight:bold;">1er int: ${m.moduleFailures[f]}</div>`;
+                    if (showFails) html += `<input type="number" min="0" max="100" placeholder="Reprobado" value="${has?m.moduleFailures[f]:''}" style="width:100%;margin-top:2px;background:#ffebee;color:#c62828;font-size:10px;border:1px solid #ef9a9a;" title="Calificación del primer intento (no afecta el promedio)" onchange="updMgrFailure('${m.id}','${f}',this.value)">`;
+                    return html;
+                };
+
+                const totalTopicsCount = mgrTopicsConfig.filter(t => !t.externoOnly || isExterno).length;
+                const topicsBtn = `<button class="topics-btn" onclick="openMgrTopicsSelect('${m.id}')" title="Elegir qué temas cuentan y su % para ${m.name}"><i class="fas fa-list-check"></i> ${activeIds.length}/${totalTopicsCount}</button>`;
+                const lockBtn = `<button class="topics-btn" style="background:${locked?'#c62828':'#757575'};margin-top:3px;" onclick="toggleMgrScoresLock('${m.id}')" title="${locked?'Calificaciones bloqueadas - clic para desbloquear':'Clic para bloquear las calificaciones de temas de esta persona'}"><i class="fas fa-${locked?'lock':'lock-open'}"></i> ${locked?'Bloqueado':'Bloquear'}</button>`;
+                const failBtn = `<button class="topics-btn" style="background:${showFails?'#6a1b9a':'#8e24aa'};margin-top:3px;" onclick="toggleMgrFailuresView('${m.id}')" title="Capturar módulos reprobados en primer intento (no afecta el promedio)"><i class="fas fa-clipboard-list"></i> ${showFails?'Ocultar':'Mód. Rep.'}</button>`;
 
                 const tr = document.createElement('tr');
                 tr.className = rowClass;
                 tr.innerHTML = `
+                    <td style="text-align:center"><div style="display:flex; flex-direction:column; gap:3px; align-items:center;"><button class="topics-btn" style="background:var(--manager-color);" onclick="openMgrDetail('${m.id}')" title="Ver todo sobre ${m.name}"><i class="fas fa-eye"></i> Ver</button><button class="topics-btn" style="background:#0277bd;" onclick="openEditMgrInfo('${m.id}')" title="Editar nombre, puesto, sucursal, zona, origen o fechas"><i class="fas fa-pen"></i> Editar</button></div></td>
                     <td style="text-align:left; font-weight:bold">${m.name}</td>
                     <td>${m.post}</td><td>${m.branch || '-'}</td><td>${m.zone}</td>
                     <td>${badge}</td>
-                    <td>${formatDate(m.startDate)}</td><td>${formatDate(m.endDate)}</td>
+                    <td>${formatDate(m.startDate)}</td><td>${formatDate(m.endDate)}${m.isExtended ? `<div style="font-size:9px;color:#6a1b9a;font-weight:bold;">Ext. desde ${formatDate(m.originalEndDate)}</div>` : ''}</td>
                     <td class="${getDayClass(days, m.status)}">${m.status!=='En proceso'?'-':days}</td>
                     
                     <td class="vertical-col" style="background:#f3e5f5">${inp2('p1')}</td>
@@ -1094,18 +1406,19 @@
                     <td class="vertical-col" style="background:#f3e5f5">${inp2('p4')}</td>
                     <td class="vertical-col" style="background:#f3e5f5">${inp2('p5')}</td>
 
-                    <td>${inpExam('examAsist')}</td>
-                    <td>${inpExam('examAdmin')}</td>
+                    <td>${inpExam('examAsist')}${isExterno?failInput('examAsist'):''}</td>
+                    <td>${inpExam('examAdmin')}${isExterno?failInput('examAdmin'):''}</td>
 
-                    <td>${inp100('evProc')}</td>
-                    <td>${inp100('runs')}</td>
-                    <td>${inp100('prices')}</td>
-                    <td>${inp100('calls')}</td>
-                    <td>${inp100('cash')}</td>
-                    <td>${inp100('cust')}</td>
-                    <td>${inp100('drops')}</td>
+                    <td>${inp100('evProc')}${failInput('evProc')}</td>
+                    <td>${inp100('runs')}${failInput('runs')}</td>
+                    <td>${inp100('drops')}${failInput('drops')}</td>
+                    <td>${inp100('prices')}${failInput('prices')}</td>
+                    <td>${inp100('calls')}${failInput('calls')}</td>
+                    <td>${inp100('cash')}${failInput('cash')}</td>
+                    <td>${inp100('cust')}${failInput('cust')}</td>
                     
-                    <td><div class="progress-bar"><div class="progress-fill" style="width:${avgT}%; background:var(--manager-color)"></div><div class="progress-text">${avgT}%</div></div></td>
+                    <td style="text-align:center"><div style="display:flex; flex-direction:column; gap:3px; align-items:center;">${topicsBtn}${lockBtn}${failBtn}</div></td>
+                    <td><div class="progress-bar"><div class="progress-fill" style="width:${avgT}%; background:var(--manager-color)"></div><div class="progress-text" style="color:${avgT>=50?'#fff':'#333'};">${avgT}%</div></div></td>
                     <td>${m.status}</td>
                 `;
                 tbody.appendChild(tr);
@@ -1116,15 +1429,21 @@
             const tbody = document.getElementById('mgr-eval-body'); tbody.innerHTML='';
             const zoneFilter = document.getElementById('mgr-eval-zone').value;
             const statusFilter = document.getElementById('mgr-eval-status').value;
+            const searchEl = document.getElementById('mgr-eval-search');
+            const search = searchEl ? searchEl.value.trim().toUpperCase() : '';
 
             managers.forEach(m => {
-                if(zoneFilter !== 'ALL' && m.zone !== zoneFilter) return;
+                if(!zoneMatchesFilter(m.zone, zoneFilter, currentUser && currentUser.mgrZones)) return;
                 if(statusFilter !== 'ALL' && m.status !== statusFilter) return;
+                if(search) {
+                    const haystack = ((m.name||'')+' '+(m.branch||'')+' '+(m.zone||'')).toUpperCase();
+                    if (!haystack.includes(search)) return;
+                }
 
                 const pdf1 = getPdfBtns(m.id, 1, m.fb1PdfUrl, 'managers', m.fb1PdfPath); 
                 const pdf2 = getPdfBtns(m.id, 2, m.fb2PdfUrl, 'managers', m.fb2PdfPath); 
                 
-                const totalGrade = m.fb2 || 0; 
+                const avgT = calcMgrTopics(m);
                 const rowClass = getMgrRowClass(m.status);
 
                 const tr = document.createElement('tr');
@@ -1132,19 +1451,24 @@
                 tr.innerHTML = `
                     <td style="text-align:left">${m.name}</td>
                     <td>${m.zone}</td>
+                    <td style="font-size:11px;">${formatDate(m.startDate)}</td>
+                    <td style="font-size:11px;">${formatDate(m.endDate)}${m.isExtended ? `<div style="font-size:9px;color:#6a1b9a;font-weight:bold;">Ext.</div>` : ''}</td>
                     <td class="${getDayClass(getDays(m.endDate), m.status)}">${m.status!=='En proceso'?'-':getDays(m.endDate)}</td>
                     <td style="background:#f1f8e9"><input type="checkbox" ${m.fb1Done?'checked':''} onchange="updMgr('${m.id}','fb1Done',this.checked)"> Realizado</td>
                     <td style="background:#f1f8e9">${pdf1}</td>
                     <td><div style="margin-bottom:5px;"><input type="checkbox" ${m.fb2Done?'checked':''} onchange="updMgr('${m.id}','fb2Done',this.checked)"> ${addDays(m.startDate,70)}</div><div>${pdf2}</div></td>
                     <td><input type="number" value="${m.fb2||0}" onchange="updMgr('${m.id}','fb2',this.value)"></td>
-                    <td style="font-weight:bold">${totalGrade}</td>
+                    <td style="font-weight:bold">${avgT}%</td>
                     <td>
                         <select class="evaluation-status-select" onchange="updMgr('${m.id}','status',this.value)">
                             <option value="En proceso" ${m.status==='En proceso'?'selected':''}>En proceso</option>
                             <option value="Aprobado" ${m.status==='Aprobado'?'selected':''}>Aprobado</option>
+                            <option value="No Aprobado" ${m.status==='No Aprobado'?'selected':''}>No Aprobado</option>
                             <option value="Renuncia" ${m.status==='Renuncia'?'selected':''}>Renuncia</option>
                             <option value="Baja" ${m.status==='Baja'?'selected':''}>Baja</option>
                         </select>
+                        <br>
+                        <button class="btn btn-sm" style="background:#6a1b9a;color:white;margin-top:4px;font-size:10px;padding:3px 6px;" onclick="openMgrExtension('${m.id}')" title="Alargar la fecha de término de esta persona"><i class="fas fa-calendar-plus"></i> Extensión</button>
                     </td>
                     <td><textarea class="observation-input" onchange="updMgr('${m.id}','obs',this.value)">${m.obs||''}</textarea></td>
                 `;
@@ -1159,7 +1483,7 @@
             const search = document.getElementById('mgr-search').value.toUpperCase();
 
             const filtered = managers.filter(m => {
-                if(z !== 'ALL' && m.zone !== z) return false;
+                if(!zoneMatchesFilter(m.zone, z, currentUser && currentUser.mgrZones)) return false;
                 if(s !== 'ALL' && m.status !== s) return false;
                 if(search && !m.name.includes(search)) return false;
                 return true;
@@ -1168,27 +1492,90 @@
             renderChart('mgr-chart-status', filtered, 'status', ['Aprobado','En proceso','Renuncia','Baja']);
             let sum=0; filtered.forEach(m => sum+=parseFloat(calcMgrTopics(m)));
             let avgTotal = filtered.length ? (sum/filtered.length).toFixed(1) : 0;
-            document.getElementById('mgr-chart-avg').innerHTML = `<div style="text-align:center; font-weight:bold; color:var(--manager-color)">Promedio General Temas: ${avgTotal}%</div>`;
+            document.getElementById('mgr-chart-avg').innerHTML = `<div style="text-align:center; font-weight:bold; color:var(--manager-color)">Promedio General: ${avgTotal}%</div>`;
 
             filtered.forEach(m => {
                 const avgT = calcMgrTopics(m);
-                const totalGrade = m.fb2 || 0;
-                const tr = document.createElement('tr');
-                let stClass = '';
-                if(m.status === 'Aprobado') stClass = 'status-aprobado'; 
-                else if(m.status === 'Renuncia') stClass = 'status-baja'; 
-                else if(m.status === 'Baja') stClass = 'status-baja';
-                else stClass = 'status-en-proceso';
+                const days = getDays(m.endDate);
+                const rowClass = getMgrRowClass(m.status);
 
+                const tr = document.createElement('tr');
+                tr.className = rowClass;
                 tr.innerHTML = `
                     <td style="text-align:left">${m.name}</td>
-                    <td>${m.post}</td><td>${m.zone}</td><td>${m.origin}</td>
+                    <td>${m.post}</td><td>${m.origin}</td><td>${m.branch||'-'}</td><td>${m.zone}</td>
+                    <td>${formatDate(m.startDate)}</td>
+                    <td>${formatDate(m.endDate)}${m.isExtended ? `<div style="font-size:9px;color:#6a1b9a;font-weight:bold;">Ext.</div>` : ''}</td>
+                    <td class="${getDayClass(days, m.status)}">${m.status!=='En proceso'?'-':days}</td>
                     <td><div class="progress-bar"><div class="progress-fill" style="width:${avgT}%; background:var(--manager-color)"></div></div><div style="font-size:10px;text-align:center">${avgT}%</div></td>
-                    <td>${totalGrade}</td>
-                    <td><span style="padding:2px 6px; border-radius:4px; font-size:10px" class="${stClass}">${m.status}</span></td>
+                    <td>${m.status}</td>
+                    <td style="text-align:center"><button class="topics-btn" style="background:var(--manager-color);" onclick="openMgrDetail('${m.id}')" title="Ver todo sobre ${m.name}"><i class="fas fa-eye"></i> Ver</button></td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        // Ventana con TODO el detalle de una persona: fechas, extensiones, cada tema con su % y calificación,
+        // reprobados, y el desglose de cómo se compone su calificación total.
+        // Diseño simple en una sola columna (bloques uno debajo de otro) para evitar cualquier
+        // problema de traslape que pudiera dar un layout de columnas.
+        function openMgrDetail(managerId) {
+            const m = managers.find(x => x.id === managerId);
+            if (!m) return;
+            const isExterno = m.origin === 'EXTERNO';
+            const avgT = calcMgrTopics(m);
+            const activeIds = getManagerActiveTopics(m);
+            const sumPoints = (parseInt(m.p1)||0)+(parseInt(m.p2)||0)+(parseInt(m.p3)||0)+(parseInt(m.p4)||0)+(parseInt(m.p5)||0);
+
+            let html = '';
+
+            // Bloque 1: datos generales
+            html += `<div style="background:#f0f4f8; padding:8px 12px; border-radius:8px; font-size:12px; line-height:1.6;">
+                <div style="font-weight:bold; font-size:13px;">${m.name}</div>
+                <div>${m.post} ${m.origin} — ${m.branch||'-'} / ${m.zone}</div>
+                <div>Inicio: ${formatDate(m.startDate)} &nbsp;·&nbsp; Término: ${formatDate(m.endDate)}</div>`;
+            if (m.isExtended) {
+                html += `<div style="color:#6a1b9a;">⏳ Extendido (fecha original: ${formatDate(m.originalEndDate)})</div>`;
+            }
+            html += `<div>Estatus: <strong>${m.status}</strong> &nbsp;·&nbsp; Criterios (p1-p5): ${sumPoints}/10 pts</div>
+            </div>`;
+
+            // Bloque 2: calificación total (destacado)
+            html += `<div style="background:#e8eaf6; padding:8px 12px; border-radius:8px; margin-top:8px; font-size:14px; font-weight:bold; color:var(--manager-color); text-align:center;">
+                Calificación Total: ${avgT}%
+            </div>`;
+
+            // Bloque 3: temas, uno por renglón (sin tabla, para evitar problemas de ancho)
+            html += `<div style="margin-top:10px; font-size:11px; font-weight:bold; color:#555;">TEMAS</div>`;
+            html += `<div style="border:1px solid #eee; border-radius:6px; overflow:hidden; margin-top:4px;">`;
+            html += `<div style="display:flex; background:#eee; font-size:10px; font-weight:bold; padding:4px 8px;">
+                <div style="flex:2;">Tema</div><div style="flex:1;text-align:center;">%</div><div style="flex:1;text-align:center;">Calif.</div><div style="flex:1;text-align:center;">1er int.</div>
+            </div>`;
+            mgrTopicsConfig.filter(t => !t.externoOnly || isExterno).forEach(t => {
+                const active = activeIds.includes(t.id);
+                const w = getTopicWeightForManager(m, t.id, parseFloat(t.pct)||0);
+                const score = m[t.id] !== undefined ? m[t.id] : 0;
+                const fail = (m.moduleFailures && m.moduleFailures[t.id] !== undefined) ? m.moduleFailures[t.id] : null;
+                html += `<div style="display:flex; align-items:center; padding:4px 8px; border-top:1px solid #eee; font-size:10.5px; ${active?'':'opacity:0.45;'}">
+                    <div style="flex:2; padding-right:4px;">${t.name}${!active?' (N/A)':''}</div>
+                    <div style="flex:1; text-align:center;">${w}%</div>
+                    <div style="flex:1; text-align:center; font-weight:bold;">${active?score:'-'}</div>
+                    <div style="flex:1; text-align:center; color:#c62828; font-weight:bold;">${fail!==null?fail:'-'}</div>
+                </div>`;
+            });
+            html += `</div>`;
+
+            // Bloque 4: observaciones
+            if (m.obs) {
+                html += `<div style="margin-top:10px; font-size:11px;"><strong>Obs.:</strong> ${m.obs}</div>`;
+            }
+
+            document.getElementById('mgr-detail-body').innerHTML = html;
+            document.getElementById('mgrDetailModal').style.display = 'flex';
+        }
+
+        function closeMgrDetail() {
+            document.getElementById('mgrDetailModal').style.display = 'none';
         }
 
         function renderMgrManagement() {
@@ -1203,7 +1590,7 @@
                 tr.className = rowClass;
                 tr.innerHTML = `
                     <td>${m.id}</td><td style="text-align:left">${m.name}</td><td>${m.post}</td><td>${m.branch || '-'}</td><td>${m.zone}</td><td>${m.origin}</td>
-                    <td>${formatDate(m.startDate)}</td><td>${formatDate(m.endDate)}</td>
+                    <td>${formatDate(m.startDate)}</td><td>${formatDate(m.endDate)}${m.isExtended ? `<div style="font-size:9px;color:#6a1b9a;font-weight:bold;">Ext. desde ${formatDate(m.originalEndDate)}</div>` : ''}</td>
                     <td class="${getDayClass(days, m.status)}">${m.status!=='En proceso'?'-':days}</td>
                     <td><button class="btn btn-danger btn-sm" onclick="delItem('managers','${m.id}')">Eliminar</button></td>
                 `;
@@ -1214,24 +1601,125 @@
         // ================= LOGICA COMUN (MODIFICADA PARA LUNA) =================
         
         // MODIFICADO: Acepta 'context' (employees o managers) para diferenciar permisos
+        // Devuelve las zonas por defecto de un usuario (a partir de USERS) cuando aún no tiene
+        // permisos personalizados guardados en Firebase — así nada se rompe la primera vez.
+        function getDefaultZonesForUser(email) {
+            const u = USERS[email];
+            if (!u) return [];
+            if (u.zone === 'ALL') return ['ALL'];
+            return Array.isArray(u.zone) ? u.zone.slice() : [u.zone];
+        }
+
+        // Calcula currentUser.nhZones y currentUser.mgrZones combinando lo guardado en Firebase
+        // (userPermissions) con el valor por defecto de USERS si aún no se ha personalizado.
+        function applyCurrentUserPermissions() {
+            if (!currentUser) return;
+            if (currentUser.zone === 'ALL') {
+                currentUser.nhZones = ['ALL'];
+                currentUser.mgrZones = ['ALL'];
+                return;
+            }
+            const stored = allUserPermissions[currentUser.name] || {};
+            const defaults = getDefaultZonesForUser(currentUser.email);
+            currentUser.nhZones = (Array.isArray(stored.nhZones) && stored.nhZones.length) ? stored.nhZones : defaults;
+            currentUser.mgrZones = (Array.isArray(stored.mgrZones) && stored.mgrZones.length) ? stored.mgrZones : defaults;
+        }
+
         function hasPermission(targetZone, context) {
             if (!currentUser) return false;
             if (currentUser.zone === 'ALL') return true;
-
-            // CASO ESPECIAL LUNA: en Gerenciales solo tiene permiso sobre Zona 3
-            if (currentUser.name === 'Luna' && context === 'managers') {
-                return targetZone === 'ZONA 3';
-            }
-
-            // SOPORTE GENERAL PARA USUARIOS CON MULTIPLES ZONAS (ej. Alex: Zona 4 y Zona 1)
-            if (Array.isArray(currentUser.zone)) {
-                return currentUser.zone.includes(targetZone);
-            }
-
-            // CASO ESTANDAR (String normal)
-            return currentUser.zone === targetZone;
+            const zones = context === 'managers' ? currentUser.mgrZones : currentUser.nhZones;
+            if (!zones || !zones.length) return false;
+            if (zones.includes('ALL')) return true;
+            return zones.includes(targetZone);
         }
-        
+
+        // Compara la zona de un registro contra el filtro seleccionado en un <select>.
+        // 'ALL' = todas. 'MINE' = solo las zonas que el usuario tiene asignadas (NH o Gerenciales).
+        function zoneMatchesFilter(itemZone, filterValue, userZones) {
+            if (filterValue === 'ALL') return true;
+            if (filterValue === 'MINE') return !!(userZones && (userZones.includes('ALL') || userZones.includes(itemZone)));
+            return itemZone === filterValue;
+        }
+
+        // La primera vez que carga la sesión, deja los filtros de zona en "Mis Zonas" para quien
+        // no es administrador (Urisol/Eugenia/Eduardo Master siguen viendo "Todas" por defecto).
+        // Solo se aplica una vez para no pisar un cambio manual que la persona haga después.
+        let defaultZoneFiltersApplied = false;
+        function applyDefaultZoneFilters() {
+            if (defaultZoneFiltersApplied || !currentUser) return;
+            defaultZoneFiltersApplied = true;
+            const isAdmin = currentUser.zone === 'ALL';
+            const value = isAdmin ? 'ALL' : 'MINE';
+            ['nh-filter-zone','nh-an-zone','nh-eval-zone','mgr-filter-zone','mgr-an-zone','mgr-eval-zone'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = value;
+            });
+        }
+
+        // Pinta el panel de administración "Usuarios y Permisos" (solo visible para administradores)
+        function renderUsersPermissionsPanel() {
+            const box = document.getElementById('users-permissions-box');
+            if (box) box.style.display = (currentUser && currentUser.zone === 'ALL') ? 'block' : 'none';
+            if (!currentUser || currentUser.zone !== 'ALL') return; // no gastar trabajo si no se va a ver
+
+            const body = document.getElementById('users-permissions-body');
+            if (!body) return;
+            const zones = ['ZONA 1','ZONA 2','ZONA 3','ZONA 4'];
+            let html = '';
+            Object.keys(USERS).forEach(email => {
+                const u = USERS[email];
+                if (u.zone === 'ALL') {
+                    html += `<div style="padding:8px 0;border-bottom:1px solid #c5cae9;"><strong>${u.name}</strong> <span style="color:#888;font-size:11px;">— Administrador (acceso total, ambos módulos)</span></div>`;
+                    return;
+                }
+                const stored = allUserPermissions[u.name] || {};
+                const defaults = getDefaultZonesForUser(email);
+                const nhZones = (Array.isArray(stored.nhZones) && stored.nhZones.length) ? stored.nhZones : defaults;
+                const mgrZones = (Array.isArray(stored.mgrZones) && stored.mgrZones.length) ? stored.mgrZones : defaults;
+                html += `<div style="padding:10px 0;border-bottom:1px solid #c5cae9;">
+                    <div style="font-weight:bold;margin-bottom:6px;">${u.name}</div>
+                    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:10px;color:#888;font-weight:bold;margin-bottom:3px;letter-spacing:.3px;">NUEVOS INGRESOS</div>
+                            ${zones.map(z => `<label style="margin-right:10px;font-size:12px;cursor:pointer;"><input type="checkbox" value="${z}" data-user="${u.name}" data-module="nh" ${nhZones.includes(z)?'checked':''} onchange="saveUserPermissionsFromUI('${u.name}')"> ${z.replace('ZONA ','Z')}</label>`).join('')}
+                        </div>
+                        <div>
+                            <div style="font-size:10px;color:#888;font-weight:bold;margin-bottom:3px;letter-spacing:.3px;">GERENCIALES</div>
+                            ${zones.map(z => `<label style="margin-right:10px;font-size:12px;cursor:pointer;"><input type="checkbox" value="${z}" data-user="${u.name}" data-module="mgr" ${mgrZones.includes(z)?'checked':''} onchange="saveUserPermissionsFromUI('${u.name}')"> ${z.replace('ZONA ','Z')}</label>`).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            });
+            body.innerHTML = html;
+        }
+
+        // Guarda de inmediato en Firebase los permisos de un usuario cuando se marca/desmarca una casilla
+        function saveUserPermissionsFromUI(userName) {
+            const nhChecks = document.querySelectorAll(`input[data-user="${userName}"][data-module="nh"]:checked`);
+            const mgrChecks = document.querySelectorAll(`input[data-user="${userName}"][data-module="mgr"]:checked`);
+            const nhZones = [...nhChecks].map(c => c.value);
+            const mgrZones = [...mgrChecks].map(c => c.value);
+            const msg = document.getElementById('users-permissions-msg');
+
+            if (!nhZones.length && !mgrZones.length) {
+                if (msg) { msg.textContent = `⚠ ${userName} se quedaría sin acceso a ninguna zona en ningún módulo.`; msg.style.color = '#c62828'; }
+            }
+
+            userPermissionsRef.child(userName).set({ nhZones, mgrZones }).then(() => {
+                if (msg) {
+                    msg.textContent = `Guardado ✓ (${userName})`;
+                    msg.style.color = '#2e7d32';
+                    setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
+                }
+                showCloudSave();
+            }).catch(err => {
+                console.error(err);
+                if (msg) { msg.textContent = 'Error al guardar'; msg.style.color = '#c62828'; }
+                showLocalSave();
+            });
+        }
+
         function updEmp(id, field, val) {
             const item = employees.find(e=>e.id===id);
             if(!item) return;
@@ -1313,7 +1801,9 @@
             setTimeout(()=>n.style.display='none', 2500);
         }
 
-        function addManager() {
+        let pendingNewManager = null;
+
+        function requestAddManager() {
             const name = document.getElementById('mgr-new-name').value.toUpperCase();
             const branch = document.getElementById('mgr-new-branch').value.toUpperCase();
             const post = document.getElementById('mgr-new-post').value;
@@ -1321,15 +1811,108 @@
             const zone = document.getElementById('mgr-new-zone').value;
             const date = document.getElementById('mgr-new-date').value;
             if(!name || !date) return alert("Faltan datos");
-            // MODIFICADO: pasamos 'managers'
             if(!hasPermission(zone, 'managers')) return alert("⛔ ACCESO DENEGADO: No puedes agregar usuarios a esta zona.");
+
+            const start = parseDateFromInput(date);
+            const end = new Date(start);
+            if (origin === 'EXTERNO') { end.setMonth(end.getMonth()+4); } else { end.setDate(end.getDate()+89); }
+            const endStr = end.toISOString().split('T')[0];
+
+            pendingNewManager = { name, branch, post, origin, zone, startDate: date, endDate: endStr };
+
+            document.getElementById('confirm-mgr-name').textContent = name;
+            document.getElementById('confirm-mgr-post').textContent = post;
+            document.getElementById('confirm-mgr-origin').textContent = origin;
+            document.getElementById('confirm-mgr-branch').textContent = branch || '-';
+            document.getElementById('confirm-mgr-zone').textContent = zone;
+            document.getElementById('confirm-mgr-date').textContent = formatDate(date);
+            document.getElementById('confirm-mgr-enddate').textContent = formatDate(endStr);
+
+            renderAddMgrTopicsPicker(origin);
+            document.getElementById('confirmAddMgrModal').style.display = 'flex';
+        }
+
+        // Pinta la lista de temas seleccionables para el nuevo gerente (marcados por defecto: los 7 generales)
+        function renderAddMgrTopicsPicker(origin) {
+            const isExterno = origin === 'EXTERNO';
+            const defaultActive = mgrTopicsConfig.filter(t => t.core && !t.externoOnly).map(t => t.id);
+            const visibleTopics = mgrTopicsConfig.filter(t => !t.externoOnly || isExterno);
+            const body = document.getElementById('confirm-mgr-topics-body');
+            body.innerHTML = visibleTopics.map(t => {
+                const checked = defaultActive.includes(t.id) ? 'checked' : '';
+                const scoreInput = t.core ? '' : `<input type="number" min="0" max="100" value="0" data-newmgr-score="${t.id}" onchange="updateAddMgrTopicsCount()" title="Calificación 0-100" style="width:55px;">`;
+                return `
+                    <div class="topic-check-row">
+                        <input type="checkbox" value="${t.id}" ${checked} data-newmgr-check onchange="updateAddMgrTopicsCount()">
+                        <span style="flex:1">${t.name}</span>
+                        <input type="number" min="0" max="100" value="${t.pct}" data-newmgr-weight="${t.id}" style="width:55px;" title="% que vale este tema para esta persona">
+                        ${scoreInput}
+                    </div>
+                `;
+            }).join('');
+            updateAddMgrTopicsCount();
+        }
+
+        function updateAddMgrTopicsCount() {
+            const body = document.getElementById('confirm-mgr-topics-body');
+            if (!body) return;
+            const count = body.querySelectorAll('input[data-newmgr-check]:checked').length;
+            const el = document.getElementById('confirm-mgr-topics-count');
+            if (el) el.textContent = count;
+        }
+
+        function cancelAddManager() {
+            // Cierra la ventana sin guardar; los datos capturados permanecen en el formulario para editarlos
+            document.getElementById('confirmAddMgrModal').style.display = 'none';
+            pendingNewManager = null;
+        }
+
+        function confirmAddManagerFinal() {
+            if (!pendingNewManager) { document.getElementById('confirmAddMgrModal').style.display = 'none'; return; }
+            const data = pendingNewManager;
+            const body = document.getElementById('confirm-mgr-topics-body');
+            const checks = [...body.querySelectorAll('input[data-newmgr-check]')];
+            const activeTopics = checks.filter(c => c.checked).map(c => c.value);
+
+            const record = Object.assign({}, data, {
+                status: 'En proceso',
+                evProc:0, runs:0, drops:0, prices:0, calls:0, cash:0, cust:0,
+                p1:0, p2:0, p3:0, p4:0, p5:0, examAsist:0, examAdmin:0,
+                activeTopics: activeTopics,
+                topicWeights: {},
+            });
+
+            // Calificaciones iniciales para temas con columna fija en la tabla
+            mgrTopicsConfig.forEach(t => {
+                if (!activeTopics.includes(t.id)) return;
+                const weightInput = body.querySelector(`[data-newmgr-weight="${t.id}"]`);
+                if (weightInput) {
+                    const w = parseFloat(weightInput.value);
+                    if (!isNaN(w) && Math.abs(w - (parseFloat(t.pct)||0)) > 0.001) record.topicWeights[t.id] = w;
+                }
+                const scoreInput = body.querySelector(`[data-newmgr-score="${t.id}"]`);
+                if (scoreInput) {
+                    let v = parseInt(scoreInput.value) || 0;
+                    if (v > 100) v = 100; if (v < 0) v = 0;
+                    record[t.id] = v;
+                }
+            });
 
             const maxId = managers.reduce((max, m) => Math.max(max, parseInt(m.id || 0)), 0);
             const id = (maxId + 1).toString();
-            const start = parseDateFromInput(date);
-            const end = new Date(start); end.setDate(end.getDate()+89);
-            const endStr = end.toISOString().split('T')[0];
-            mgrRef.child(id).set({ id, name, branch, post, origin, zone, startDate: date, endDate: endStr, status: 'En proceso', evProc:0, runs:0, drops:0, prices:0, calls:0, cash:0, cust:0, p1:0, p2:0, p3:0, p4:0, p5:0, examAsist:0, examAdmin:0 }).then(() => { document.getElementById('mgr-new-name').value = ''; document.getElementById('mgr-new-branch').value = ''; showCloudSave(); }).catch(showLocalSave);
+            record.id = id;
+
+            mgrRef.child(id).set(record).then(() => {
+                document.getElementById('mgr-new-name').value = '';
+                document.getElementById('mgr-new-branch').value = '';
+                document.getElementById('confirmAddMgrModal').style.display = 'none';
+                pendingNewManager = null;
+                showAddSuccess();
+            }).catch(() => {
+                document.getElementById('confirmAddMgrModal').style.display = 'none';
+                pendingNewManager = null;
+                showLocalSave();
+            });
         }
 
         function delItem(col, id) { 
@@ -1349,12 +1932,503 @@
         function addDays(s,d) { const dt=parseDateFromInput(s); dt.setDate(dt.getDate()+d); return `${dt.getDate()}/${dt.getMonth()+1}`; }
         function calcNHProg(e) { let p=0; if(e.sacCourse) p+=20; if(e.video1) p+=20; if(e.video2) p+=20; if(e.video3) p+=20; if(e.video4) p+=20; return p; }
         
+        // Temas activos para un gerente/subgerente/externo. Si nunca se personalizó, usa por defecto
+        // los 7 temas generales originales (esto es lo que garantiza que NADA cambie para quien ya
+        // tenía datos capturados, hasta que alguien abra su botón "Temas" y elija algo distinto).
+        function getManagerActiveTopics(m) {
+            if (Array.isArray(m.activeTopics) && m.activeTopics.length) return m.activeTopics;
+            return mgrTopicsConfig.filter(t => t.core && !t.externoOnly).map(t => t.id);
+        }
+
+        // Los 5 criterios p1-p5 (Realización de Ejercicios, Asistencia a Curso, etc.) valen 2 pts c/u = 10 pts fijos.
+        // Los "Temas" ocupan el otro 90% del total (así era originalmente: 15+15+10+5+15+20+10=90, +10 de p1-p5=100).
+        const MGR_FIXED_BONUS_MAX = 10;
+        const MGR_TOPICS_BUDGET = 100 - MGR_FIXED_BONUS_MAX; // 90
+
+        // Devuelve el % que vale un tema PARA ESA PERSONA: su propio ajuste si lo tiene, si no, el % global
+        function getTopicWeightForManager(m, topicId, masterPct) {
+            if (m.topicWeights && m.topicWeights[topicId] !== undefined && m.topicWeights[topicId] !== null) {
+                return parseFloat(m.topicWeights[topicId]) || 0;
+            }
+            return masterPct;
+        }
+
         function calcMgrTopics(m) { 
             let p1 = parseInt(m.p1) || 0; let p2 = parseInt(m.p2) || 0; let p3 = parseInt(m.p3) || 0; let p4 = parseInt(m.p4) || 0; let p5 = parseInt(m.p5) || 0;
             let sumPoints = p1 + p2 + p3 + p4 + p5;
-            let valEvProc = (parseInt(m.evProc)||0) * 0.15; let valRuns   = (parseInt(m.runs)||0)   * 0.15; let valPrices = (parseInt(m.prices)||0) * 0.10; let valCalls  = (parseInt(m.calls)||0)  * 0.05; let valCash   = (parseInt(m.cash)||0)   * 0.15; let valCust   = (parseInt(m.cust)||0)   * 0.20; let valDrops  = (parseInt(m.drops)||0)  * 0.10;
-            let total = sumPoints + valEvProc + valRuns + valPrices + valCalls + valCash + valCust + valDrops;
+
+            // Promedio ponderado normalizado (0-100) de solo los temas activos de esta persona,
+            // usando el % personalizado de esa persona si lo tiene, o si no, el % global del panel.
+            // Luego se reparte dentro del mismo cupo de 90 pts que siempre tuvieron los temas.
+            // Así, sin importar si la persona tiene 4, 7 o 9 temas activos, su cupo máximo de Temas
+            // sigue siendo 90 pts (igual que todos), y el promedio no se ve perjudicado ni inflado.
+            const activeIds = getManagerActiveTopics(m);
+            let weightSum = 0, scoreSum = 0;
+            mgrTopicsConfig.forEach(t => {
+                if (!activeIds.includes(t.id)) return;
+                const w = getTopicWeightForManager(m, t.id, parseFloat(t.pct) || 0);
+                weightSum += w;
+                scoreSum += (parseInt(m[t.id]) || 0) * w;
+            });
+            const temasAvg = weightSum > 0 ? (scoreSum / weightSum) : 0; // 0-100
+            const temasContribution = temasAvg * (MGR_TOPICS_BUDGET / 100); // reparte dentro del cupo de 90
+
+            let total = sumPoints + temasContribution;
             return Math.min(total, 100).toFixed(1);
+        }
+
+        // Pinta los encabezados de la tabla de Gerenciales con el nombre/% configurado
+        function renderMgrTopicsHeader() {
+            mgrTopicsConfig.forEach(t => {
+                const th = document.getElementById('mgr-topic-th-' + t.id);
+                if (!th) return;
+                th.innerHTML = t.externoOnly ? t.name : `${t.name} (${t.pct}%)`;
+            });
+        }
+
+        // Pinta la lista editable del panel "Editar Temas y Porcentajes"
+        // Solo administradores (zona 'ALL') pueden agregar/quitar temas o editar sus porcentajes
+        function isMgrTopicsAdmin() {
+            return !!(currentUser && currentUser.zone === 'ALL');
+        }
+
+        function renderMgrTopicsEditPanel() {
+            const body = document.getElementById('mgr-topics-edit-body');
+            if (!body) return;
+            const isAdmin = isMgrTopicsAdmin();
+            body.innerHTML = mgrTopicsConfig.map((t, i) => `
+                <tr>
+                    <td><input type="text" value="${t.name}" style="width:100%" ${isAdmin?'':'disabled'} onchange="mgrTopicsConfig[${i}].name=this.value;">${t.externoOnly ? ' <span style="font-size:9px;color:#e65100;">(Externos)</span>' : ''}</td>
+                    <td><input type="number" min="0" max="100" value="${t.pct}" style="width:70px" ${isAdmin?'':'disabled'} onchange="mgrTopicsConfig[${i}].pct=parseFloat(this.value)||0; renderMgrTopicsSum();"></td>
+                    <td style="text-align:center">${(t.core || !isAdmin) ? (t.core ? '<span style="font-size:9px;color:#aaa;" title="Los 9 temas originales no se eliminan de la lista; para excluirlo de una persona en particular usa su botón &quot;Temas&quot; en la tabla">fijo</span>' : '') : `<button class="btn btn-danger btn-sm" onclick="removeMgrTopic(${i})" title="Quitar este tema de la lista"><i class="fas fa-trash"></i></button>`}</td>
+                </tr>
+            `).join('');
+            renderMgrTopicsSum();
+
+            const notice = document.getElementById('mgr-topics-readonly-notice');
+            const addBtn = document.getElementById('mgr-topics-add-btn');
+            const saveBtn = document.getElementById('mgr-topics-save-btn');
+            if (notice) notice.style.display = isAdmin ? 'none' : 'block';
+            if (addBtn) addBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+            if (saveBtn) saveBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+        }
+
+        // Agrega un tema nuevo a la lista maestra (se captura su calificación desde el botón "Temas" de cada persona)
+        function addMgrTopic() {
+            if (!isMgrTopicsAdmin()) {
+                alert("⛔ Solo un administrador puede agregar temas.");
+                return;
+            }
+            const name = prompt('Nombre del nuevo tema:', '');
+            if (!name) return;
+            let pctStr = prompt('¿Qué porcentaje (%) valdrá este tema?', '10');
+            if (pctStr === null) return;
+            const pct = parseFloat(pctStr) || 0;
+            mgrTopicsConfig.push({ id: 'custom_' + Date.now(), name: name.trim(), pct, core: false });
+            renderMgrTopicsEditPanel();
+        }
+
+        // Quita un tema agregado manualmente (los 9 temas originales/fijos no se pueden quitar de aquí)
+        function removeMgrTopic(index) {
+            if (!isMgrTopicsAdmin()) {
+                alert("⛔ Solo un administrador puede quitar temas.");
+                return;
+            }
+            const t = mgrTopicsConfig[index];
+            if (!t || t.core) return;
+            if (!confirm(`¿Quitar el tema "${t.name}" de la lista completa? Quien lo tuviera activo dejará de contarlo en su promedio.`)) return;
+            mgrTopicsConfig.splice(index, 1);
+            renderMgrTopicsEditPanel();
+        }
+
+        // Muestra la suma actual de porcentajes y avisa si no da el cupo esperado (90%, ya que
+        // el 10% restante lo cubren los 5 criterios fijos de arriba)
+        function renderMgrTopicsSum() {
+            const sum = mgrTopicsConfig.reduce((s,t) => s + (parseFloat(t.pct)||0), 0);
+            const el = document.getElementById('mgr-topics-sum');
+            if (el) {
+                el.textContent = sum.toFixed(1);
+                el.style.color = Math.abs(sum - MGR_TOPICS_BUDGET) < 0.01 ? '#2e7d32' : '#c62828';
+            }
+        }
+
+        // Abre/cierra el panel de edición de temas
+        function toggleMgrTopicsPanel() {
+            const panel = document.getElementById('mgr-topics-panel');
+            const icon = document.getElementById('mgr-topics-toggle-icon');
+            const show = panel.style.display === 'none';
+            panel.style.display = show ? 'block' : 'none';
+            icon.className = show ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+            if (show) renderMgrTopicsEditPanel();
+        }
+
+        // Guarda la configuración de temas/porcentajes en Firebase (se aplica a todos)
+        function saveMgrTopicsConfig() {
+            if (!isMgrTopicsAdmin()) {
+                alert("⛔ Solo un administrador puede guardar cambios en los temas/porcentajes.");
+                return;
+            }
+            const sum = mgrTopicsConfig.reduce((s,t) => s + (parseFloat(t.pct)||0), 0);
+            const msg = document.getElementById('mgr-topics-save-msg');
+            if (Math.abs(sum - MGR_TOPICS_BUDGET) > 0.01) {
+                if (!confirm(`Los porcentajes de los temas suman ${sum.toFixed(1)}% (el cupo esperado es ${MGR_TOPICS_BUDGET}%, ya que el otro 10% lo cubren los 5 criterios de arriba). ¿Guardar de todas formas?`)) return;
+            }
+            mgrTopicsConfigRef.set(mgrTopicsConfig).then(() => {
+                msg.textContent = 'Guardado ✓';
+                msg.style.color = '#2e7d32';
+                setTimeout(() => { if(msg) msg.textContent = ''; }, 2500);
+                showCloudSave();
+            }).catch(err => {
+                msg.textContent = 'Error al guardar';
+                msg.style.color = '#c62828';
+                console.error(err);
+                showLocalSave();
+            });
+        }
+
+        // ===== Selección de temas, % personalizado y bloqueo, POR PERSONA (botón "Temas" de cada fila) =====
+        let mgrTopicsWeightTouched = new Set(); // qué campos de % se tocaron en esta sesión del modal
+
+        function openMgrTopicsSelect(managerId) {
+            const m = managers.find(x => x.id === managerId);
+            if (!m) return;
+            if (!hasPermission(m.zone, 'managers')) {
+                alert("⛔ ACCESO DENEGADO: No tienes permiso para modificar la " + m.zone);
+                return;
+            }
+            currentMgrTopicsManagerId = managerId;
+            mgrTopicsWeightTouched = new Set();
+            const isExterno = m.origin === 'EXTERNO';
+            const locked = !!m.scoresLocked;
+            document.getElementById('mgr-topics-select-name').textContent = m.name;
+
+            const activeIds = getManagerActiveTopics(m);
+            const visibleTopics = mgrTopicsConfig.filter(t => !t.externoOnly || isExterno);
+
+            const lockNotice = locked ? `<div style="background:#ffebee;color:#c62828;padding:8px 12px;border-radius:6px;font-size:11.5px;margin-bottom:10px;"><i class="fas fa-lock"></i> Las calificaciones de esta persona están bloqueadas. El % y los temas activos sí se pueden cambiar; para editar calificaciones usa el candado en la tabla.</div>` : '';
+
+            const body = document.getElementById('mgr-topics-select-body');
+            body.innerHTML = lockNotice + '<div style="display:flex; font-size:10px; color:#999; padding:0 4px; margin-bottom:2px;"><span style="flex:1"></span><span style="width:55px; text-align:center;">%</span><span style="width:24px;"></span>' + (visibleTopics.some(t=>!t.core) ? '<span style="width:60px; text-align:center;">Calif.</span>' : '') + '</div>' + visibleTopics.map(t => {
+                const checked = activeIds.includes(t.id) ? 'checked' : '';
+                const hasOverride = m.topicWeights && m.topicWeights[t.id] !== undefined && m.topicWeights[t.id] !== null;
+                const weightVal = hasOverride ? m.topicWeights[t.id] : t.pct;
+                const resetBtn = hasOverride ? `<button type="button" class="btn btn-sm" style="padding:2px 6px;background:#e0e0e0;color:#333;" title="Volver al % global (${t.pct}%)" onclick="resetMgrTopicWeight('${t.id}', ${t.pct})"><i class="fas fa-undo"></i></button>` : '<span style="width:24px;display:inline-block;"></span>';
+                const scoreInput = t.core ? '' : `<input type="number" min="0" max="100" value="${m[t.id]||0}" data-custom-score="${t.id}" ${locked?'disabled':''} onchange="updateMgrTopicsPreview()" title="Calificación 0-100 para este tema" style="width:55px;">`;
+                return `
+                    <div class="topic-check-row">
+                        <input type="checkbox" value="${t.id}" ${checked} onchange="updateMgrTopicsPreview()">
+                        <span style="flex:1">${t.name}</span>
+                        <input type="number" min="0" max="100" value="${weightVal}" data-weight-id="${t.id}" style="width:55px;" title="% que vale este tema para esta persona" onchange="mgrTopicsWeightTouched.add('${t.id}'); updateMgrTopicsPreview();">
+                        ${resetBtn}
+                        ${scoreInput}
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('mgrTopicsSelectModal').style.display = 'flex';
+            updateMgrTopicsPreview();
+        }
+
+        function resetMgrTopicWeight(topicId, masterPct) {
+            const input = document.querySelector(`[data-weight-id="${topicId}"]`);
+            if (input) input.value = masterPct;
+            mgrTopicsWeightTouched.add(topicId);
+            updateMgrTopicsPreview();
+        }
+
+        function closeMgrTopicsSelect() {
+            document.getElementById('mgrTopicsSelectModal').style.display = 'none';
+            currentMgrTopicsManagerId = null;
+        }
+
+        function updateMgrTopicsPreview() {
+            const body = document.getElementById('mgr-topics-select-body');
+            if (!body) return;
+            const checks = [...body.querySelectorAll('input[type="checkbox"]')];
+            const activeIds = checks.filter(c => c.checked).map(c => c.value);
+            document.getElementById('mgr-topics-select-count').textContent = activeIds.length;
+
+            const m = managers.find(x => x.id === currentMgrTopicsManagerId) || {};
+            let weightSum = 0, scoreSum = 0;
+            activeIds.forEach(id => {
+                const weightInput = body.querySelector(`[data-weight-id="${id}"]`);
+                const w = weightInput ? (parseFloat(weightInput.value) || 0) : 0;
+                weightSum += w;
+                const customInput = body.querySelector(`[data-custom-score="${id}"]`);
+                const score = customInput ? (parseInt(customInput.value) || 0) : (parseInt(m[id]) || 0);
+                scoreSum += score * w;
+            });
+            const avg = weightSum > 0 ? (scoreSum / weightSum) : 0;
+            document.getElementById('mgr-topics-select-preview').textContent = avg.toFixed(1) + '%';
+        }
+
+        function saveMgrActiveTopics() {
+            if (!currentMgrTopicsManagerId) return;
+            const m = managers.find(x => x.id === currentMgrTopicsManagerId);
+            if (!m) return;
+            const body = document.getElementById('mgr-topics-select-body');
+            const checks = [...body.querySelectorAll('input[type="checkbox"]')];
+            const activeIds = checks.filter(c => c.checked).map(c => c.value);
+
+            if (!activeIds.length) {
+                if (!confirm('No seleccionaste ningún tema; el promedio de Temas de esta persona quedaría en 0%. ¿Guardar así?')) return;
+            }
+
+            const updates = { activeTopics: activeIds };
+
+            // Calificaciones de temas personalizados (sin columna fija en la tabla)
+            body.querySelectorAll('[data-custom-score]').forEach(inp => {
+                const id = inp.getAttribute('data-custom-score');
+                let v = parseInt(inp.value) || 0;
+                if (v > 100) v = 100; if (v < 0) v = 0;
+                updates[id] = v;
+            });
+
+            // % personalizados: solo se tocan los campos que el usuario realmente cambió en esta sesión
+            const topicWeights = { ...(m.topicWeights || {}) };
+            mgrTopicsWeightTouched.forEach(id => {
+                const input = body.querySelector(`[data-weight-id="${id}"]`);
+                if (!input) return;
+                const val = parseFloat(input.value);
+                const masterTopic = mgrTopicsConfig.find(t => t.id === id);
+                const masterPct = masterTopic ? (parseFloat(masterTopic.pct) || 0) : 0;
+                if (!isNaN(val) && Math.abs(val - masterPct) > 0.001) {
+                    topicWeights[id] = val;
+                } else {
+                    delete topicWeights[id];
+                }
+            });
+            updates.topicWeights = topicWeights;
+
+            mgrRef.child(currentMgrTopicsManagerId).update(updates).then(() => {
+                showCloudSave();
+                closeMgrTopicsSelect();
+            }).catch(err => {
+                console.error(err);
+                showLocalSave();
+                closeMgrTopicsSelect();
+            });
+        }
+
+        // Bloquea/desbloquea las calificaciones de temas de una persona (protege contra ediciones accidentales)
+        function toggleMgrScoresLock(managerId) {
+            const m = managers.find(x => x.id === managerId);
+            if (!m) return;
+            if (!hasPermission(m.zone, 'managers')) {
+                alert("⛔ ACCESO DENEGADO: No tienes permiso para modificar la " + m.zone);
+                return;
+            }
+            const newState = !m.scoresLocked;
+            if (newState && !confirm(`¿Bloquear las calificaciones de temas de ${m.name}? Nadie podrá modificarlas hasta que las desbloquees de nuevo con este mismo botón.`)) return;
+            updMgr(managerId, 'scoresLocked', newState);
+        }
+
+        // ===== Importación única del Excel "Progreso de Entrenamiento Gerencial 2026" =====
+        // Cada registro: temas SIN calificación en el Excel se omiten de "activeTopics" (no cuentan
+        // en el promedio de esa persona). El "%" de cada tema se guardó explícito (topicWeights) tal
+        // cual venía en el Excel de origen, para no alterar calificaciones ya históricas/cerradas.
+        const EXCEL_IMPORT_2026 = [{"name":"KARLA PATRICIA VAZQUEZ LIRA","branch":"VAL 01","post":"GERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2025-11-10","endDate":"2026-02-07","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":90,"runs":100,"drops":95,"prices":100,"calls":86,"cash":80,"cust":91,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"GILBERTO ALEJANDRO PEREZ CAVAZOS","branch":"REY 11","post":"GERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2025-11-24","endDate":"2026-02-21","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":90,"runs":100,"drops":90,"prices":90,"calls":92,"cash":73,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"Se le extendio el periodo de prueba 24 MAYO"},{"name":"VICTOR HUGO GAINA CAMACHO","branch":"SLP 02","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2025-12-08","endDate":"2026-03-07","status":"Aprobado","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":90,"runs":100,"drops":91,"prices":85,"calls":93,"cash":80,"cust":90,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"JAZMIN LARA MORENO","branch":"SLP 01","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2025-12-08","endDate":"2026-03-07","status":"Aprobado","p1":1,"p2":1,"p3":2,"p4":2,"p5":2,"evProc":80,"runs":100,"drops":94,"prices":90,"calls":100,"cash":93,"cust":100,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"EDGAR ALEXIS RAMIREZ CINTURA","branch":"GAR 02","post":"GERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2025-12-12","endDate":"2026-03-11","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":86,"runs":100,"drops":100,"prices":90,"calls":93,"cash":80,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"Se le extendio el periodo de prueba hasta el 15 de abril"},{"name":"MARIO EDUARDO MARIN BRIZUELA","branch":"TAM 10","post":"GERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2025-12-15","endDate":"2026-03-14","status":"En proceso","p1":2,"p2":2,"p3":1,"p4":1,"p5":2,"evProc":95,"runs":100,"drops":91,"prices":100,"calls":100,"cash":100,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"Se le extendio el periodo de prueba hasta 17 de mayo"},{"name":"VIVIANA RODRIGUEZ RODRIGUEZ","branch":"DGO 04","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-01-12","endDate":"2026-04-11","status":"Baja","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":[],"topicWeights":{},"obs":"BAJA"},{"name":"MARIA DE LOURDES TORRES CASTILLO","branch":"AGS 05","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-01-19","endDate":"2026-04-18","status":"Aprobado","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":85,"runs":100,"drops":86,"prices":90,"calls":93,"cash":87,"cust":91,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"ROLANDO VAZQUEZ BARRON","branch":"DUR 04","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-01-19","endDate":"2026-04-18","status":"Baja","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":0,"runs":0,"drops":81,"prices":85,"calls":0,"cash":0,"cust":90,"examAsist":0,"examAdmin":0,"activeTopics":["drops","prices","cust"],"topicWeights":{},"obs":"NO APROBADO POR SUCURSAL Y CAPACITACIÓN"},{"name":"ELEDEYRA LARA RAMIREZ","branch":"VER 05","post":"GERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2026-02-09","endDate":"2026-05-09","status":"Baja","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":0,"runs":100,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["runs"],"topicWeights":{},"obs":"No se aprueba periodo de prueba maltrato a compañera subgerente"},{"name":"LEONARDO SEBASTIAN GONZALEZ HERNANDEZ","branch":"AGS 03","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-02-16","endDate":"2026-05-16","status":"Baja","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":95,"calls":93,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["prices","calls"],"topicWeights":{},"obs":"NO APROBADO"},{"name":"JESSICA SUSANA HERNANDEZ MARTINEZ","branch":"TAM 02","post":"GERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2026-03-03","endDate":"2026-05-31","status":"Aprobado","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":100,"runs":100,"drops":91,"prices":100,"calls":100,"cash":80,"cust":100,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"RENE DELFIN ALEJO","branch":"VER 05","post":"GERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2026-03-23","endDate":"2026-06-20","status":"Aprobado","p1":2,"p2":2,"p3":1,"p4":2,"p5":2,"evProc":90,"runs":94,"drops":91,"prices":95,"calls":100,"cash":87,"cust":91,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"LISBETH HERNANDES ALONSO","branch":"REY 09","post":"GERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-03-24","endDate":"2026-06-21","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":100,"runs":100,"drops":81,"prices":95,"calls":100,"cash":86,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"LUS RICARDO CARRANZA SEGURA","branch":"SLP 08","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-04-20","endDate":"2026-07-18","status":"En proceso","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":100,"runs":100,"drops":0,"prices":95,"calls":85,"cash":96,"cust":80,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","prices","calls","cash","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"JUAN PABLO TERESA MUNGUIA","branch":"AGS 03","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-04-20","endDate":"2026-07-18","status":"En proceso","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":90,"runs":94,"drops":95,"prices":100,"calls":90,"cash":100,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"MOISES GARCIA YAÑEZ","branch":"MAT 05","post":"GERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2026-04-20","endDate":"2026-07-18","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":90,"runs":100,"drops":86,"prices":80,"calls":93,"cash":92,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"ALEJANDRO MORALES BENAVIDES","branch":"MAT 06","post":"GERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2026-05-25","endDate":"2026-08-22","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":88,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["cash"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"VALERIA DANAE PEÑALOZA LOPEZ","branch":"AGS 01","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-05-11","endDate":"2026-08-08","status":"En proceso","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":80,"runs":87,"drops":95,"prices":85,"calls":93,"cash":0,"cust":82,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cust"],"topicWeights":{"drops":15,"calls":15,"cust":10},"obs":""},{"name":"FERNANDO VAZQUEZ RODRIGUEZ","branch":"DUR 04","post":"GERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-05-04","endDate":"2026-08-01","status":"En proceso","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":90,"runs":0,"drops":82,"prices":90,"calls":87,"cash":100,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","drops","prices","calls","cash"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"SAN JUANA YAMILETH MENDOZA ZUÑIGA","branch":"VIC 04","post":"GERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2026-06-06","endDate":"2026-09-03","status":"En proceso","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":[],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"CRISTIAN ROCHA GUADALUPE YADIRA","branch":"VAL 03","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2025-06-09","endDate":"2025-09-06","status":"Aprobado","p1":2,"p2":1,"p3":1,"p4":2,"p5":1,"evProc":86,"runs":100,"drops":83,"prices":95,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices"],"topicWeights":{"evProc":30,"drops":15,"prices":25},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"VEGA GALAVIZ EDY LAURA","branch":"SLP 09","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2025-08-18","endDate":"2025-11-15","status":"Aprobado","p1":1,"p2":2,"p3":2,"p4":1,"p5":1,"evProc":95,"runs":86,"drops":95,"prices":81,"calls":80,"cash":87,"cust":82,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"Se le dará extensión de periodo de prueba por dos meses mas, se termina el 14 de enero. Periodo aprobado"},{"name":"SANCHEZ DOMINGUEZ VANESSA","branch":"VER 04","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2025-10-13","endDate":"2026-01-10","status":"En proceso","p1":1,"p2":2,"p3":1,"p4":1,"p5":2,"evProc":85,"runs":88,"drops":100,"prices":90,"calls":100,"cash":93,"cust":82,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"P.P. EXTENDIDO HASTA 12 DE FEBRERO (TENTATIVAMENTE)"},{"name":"CHAVEZ REQUENA LAURA","branch":"MAT 04","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2025-10-20","endDate":"2026-01-17","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":81,"runs":92,"drops":80,"prices":85,"calls":93,"cash":80,"cust":100,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"LARA SALAZAR MARIA ASUNCION","branch":"SLP 05","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2025-10-21","endDate":"2026-01-18","status":"Aprobado","p1":1,"p2":2,"p3":2,"p4":1,"p5":2,"evProc":90,"runs":100,"drops":91,"prices":90,"calls":93,"cash":93,"cust":100,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"Periodo aprobado"},{"name":"COBOS AGUILAR TOMAS ORIEL","branch":"TAM 04","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2025-11-10","endDate":"2026-02-07","status":"Aprobado","p1":2,"p2":2,"p3":2,"p4":1,"p5":2,"evProc":90,"runs":81,"drops":91,"prices":90,"calls":100,"cash":80,"cust":91,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"GABRIEL ROSADO YOANA SARAHI","branch":"PNG 01","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2025-11-18","endDate":"2026-02-15","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":90,"runs":100,"drops":95,"prices":90,"calls":100,"cash":100,"cust":90,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"RODRIGUEZ MARTINEZ JESSICA","branch":"VAL01","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2025-12-01","endDate":"2026-02-28","status":"Baja","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":95,"runs":87,"drops":86,"prices":70,"calls":85,"cash":33,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"NO SE CONSIDERO APTA YA QUE LA COMPAÑERA NO RETIENE INFORMACION TIENE DISPONIBLIDAD PERO ES DISTRAIDA Y HA TENIOD DETALLES DE COMUNICACIÓN ENTRE OTROOS AL MOMENTO  DE RESOLVER PROBLEMAS, NO APROBADO"},{"name":"TORRES HERRERA SERGIO VENTURA","branch":"SLP 01","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2025-12-22","endDate":"2026-03-21","status":"Aprobado","p1":2,"p2":1,"p3":2,"p4":2,"p5":2,"evProc":80,"runs":100,"drops":95,"prices":85,"calls":100,"cash":80,"cust":91,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"BALDERAS MORENO BRENDA SAMANTHA","branch":"TAM 02","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2025-12-22","endDate":"2026-03-21","status":"En proceso","p1":2,"p2":1,"p3":1,"p4":1,"p5":2,"evProc":95,"runs":100,"drops":91,"prices":95,"calls":93,"cash":93,"cust":100,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"Se extiende periodo de prueba hasta 23 de abril, por atitudes como liderazgo, caracter y situaciones con el perosnal"},{"name":"CASAS MARTINEZ GLORIA DENISSE","branch":"REY-02","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-01-12","endDate":"2026-04-11","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":90,"runs":100,"drops":90,"prices":75,"calls":100,"cash":100,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"CALLES SANTIAGO LUIS ENRIQUE","branch":"PZR 01","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2026-01-12","endDate":"2026-04-11","status":"Aprobado","p1":2,"p2":2,"p3":1,"p4":2,"p5":2,"evProc":90,"runs":100,"drops":100,"prices":90,"calls":93,"cash":80,"cust":91,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"SANCHEZ LOPEZ ALONDRA ISABEL","branch":"TAM 06","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2026-01-26","endDate":"2026-04-25","status":"En proceso","p1":2,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":85,"runs":93,"drops":91,"prices":85,"calls":93,"cash":93,"cust":82,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"se extendera su periodo un mes mas"},{"name":"VARGAS RODRIGUEZ NORALMA","branch":"AGS 03","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-01-26","endDate":"2026-04-25","status":"En proceso","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":85,"runs":88,"drops":81,"prices":95,"calls":86,"cash":87,"cust":91,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":"se extendera su periodo un mes mas"},{"name":"DANIEL ALEJANDRO SANTIAGO BOTELLO","branch":"REY 08","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-02-02","endDate":"2026-05-02","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":90,"runs":100,"drops":86,"prices":85,"calls":85,"cash":86,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"MORENO PACHUCA ANA LILIA","branch":"VER 04","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2026-02-09","endDate":"2026-05-09","status":"Aprobado","p1":2,"p2":1,"p3":2,"p4":1,"p5":2,"evProc":90,"runs":100,"drops":100,"prices":100,"calls":100,"cash":93,"cust":82,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"FLORES ANDRADE KAREN GABRIELA","branch":"VIC 07","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2026-02-23","endDate":"2026-05-23","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":85,"runs":100,"drops":81,"prices":80,"calls":100,"cash":73,"cust":90,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"ELIZABETH ZALETA CRUZ","branch":"TAM 02","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2026-03-09","endDate":"2026-06-06","status":"Aprobado","p1":2,"p2":1,"p3":1,"p4":1,"p5":2,"evProc":95,"runs":94,"drops":100,"prices":100,"calls":93,"cash":92,"cust":100,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"LUIS FRANCISCO BUENDÍA ROMAN","branch":"SLP 03","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-03-09","endDate":"2026-06-06","status":"En proceso","p1":2,"p2":1,"p3":2,"p4":2,"p5":1,"evProc":90,"runs":93,"drops":100,"prices":100,"calls":92,"cash":80,"cust":100,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":"SE EXTIENDE PERIODO DE PRUEBA UN MES MAS."},{"name":"ANGEL ADRIAN SANCHEZ MEJIA","branch":"AGS 07","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-03-16","endDate":"2026-06-13","status":"Renuncia","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":[],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":"RENUNCIA VOLUNTARIA"},{"name":"KARLA JANETH JUAREZ JIMENEZ","branch":"REY 06","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-03-24","endDate":"2026-06-21","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":95,"runs":93,"drops":81,"prices":80,"calls":100,"cash":86,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"VALERIA DANAE PEÑALOZA LOPEZ","branch":"AGS 03","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-03-30","endDate":"2026-06-27","status":"Aprobado","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":80,"runs":88,"drops":95,"prices":93,"calls":85,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":"SE LE HIZO CAMBIO A GERENTE INICIA PERIODO DE PRUEBA NUEVAMENTE CON NUEVO PUESTO [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"CARLOS JAVIER ANDRADE REYES","branch":"DUR 04","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-04-06","endDate":"2026-07-04","status":"Aprobado","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":90,"runs":100,"drops":91,"prices":93,"calls":90,"cash":81,"cust":82,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"MARIA DE LA O GARCIA PALENCIA","branch":"AGS 02","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-04-20","endDate":"2026-07-18","status":"En proceso","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":[],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":"Esta incapacitada desde el inicio de su periodo de prueba. Se da por terminado el periodo de prueva hasta que regrese"},{"name":"RODRIGO CASTILLO ORTA","branch":"VIC 03","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2026-04-27","endDate":"2026-07-25","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":100,"runs":93,"drops":90,"prices":100,"calls":86,"cash":84,"cust":80,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"ITZAYANA GUADALUPE QUINTERO VAZQUEZ","branch":"NVL 02","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-05-04","endDate":"2026-08-01","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":85,"runs":93,"drops":90,"prices":95,"calls":90,"cash":95,"cust":90,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":"Regresa a Reynosa como valuadora"},{"name":"ITZEL AIME PEREZ MORALES","branch":"VER 05","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2026-05-04","endDate":"2026-08-01","status":"En proceso","p1":2,"p2":1,"p3":0,"p4":1,"p5":2,"evProc":95,"runs":94,"drops":100,"prices":95,"calls":0,"cash":0,"cust":86,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"LUIS MIGUEL RENTERIA ROJAS","branch":"REY 05","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-05-04","endDate":"2026-08-01","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":90,"runs":100,"drops":86,"prices":100,"calls":86,"cash":88,"cust":85,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"ROSA VIVIANA DIAZ GUZMAN","branch":"TXPAN","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 4","startDate":"2026-05-25","endDate":"2026-08-22","status":"En proceso","p1":1,"p2":1,"p3":0,"p4":1,"p5":2,"evProc":0,"runs":86,"drops":86,"prices":90,"calls":97,"cash":0,"cust":81,"examAsist":0,"examAdmin":0,"activeTopics":["runs","drops","prices","calls","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"MARLON FRANCISCO BUSTOS ROCHA","branch":"REY 11","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-04-13","endDate":"2026-07-11","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":80,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":95,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"ETNA PAMELA ESPINO MARTINEZ","branch":"DUR 04","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-06-01","endDate":"2026-08-29","status":"En proceso","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":80,"runs":0,"drops":0,"prices":80,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","prices"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"ANGEL GUADALUPE MARQUEZ QUINTERO","branch":"AGS 07","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 3","startDate":"2026-06-01","endDate":"2026-08-29","status":"En proceso","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":100,"runs":0,"drops":0,"prices":80,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","prices"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"ANTONIO YAHIR AVALOS GUERRA","branch":"MAT 08","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2026-06-08","endDate":"2026-09-05","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":92,"runs":0,"drops":0,"prices":0,"calls":90,"cash":0,"cust":85,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","calls","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"ELEAZAR HERNANDEZ BOCANEGRA","branch":"MAT 04","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2026-06-01","endDate":"2026-08-29","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":87,"runs":0,"drops":0,"prices":0,"calls":90,"cash":0,"cust":95,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","calls","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"ESLI MADELEIN DE LA FUENTE AGUIRRE","branch":"MA7 07","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2026-06-01","endDate":"2026-08-29","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":65,"runs":0,"drops":72,"prices":0,"calls":0,"cash":0,"cust":85,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","drops","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"VIRIDIANA MARGARITA NAJERA VILCHIS","branch":"REY 16","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-06-01","endDate":"2026-08-29","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":95,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":95,"examAsist":0,"examAdmin":0,"activeTopics":["evProc","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"YARELY VIANEY MARTINEZ SILVA","branch":"REY 10","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-06-22","endDate":"2026-09-19","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":100,"cash":0,"cust":100,"examAsist":0,"examAdmin":0,"activeTopics":["calls","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"ALONDRA RODRIGUEZ COVARRUBIAS","branch":"REY 09","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 1","startDate":"2026-06-22","endDate":"2026-09-19","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":93,"cash":0,"cust":90,"examAsist":0,"examAdmin":0,"activeTopics":["calls","cust"],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"YAÑEZ HUGO VILLALOBOS","branch":"VIC 02","post":"SUBGERENTE","origin":"INTERNO","zone":"ZONA 2","startDate":"2026-07-06","endDate":"2026-10-03","status":"En proceso","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":[],"topicWeights":{"drops":15,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"GUTIERREZ RODRIGUEZ OMAR","branch":"REY 14","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 1","startDate":"2025-10-06","endDate":"2026-01-03","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":95,"runs":100,"drops":86,"prices":95,"calls":80,"cash":80,"cust":100,"examAsist":95,"examAdmin":86,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{"examAdmin":4},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"VAZQUEZ LUNA CARLOS DE JESUS","branch":"SLP 08","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-10-28","endDate":"2026-01-25","status":"Aprobado","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":80,"runs":100,"drops":90,"prices":95,"calls":100,"cash":100,"cust":91,"examAsist":87,"examAdmin":96,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{"examAsist":4},"obs":"Periodo aprobado"},{"name":"HERNANDEZ HOLGUIN GUSTAVO DE JESUS(SUP)","branch":"DUR 01","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-11-03","endDate":"2026-01-31","status":"Baja","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":86,"examAdmin":87,"activeTopics":["examAsist","examAdmin"],"topicWeights":{"examAsist":4,"examAdmin":4},"obs":"BAJA"},{"name":"CARDENAS MENDOZA FELIPE DE JESUS","branch":"VIC 05","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 2","startDate":"2025-11-03","endDate":"2026-01-31","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":100,"runs":100,"drops":86,"prices":0,"calls":100,"cash":86,"cust":90,"examAsist":86,"examAdmin":96,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{"examAsist":4},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"SAUCEDO SANTOS SANDRA YURIDIA","branch":"TAM 09","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 4","startDate":"2025-12-01","endDate":"2026-02-28","status":"Baja","p1":2,"p2":0,"p3":0,"p4":0,"p5":2,"evProc":75,"runs":0,"drops":0,"prices":0,"calls":100,"cash":47,"cust":0,"examAsist":97,"examAdmin":100,"activeTopics":["evProc","calls","cash","examAsist","examAdmin"],"topicWeights":{},"obs":"PERIODO DEPRUEBA NO APROBADO, no tiene calificaciones porque soto y Enrique la desidieron poner asi con esas calificaciones porque no tenain a quien subir"},{"name":"RODOLFO CASTILLO HERNANDEZ","branch":"MAT 02","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 2","startDate":"2025-12-02","endDate":"2026-03-01","status":"Baja","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":45,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":90,"examAdmin":70,"activeTopics":["evProc","examAsist","examAdmin"],"topicWeights":{"examAdmin":3},"obs":"BAJA"},{"name":"VICTOR MANUEL CERVANTES PEÑA","branch":"MAT 07","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 2","startDate":"2025-12-02","endDate":"2026-03-01","status":"Baja","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":90,"runs":100,"drops":77,"prices":95,"calls":86,"cash":93,"cust":81,"examAsist":90,"examAdmin":60,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{"examAdmin":3},"obs":"No se le dio la planta como gerente se le dio de baja y regreso como subgerente"},{"name":"GABRIELA MEDINA LOPEZ","branch":"SLP 02","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-12-05","endDate":"2026-03-04","status":"Renuncia","p1":2,"p2":1,"p3":2,"p4":2,"p5":2,"evProc":80,"runs":100,"drops":91,"prices":95,"calls":86,"cash":93,"cust":91,"examAsist":90,"examAdmin":90,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{},"obs":"Renuncia voluntaria"},{"name":"MARIA GUADALUPE RIVAS DIMAS","branch":"MAN 02","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 2","startDate":"2026-02-03","endDate":"2026-05-03","status":"Renuncia","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":95,"runs":81,"drops":86,"prices":85,"calls":92,"cash":0,"cust":90,"examAsist":86,"examAdmin":86,"activeTopics":["evProc","runs","drops","prices","calls","cust","examAsist","examAdmin"],"topicWeights":{"examAsist":4,"examAdmin":4},"obs":"Renuncia voluntaria"},{"name":"RAFAEL DE JESUS OCHOA RIOS","branch":"MAN 01","post":"GERENTE","origin":"EXTERNO","zone":"ZONA 2","startDate":"2026-02-16","endDate":"2026-05-16","status":"Aprobado","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":70,"runs":81,"drops":68,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":80,"examAdmin":80,"activeTopics":["evProc","runs","drops","examAsist","examAdmin"],"topicWeights":{"examAsist":4,"examAdmin":4},"obs":"EL EXAMEN DE PROCESO DE VALUACION LO REPROBO 2 VECES EL DE ASISTENTE DE TIENDA UNA VEZ [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"CRUZ GONZALEZ ABNER SHAMED","branch":"SLP 03","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-10-22","endDate":"2026-01-19","status":"Baja","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":0,"runs":0,"drops":0,"prices":80,"calls":87,"cash":0,"cust":82,"examAsist":83,"examAdmin":90,"activeTopics":["prices","calls","cust","examAsist","examAdmin"],"topicWeights":{"examAsist":4},"obs":"SE DA DE BAJA POR BAJO RENDIMIENTO EN OPERACIÓN Y EN CAPACITACIÓN. 19/01/26"},{"name":"ELIZALDE HERNANDEZ FELIPE DE JESUS","branch":"TORR 01","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-10-27","endDate":"2026-01-24","status":"Aprobado","p1":2,"p2":1,"p3":2,"p4":2,"p5":2,"evProc":90,"runs":94,"drops":100,"prices":85,"calls":80,"cash":80,"cust":82,"examAsist":97,"examAdmin":90,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{},"obs":"PERIODO APROBADO"},{"name":"CONTRERAS RODRIGUEZ CHRISTIAN MANUEL","branch":"SLP 05","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-11-03","endDate":"2026-01-31","status":"Baja","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":80,"examAdmin":0,"activeTopics":["examAsist"],"topicWeights":{"examAsist":4},"obs":"BAJA"},{"name":"NAVARRO GARCIA CARLOS ALBERTO","branch":"TUXP 01","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 4","startDate":"2025-11-03","endDate":"2026-01-31","status":"Aprobado","p1":2,"p2":2,"p3":1,"p4":2,"p5":2,"evProc":90,"runs":100,"drops":100,"prices":100,"calls":93,"cash":87,"cust":91,"examAsist":93,"examAdmin":87,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{"examAdmin":4},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"CARRILLO ALANIS CHRISTIAN ALEJANDRO","branch":"DUR 03","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-11-03","endDate":"2026-01-31","status":"Aprobado","p1":2,"p2":2,"p3":1,"p4":2,"p5":2,"evProc":90,"runs":100,"drops":100,"prices":95,"calls":100,"cash":93,"cust":82,"examAsist":87,"examAdmin":90,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{"examAsist":4},"obs":"PERIODO APROBADO"},{"name":"EDGAR IVAN ROMERO CORONADO","branch":"REY 11","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 1","startDate":"2025-11-11","endDate":"2026-02-08","status":"Renuncia","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":[],"topicWeights":{},"obs":"RENUNCIA VOLUNTARIA"},{"name":"JOSE LUIS HERANDEZ MACIAS","branch":"AGS 07","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-11-26","endDate":"2026-02-23","status":"Baja","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":86,"cash":0,"cust":81,"examAsist":100,"examAdmin":0,"activeTopics":["calls","cust","examAsist"],"topicWeights":{},"obs":"BAJA"},{"name":"DENISE ALEJANDRA HERNANDEZ MUÑOZ","branch":"AGS 03","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-12-04","endDate":"2026-03-03","status":"Aprobado","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":87,"examAdmin":83,"activeTopics":["examAsist","examAdmin"],"topicWeights":{"examAsist":4,"examAdmin":4},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"CHRISTOPHER CARLOS PORTALES LOREDO","branch":"SLP 05","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-12-22","endDate":"2026-03-21","status":"Baja","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":82,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":83,"examAdmin":83,"activeTopics":["drops","examAsist","examAdmin"],"topicWeights":{"examAsist":4,"examAdmin":4},"obs":"SE DA DE BAJA POR AUSENTISMO Y DETALLES EN SUCURSAL"},{"name":"ROBERTO VAZQUEZ RUIZ","branch":"AGS 05","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-12-22","endDate":"2026-03-21","status":"Renuncia","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":[],"topicWeights":{},"obs":"RENUNCIA VOLUNTARIA"},{"name":"ANTONIO DE JESUS DOMINGUEZ ANDRADE","branch":"DUR 04","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2025-12-22","endDate":"2026-03-21","status":"Aprobado","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":90,"runs":94,"drops":91,"prices":85,"calls":100,"cash":80,"cust":100,"examAsist":90,"examAdmin":80,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{"examAdmin":4},"obs":"PERIODO APROBADO"},{"name":"TANIA KARELY MUÑOZ MIRANDA","branch":"TAM 10","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 4","startDate":"2026-01-16","endDate":"2026-04-15","status":"En proceso","p1":2,"p2":1,"p3":1,"p4":2,"p5":2,"evProc":100,"runs":94,"drops":86,"prices":95,"calls":100,"cash":100,"cust":91,"examAsist":93,"examAdmin":87,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{"examAdmin":4},"obs":"se extendera periodo de entrenamiento"},{"name":"LEONARDO ABRAHAM MACIAS ARIAS","branch":"AGS 07","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2026-01-20","endDate":"2026-04-19","status":"Aprobado","p1":2,"p2":2,"p3":2,"p4":2,"p5":2,"evProc":100,"runs":100,"drops":81,"prices":85,"calls":100,"cash":93,"cust":100,"examAsist":90,"examAdmin":93,"activeTopics":["evProc","runs","drops","prices","calls","cash","cust","examAsist","examAdmin"],"topicWeights":{},"obs":" [ESTATUS INFERIDO AUTOMÁTICAMENTE - VERIFICAR]"},{"name":"JOSE LUIS MARTINEZ HERNANDEZ","branch":"AGS 01","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2026-01-28","endDate":"2026-04-27","status":"Renuncia","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":95,"calls":86,"cash":0,"cust":0,"examAsist":83,"examAdmin":83,"activeTopics":["prices","calls","examAsist","examAdmin"],"topicWeights":{"examAsist":4,"examAdmin":4},"obs":"RENUNCIA VOLUNTARIA"},{"name":"MARCELA SALAS CISNEROS","branch":"AGS 05","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2026-02-23","endDate":"2026-05-23","status":"Renuncia","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":83,"examAdmin":0,"activeTopics":["examAsist"],"topicWeights":{"examAsist":4},"obs":"RENUNCIA VOLUNTARIA"},{"name":"AGUSTIN IVAN GALARZA URESTI","branch":"REY 03","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 1","startDate":"2026-02-24","endDate":"2026-05-24","status":"Renuncia","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":100,"examAdmin":0,"activeTopics":["examAsist"],"topicWeights":{},"obs":"RENUNCIA VOLUNTARIA"},{"name":"JOSE ALEJANDRO CARREON CRUZ","branch":"AGS 05","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2026-03-02","endDate":"2026-05-30","status":"Renuncia","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":[],"topicWeights":{},"obs":"RENUNCIA VOLUNTARIA"},{"name":"JUAN JESUS MARTINEZ VAZQUEZ","branch":"DUR 01","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2026-03-02","endDate":"2026-05-30","status":"Baja","p1":2,"p2":2,"p3":2,"p4":2,"p5":1,"evProc":0,"runs":100,"drops":91,"prices":90,"calls":93,"cash":0,"cust":0,"examAsist":90,"examAdmin":93,"activeTopics":["runs","drops","prices","calls","examAsist","examAdmin"],"topicWeights":{"drops":10,"calls":15,"cash":10,"cust":10},"obs":"NO SE APRUEBA PERIODO"},{"name":"ALEJANDRO SALAS MORENO","branch":"AGS 06","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2026-05-04","endDate":"2026-08-01","status":"Baja","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":0,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":80,"examAdmin":84,"activeTopics":["examAsist","examAdmin"],"topicWeights":{"drops":10,"calls":15,"cash":10,"cust":10,"examAsist":4,"examAdmin":4},"obs":"BAJA"},{"name":"DAVID EDUARDO MORAN BARRAGAN","branch":"NVL 3","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 1","startDate":"2026-05-18","endDate":"2026-08-15","status":"En proceso","p1":1,"p2":1,"p3":1,"p4":1,"p5":1,"evProc":55,"runs":0,"drops":0,"prices":0,"calls":93,"cash":0,"cust":90,"examAsist":91,"examAdmin":90,"activeTopics":["evProc","calls","cust","examAsist","examAdmin"],"topicWeights":{"drops":10,"calls":15,"cash":10,"cust":10},"obs":""},{"name":"YAKOF GUSTAVO GARCIA TORRES","branch":"AGS 03","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2026-05-13","endDate":"2026-08-10","status":"En proceso","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":81,"runs":0,"drops":0,"prices":80,"calls":0,"cash":0,"cust":0,"examAsist":86,"examAdmin":87,"activeTopics":["evProc","prices","examAsist","examAdmin"],"topicWeights":{"drops":10,"calls":15,"cash":10,"cust":10,"examAsist":4,"examAdmin":4},"obs":""},{"name":"EDAENA JHOSAHANDY RAMIREZ MONTIEL","branch":"AGS 05","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2026-06-02","endDate":"2026-08-30","status":"En proceso","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":85,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":81,"examAdmin":97,"activeTopics":["evProc","examAsist","examAdmin"],"topicWeights":{"drops":10,"calls":15,"cash":10,"cust":10,"examAsist":4},"obs":""},{"name":"BRAYAN ALBERTO FERNANDEZ GARCIA","branch":"AGS 01","post":"SUBGERENTE","origin":"EXTERNO","zone":"ZONA 3","startDate":"2026-06-22","endDate":"2026-09-19","status":"En proceso","p1":0,"p2":0,"p3":0,"p4":0,"p5":0,"evProc":85,"runs":0,"drops":0,"prices":0,"calls":0,"cash":0,"cust":0,"examAsist":0,"examAdmin":0,"activeTopics":["evProc"],"topicWeights":{},"obs":""}];
+
+        function openExcelImportReview() {
+            if (!currentUser || currentUser.zone !== 'ALL') {
+                alert("⛔ Esta importación es solo para administradores.");
+                return;
+            }
+            const existingKeys = new Set(managers.map(m => (m.name+'|'+m.branch+'|'+m.post+'|'+m.startDate).toUpperCase()));
+            const nuevos = EXCEL_IMPORT_2026.filter(r => !existingKeys.has((r.name+'|'+r.branch+'|'+r.post+'|'+r.startDate).toUpperCase()));
+            const yaExisten = EXCEL_IMPORT_2026.length - nuevos.length;
+
+            const porHoja = {};
+            const porStatus = {};
+            nuevos.forEach(r => {
+                porHoja[r.post+' '+r.origin] = (porHoja[r.post+' '+r.origin]||0)+1;
+                porStatus[r.status] = (porStatus[r.status]||0)+1;
+            });
+            const inferidos = nuevos.filter(r => r.obs.includes('INFERIDO'));
+
+            let html = `<p>Se importarán <strong>${nuevos.length}</strong> personas nuevas`;
+            if (yaExisten > 0) html += ` (${yaExisten} ya estaban en la plataforma y se omiten para no duplicar)`;
+            html += `.</p>`;
+            html += `<p><strong>Por puesto/origen:</strong> ` + Object.entries(porHoja).map(([k,v])=>`${k}: ${v}`).join(' · ') + `</p>`;
+            html += `<p><strong>Por estatus:</strong> ` + Object.entries(porStatus).map(([k,v])=>`${k}: ${v}`).join(' · ') + `</p>`;
+            html += `<div style="background:#fff3e0;padding:10px 12px;border-radius:6px;font-size:11.5px;margin:10px 0;">
+                <strong>Reglas aplicadas:</strong><br>
+                • Un tema sin calificación en el Excel se deja <strong>inactivo</strong> para esa persona (no existía ese tema para ella todavía) — no afecta su promedio.<br>
+                • El % de cada tema se tomó tal cual venía en esa fila del Excel (incluye ajustes especiales que ya traía, ej. Externos con Bajas al 5% + los 2 exámenes al 5% c/u).<br>
+                • Estatus tomado de la columna OBSERVACIONES cuando fue explícito (BAJA / RENUNCIA / APROBADO / etc). Los "Módulos Reprobados" del Excel se ignoraron, como pediste.
+            </div>`;
+            if (inferidos.length) {
+                html += `<p style="color:#c62828;"><strong>${inferidos.length} personas no tenían un estatus explícito en OBSERVACIONES.</strong> Se infirió "Aprobado" porque su fecha ya venció Y sí tenían una calificación final capturada en el Excel. Revísalos con calma después de importar:</p>`;
+                html += `<div style="max-height:180px;overflow-y:auto;border:1px solid #eee;border-radius:6px;padding:6px 10px;font-size:11px;">`;
+                html += inferidos.map(r => `${r.name} — ${r.post} ${r.origin} — vencía ${r.endDate}`).join('<br>');
+                html += `</div>`;
+            }
+            if (nuevos.length === 0) {
+                html += `<p style="color:#2e7d32;"><strong>No hay nada nuevo que importar — todos estos registros ya están en la plataforma.</strong></p>`;
+            }
+
+            document.getElementById('excel-import-summary').innerHTML = html;
+            document.getElementById('excelImportModal').style.display = 'flex';
+            window._pendingExcelImport = nuevos;
+        }
+
+        function closeExcelImportReview() {
+            document.getElementById('excelImportModal').style.display = 'none';
+            window._pendingExcelImport = null;
+        }
+
+        function confirmExcelImport() {
+            const nuevos = window._pendingExcelImport || [];
+            if (!nuevos.length) { closeExcelImportReview(); return; }
+            let maxId = managers.reduce((max, m) => Math.max(max, parseInt(m.id || 0)), 0);
+            const updates = {};
+            nuevos.forEach(rec => {
+                maxId++;
+                const id = maxId.toString();
+                updates[id] = Object.assign({ id }, rec);
+            });
+            mgrRef.update(updates).then(() => {
+                alert(`✅ Importación completa: ${nuevos.length} personas agregadas a Gerenciales.`);
+                closeExcelImportReview();
+                showCloudSave();
+            }).catch(err => {
+                console.error(err);
+                alert('Error al importar: ' + err.message);
+            });
+        }
+
+        // ===== Editar datos básicos de un Gerente/Subgerente/Externo (corrige errores de captura) =====
+        // Usa el mismo campo/colección "managers" en Firebase (mgrRef) — nunca toca "employees" (Nuevos Ingresos).
+        let currentEditMgrId = null;
+
+        function openEditMgrInfo(managerId) {
+            const m = managers.find(x => x.id === managerId);
+            if (!m) return;
+            if (!hasPermission(m.zone, 'managers')) {
+                alert("⛔ ACCESO DENEGADO: No tienes permiso para modificar la " + m.zone);
+                return;
+            }
+            currentEditMgrId = managerId;
+            document.getElementById('edit-mgr-name').value = m.name || '';
+            document.getElementById('edit-mgr-post').value = m.post || 'GERENTE';
+            document.getElementById('edit-mgr-origin').value = m.origin || 'INTERNO';
+            document.getElementById('edit-mgr-branch').value = m.branch || '';
+            document.getElementById('edit-mgr-zone').value = m.zone || 'ZONA 1';
+            document.getElementById('edit-mgr-start').value = m.startDate || '';
+            document.getElementById('edit-mgr-end').value = m.endDate || '';
+            document.getElementById('editMgrInfoModal').style.display = 'flex';
+        }
+
+        function closeEditMgrInfo() {
+            document.getElementById('editMgrInfoModal').style.display = 'none';
+            currentEditMgrId = null;
+        }
+
+        function saveMgrInfo() {
+            if (!currentEditMgrId) return;
+            const m = managers.find(x => x.id === currentEditMgrId);
+            if (!m) return;
+            if (!hasPermission(m.zone, 'managers')) {
+                alert("⛔ ACCESO DENEGADO: No tienes permiso para modificar la " + m.zone);
+                return;
+            }
+            const name = document.getElementById('edit-mgr-name').value.trim().toUpperCase();
+            if (!name) { alert('El nombre no puede quedar vacío.'); return; }
+            const updates = {
+                name: name,
+                post: document.getElementById('edit-mgr-post').value,
+                origin: document.getElementById('edit-mgr-origin').value,
+                branch: document.getElementById('edit-mgr-branch').value.trim().toUpperCase(),
+                zone: document.getElementById('edit-mgr-zone').value,
+                startDate: document.getElementById('edit-mgr-start').value,
+                endDate: document.getElementById('edit-mgr-end').value,
+            };
+            mgrRef.child(currentEditMgrId).update(updates).then(() => {
+                showCloudSave();
+                closeEditMgrInfo();
+            }).catch(err => {
+                console.error(err);
+                showLocalSave();
+                closeEditMgrInfo();
+            });
+        }
+
+        // ===== Extensión de periodo (alarga la fecha de término conservando la original) =====
+        let currentExtMgrId = null;
+
+        function openMgrExtension(managerId) {
+            const m = managers.find(x => x.id === managerId);
+            if (!m) return;
+            if (!hasPermission(m.zone, 'managers')) {
+                alert("⛔ ACCESO DENEGADO: No tienes permiso para modificar la " + m.zone);
+                return;
+            }
+            currentExtMgrId = managerId;
+            document.getElementById('ext-mgr-name').textContent = m.name;
+            document.getElementById('ext-mgr-current-end').textContent = formatDate(m.endDate);
+            const origWrap = document.getElementById('ext-mgr-original-wrap');
+            if (m.isExtended && m.originalEndDate) {
+                document.getElementById('ext-mgr-original-end').textContent = formatDate(m.originalEndDate);
+                origWrap.style.display = 'block';
+            } else {
+                origWrap.style.display = 'none';
+            }
+            document.getElementById('ext-mgr-new-date').value = m.endDate || '';
+            document.getElementById('mgrExtensionModal').style.display = 'flex';
+        }
+
+        function closeMgrExtension() {
+            document.getElementById('mgrExtensionModal').style.display = 'none';
+            currentExtMgrId = null;
+        }
+
+        function saveMgrExtension() {
+            if (!currentExtMgrId) return;
+            const m = managers.find(x => x.id === currentExtMgrId);
+            if (!m) return;
+            const newDate = document.getElementById('ext-mgr-new-date').value;
+            if (!newDate) { alert('Elige la nueva fecha de término.'); return; }
+            const updates = {
+                endDate: newDate,
+                originalEndDate: m.originalEndDate || m.endDate, // conserva la fecha original solo la primera vez
+                isExtended: true,
+            };
+            mgrRef.child(currentExtMgrId).update(updates).then(() => {
+                showCloudSave();
+                closeMgrExtension();
+            }).catch(err => {
+                console.error(err);
+                showLocalSave();
+                closeMgrExtension();
+            });
+        }
+
+        // ===== Módulos Reprobados (registro informativo, NO afecta el promedio/calificación) =====
+        // Guarda por tema el resultado del primer intento cuando alguien reprobó y tuvo que repetirlo.
+        let mgrFailuresToggleOpen = new Set(); // ids de gerentes con la captura de reprobados visible
+
+        function toggleMgrFailuresView(managerId) {
+            if (mgrFailuresToggleOpen.has(managerId)) mgrFailuresToggleOpen.delete(managerId);
+            else mgrFailuresToggleOpen.add(managerId);
+            renderMgrTable();
+        }
+
+        function updMgrFailure(managerId, topicId, value) {
+            const m = managers.find(x => x.id === managerId);
+            if (!m) return;
+            if (!hasPermission(m.zone, 'managers')) {
+                alert("⛔ ACCESO DENEGADO: No tienes permiso para modificar la " + m.zone);
+                return;
+            }
+            const failures = Object.assign({}, m.moduleFailures || {});
+            if (value === '' || value === null || value === undefined) {
+                delete failures[topicId];
+            } else {
+                let v = parseInt(value) || 0;
+                if (v > 100) v = 100; if (v < 0) v = 0;
+                failures[topicId] = v;
+            }
+            mgrRef.child(managerId).update({ moduleFailures: failures }).then(showCloudSave).catch(() => showLocalSave());
         }
 
         function calcAvg(v1,v2,c1,c2) { let s=0,c=0; if(c1){s+=Number(v1);c++} if(c2){s+=Number(v2);c++} return c?(s/c).toFixed(1):'0.0'; }
@@ -1421,16 +2495,17 @@
             let count = 0; const today = new Date(); today.setHours(0,0,0,0);
             
             managers.forEach(m => {
-                if(m.status === 'En proceso' && !m.fb2Done && m.startDate) {
-                    const start = parseDateFromInput(m.startDate);
-                    const due70 = new Date(start); due70.setDate(due70.getDate() + 70);
-                    const limit90 = new Date(start); limit90.setDate(limit90.getDate() + 90);
-                    const diff70 = Math.ceil((due70 - today) / (1000*60*60*24));
-                    
-                    if (diff70 <= 5) {
+                if(m.status === 'En proceso' && !m.fb2Done && m.endDate) {
+                    // Usa la fecha de término REAL de cada quien (89 días Interno, 4 meses Externo,
+                    // o su fecha extendida si aplica) — la Retro debe completarse ~20 días antes de esa fecha.
+                    const end = parseDateFromInput(m.endDate);
+                    const dueDate = new Date(end); dueDate.setDate(dueDate.getDate() - 20);
+                    const diff = Math.ceil((dueDate - today) / (1000*60*60*24));
+
+                    if (diff <= 5) {
                         count++;
-                        let msg = diff70 > 0 ? `Retro vence en ${diff70} días. Límite: 90 días.` : `Retro vencida hace ${Math.abs(diff70)} días. Completar antes de 90 días.`;
-                        list.innerHTML += `<div class="reminder-item ${diff70 < 0 ? 'urgent' : 'warning'}"><strong>${m.name}</strong> (${m.branch})<br/>${msg}</div>`;
+                        let msg = diff > 0 ? `Retro vence en ${diff} días. Término del periodo: ${formatDate(m.endDate)}.` : `Retro vencida hace ${Math.abs(diff)} días. Término del periodo: ${formatDate(m.endDate)}.`;
+                        list.innerHTML += `<div class="reminder-item ${diff < 0 ? 'urgent' : 'warning'}"><strong>${m.name}</strong> (${m.branch})<br/>${msg}</div>`;
                     }
                 }
             });
@@ -1501,6 +2576,7 @@
         }
         function clearNHFilters() { document.getElementById('nh-an-active-only').checked = false; document.getElementById('nh-an-zone').value = 'ALL'; document.getElementById('nh-an-status').value = 'ALL'; document.getElementById('nh-an-prog').value = 'ALL'; document.getElementById('nh-an-score').value = 'ALL'; document.getElementById('nh-an-search').value = ''; renderNHAnalytics(); }
         function clearNHEvalSearch() { document.getElementById('nh-eval-search').value = ''; document.getElementById('nh-eval-zone').value = 'ALL'; document.getElementById('nh-eval-status').value = 'ALL'; renderNHEvaluations(); }
+        function clearMgrEvalSearch() { document.getElementById('mgr-eval-search').value = ''; document.getElementById('mgr-eval-zone').value = 'ALL'; document.getElementById('mgr-eval-status').value = 'ALL'; renderMgrEvaluations(); }
         
         // Reloj estabilizado (Declarado una sola vez)
         setInterval(() => { 
@@ -1635,8 +2711,8 @@
             const headers = ['N°','Nombre','Puesto','Sucursal','Zona','Origen',
                 'Fecha Inicio','Fecha Término',
                 'Tema P1','Tema P2','Tema P3','Tema P4','Tema P5',
-                'Ev.Proceso','Corridas','Bajas','Precios','Llamadas','Efectivo','Clientes',
-                'Promedio Temas (%)','Calif. Total','Estatus','Observaciones'];
+                'Proceso Valuación','Corridas','Bajas','Precios Justos','Llamadas/Créditos','Cashimuro/Productividad','Atención al Cliente',
+                'Calificación Total (%)','Retro (Calif. manual)','Estatus','Observaciones'];
             const rows = managers.map((m,i) => [
                 i+1, _safeStr(m.name), _safeStr(m.post), _safeStr(m.branch), _safeStr(m.zone), _safeStr(m.origin),
                 _safeStr(formatDate(m.startDate)), _safeStr(formatDate(m.endDate)),
@@ -2025,6 +3101,9 @@ Sistema de Seguimiento de Capacitacion — PrestoCash`;
 
         // ---- window.onload único ----
         window.onload = () => {
+            // Restaurar tema visual guardado (o dejar el clásico por defecto)
+            applyVisualTheme(localStorage.getItem('visualTheme') || 'clasico');
+
             // Sesión guardada
             const u = localStorage.getItem('currentUser');
             if (u) {
