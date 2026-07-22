@@ -228,6 +228,9 @@
         .filter-label { font-weight: 600; font-size: 12px; margin-bottom: 2px; display:block; }
         .filter-select { padding: 5px; border: 1px solid #ddd; border-radius: 4px; width: 100%; font-size: 12px; }
         .login-modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+        /* El login en sí (no los demás modales que comparten esta clase) debe ser 100% opaco:
+           así nadie ve de fondo la estructura de la página antes de iniciar sesión. */
+        #loginModal { background: #1a1a2e; }
         .login-content { background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; }
         .firebase-status { position: fixed; bottom: 10px; left: 10px; padding: 5px 10px; background: #333; color: white; font-size: 10px; border-radius: 4px; opacity: 0.7; z-index: 9999; }
         .topic-inactive { opacity: 0.35; background: #eee !important; }
@@ -243,8 +246,8 @@
         <div class="login-content">
             <h2 style="color:var(--primary-color);">Acceso Sistema CAP</h2>
             <br>
-            <input type="text" id="login-email" placeholder="Email" style="width:100%; padding:10px; margin-bottom:10px;">
-            <input type="password" id="login-password" placeholder="Contraseña" style="width:100%; padding:10px; margin-bottom:20px;">
+            <input type="text" id="login-email" placeholder="Email" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:100%; padding:10px; margin-bottom:10px;">
+            <input type="password" id="login-password" placeholder="Contraseña" autocapitalize="off" autocorrect="off" spellcheck="false" onkeypress="if(event.key==='Enter') login()" style="width:100%; padding:10px; margin-bottom:20px;">
             <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="login()">Entrar</button>
             <p id="login-error" style="color:red; display:none; margin-top:10px;">Datos incorrectos</p>
         </div>
@@ -282,6 +285,10 @@
             </div>
             <label style="font-size:12px;font-weight:bold;">Nueva fecha de término</label>
             <input type="date" id="ext-mgr-new-date" style="width:100%;margin-bottom:8px;">
+            <p style="font-size:10px;color:#888;margin:0 0 8px 0;">Puedes cambiar la fecha las veces que sea necesario si te equivocas — la fecha original de arriba nunca se pierde.</p>
+            <div id="ext-mgr-remove-wrap" style="display:none; margin-bottom:8px;">
+                <button type="button" class="btn btn-sm" style="width:100%; justify-content:center; background:#ffebee; color:#c62828; border:1px solid #ef9a9a;" onclick="removeMgrExtension()"><i class="fas fa-undo"></i> Quitar extensión (regresar a la fecha original)</button>
+            </div>
             <div style="display:flex; gap:10px; margin-top:12px;">
                 <button class="btn" style="flex:1; justify-content:center; background:#e0e0e0; color:#333;" onclick="closeMgrExtension()"><i class="fas fa-times"></i> Cancelar</button>
                 <button class="btn btn-success" style="flex:1; justify-content:center; background:#6a1b9a;" onclick="saveMgrExtension()"><i class="fas fa-check"></i> Guardar Extensión</button>
@@ -340,6 +347,27 @@
                     <input type="date" id="edit-mgr-end" style="width:100%">
                 </div>
             </div>
+
+            <div style="background:#e8eaf6; padding:10px 12px; border-radius:8px; margin-top:10px;">
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <strong style="font-size:12.5px; color:#1a237e;"><i class="fas fa-user-lock"></i> Acceso al Portal (opcional)</strong>
+                    <button type="button" class="btn btn-sm" style="background:#1a237e;color:white;padding:3px 8px;font-size:10px;" onclick="generatePortalCredentials()"><i class="fas fa-magic"></i> Generar</button>
+                </div>
+                <p style="font-size:10px;color:#777;margin:4px 0 8px 0;">Si se llena, esta persona podrá entrar a un portal propio donde solo ve su nombre, zona, fechas y sus 7 temas.</p>
+                <label style="font-size:11px;font-weight:bold;">Usuario</label>
+                <input type="text" id="edit-mgr-portal-user" placeholder="nombre.apellido@upc.mx" style="width:100%;margin-bottom:6px;font-size:12px;">
+                <label style="font-size:11px;font-weight:bold;">Contraseña</label>
+                <input type="text" id="edit-mgr-portal-pass" style="width:100%;margin-bottom:8px;font-size:12px;">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-sm" style="background:#00695c;color:white;padding:4px 10px;font-size:10.5px;" onclick="copyPortalCredentials()"><i class="fas fa-copy"></i> Copiar datos de acceso</button>
+                    <span id="copy-portal-msg" style="font-size:10.5px; font-weight:bold; color:#2e7d32;"></span>
+                </div>
+                <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
+                    <label style="font-size:11px;"><input type="checkbox" id="edit-mgr-portal-viewstatus"> Puede ver su Estatus</label>
+                    <label style="font-size:11px;"><input type="checkbox" id="edit-mgr-portal-viewobs"> Puede ver Observaciones</label>
+                </div>
+            </div>
+
             <div style="display:flex; gap:10px; margin-top:12px;">
                 <button class="btn" style="flex:1; justify-content:center; background:#e0e0e0; color:#333;" onclick="closeEditMgrInfo()"><i class="fas fa-times"></i> Cancelar</button>
                 <button class="btn btn-success" style="flex:1; justify-content:center;" onclick="saveMgrInfo()"><i class="fas fa-check"></i> Guardar</button>
@@ -393,7 +421,7 @@
         </div>
     </div>
 
-    <header>
+    <header style="display:none;">
         <div class="logo-area">
             <i class="fas fa-graduation-cap fa-lg"></i>
             <div>
@@ -405,14 +433,14 @@
         <div style="display: flex; align-items: center; gap: 20px;">
             <div class="user-info">
                 <span class="user-name" id="user-display">Usuario</span>
-                <button class="logout-btn" style="background:rgba(255,255,255,0.15);" onclick="openThemeSettings()" title="Elegir tema visual"><i class="fas fa-palette"></i> Ajustes</button>
+                <button class="logout-btn" style="background:rgba(255,255,255,0.15);" onclick="openThemeSettings()" title="Elegir tema visual"><i class="fas fa-palette"></i> Temas</button>
                 <span class="live-clock" id="live-clock">--/--/---- --:--:--</span>
                 <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
             </div>
         </div>
     </header>
 
-    <nav class="main-nav">
+    <nav class="main-nav" style="display:none;">
         <div class="main-tab active" data-target="section-new-hires" onclick="switchMainTab('section-new-hires')">
             <i class="fas fa-users"></i> Nuevos Ingresos
         </div>
@@ -492,6 +520,8 @@
                         <option value="ZONA 3">ZONA 3</option>
                         <option value="ZONA 4">ZONA 4</option>
                     </select>
+                    <input type="text" id="nh-dash-search" placeholder="🔍 Buscar nombre..." class="filter-select" style="width:200px" oninput="renderNHSection()">
+                    <button class="btn btn-sm btn-danger" onclick="document.getElementById('nh-dash-search').value=''; renderNHSection();"><i class="fas fa-times"></i> Limpiar</button>
                     <button id="btn-csv-dash" class="btn btn-sm btn-primary" onclick="exportTableToCSV('nh-table-body', 'dashboard_nuevos_ingresos.csv', this)"><i class="fas fa-file-excel"></i> CSV</button>
                     <button id="btn-pdf-dash" class="btn btn-sm btn-info" onclick="generateSimplePDF('nh-table-body', 'Reporte Dashboard Nuevos Ingresos', this)"><i class="fas fa-file-pdf"></i> PDF</button>
                 </div>
@@ -637,7 +667,7 @@
                                 <th id="mgr-topic-th-examAsist" style="background:#fff3e0; color:#333;" title="Solo aplica a Externos. Cuenta en el promedio únicamente si está activado en 'Temas' para esa persona.">Examen<br>Asist.</th>
                                 <th id="mgr-topic-th-examAdmin" style="background:#fff3e0; color:#333;" title="Solo aplica a Externos. Cuenta en el promedio únicamente si está activado en 'Temas' para esa persona.">Examen<br>Aux.</th>
 
-                                <th id="mgr-topic-th-evProc">PROCESO DE VALUACIÓN (15%)</th><th id="mgr-topic-th-runs">CORRIDAS (15%)</th><th id="mgr-topic-th-drops">BAJAS (10%)</th><th id="mgr-topic-th-prices">PRECIOS JUSTOS (10%)</th><th id="mgr-topic-th-calls">LLAMADAS/ CRÉDITOS (5%)</th><th id="mgr-topic-th-cash">ANALISIS DE CASHIMURO/ PRODUCTIVIDAD (15%)</th><th id="mgr-topic-th-cust">ATENCIÓN AL CLIENTE/ VENTAS E IMAGEN (20%)</th>
+                                <th id="mgr-topic-th-evProc">PROCESO DE VALUACIÓN</th><th id="mgr-topic-th-runs">CORRIDAS</th><th id="mgr-topic-th-drops">BAJAS</th><th id="mgr-topic-th-prices">PRECIOS JUSTOS</th><th id="mgr-topic-th-calls">LLAMADAS/ CRÉDITOS</th><th id="mgr-topic-th-cash">ANALISIS DE CASHIMURO/ PRODUCTIVIDAD</th><th id="mgr-topic-th-cust">ATENCIÓN AL CLIENTE/ VENTAS E IMAGEN</th>
                                 
                                 <th title="Elige qué temas cuentan para cada persona">Temas</th><th>Calificación / Progreso</th><th>Estatus</th>
                             </tr>
@@ -897,6 +927,11 @@
         </section>
     </div>
 
+    <!-- ===== PORTAL DE EVALUADOS (Gerentes/Subgerentes/Externos) ===== -->
+    <section id="section-portal" class="main-section" style="display:none; background:#f0f2f5; min-height:100vh;">
+        <div id="portal-body"></div>
+    </section>
+
     <div id="firebaseStatus" class="firebase-status">Conectando...</div>
     <div id="saveNotification" style="position:fixed; bottom:20px; right:20px; color:white; padding:10px 20px; border-radius:5px; display:none; z-index:9999;"></div>
 
@@ -996,6 +1031,11 @@
         // INICIALIZACIÓN
         function initSystem() {
             if (typeof firebase !== 'undefined' && !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            // Sesión administrativa confirmada: ahora sí se muestran header y menú de navegación
+            const headerEl = document.querySelector('header');
+            const navEl = document.querySelector('nav.main-nav');
+            if (headerEl) headerEl.style.display = '';
+            if (navEl) navEl.style.display = '';
             const importBox = document.getElementById('mgr-excel-import-box');
             if (importBox) importBox.style.display = (currentUser && currentUser.zone === 'ALL') ? 'block' : 'none';
             // Deja listo un permiso base (por si Firebase tarda o falla) y muestra el panel de Usuarios
@@ -1096,23 +1136,144 @@
             } catch (e) { console.error("Error Firebase", e); }
         }
 
+        // ===== Portal de Evaluados (Gerentes/Subgerentes/Externos) =====
+        // Sesión de solo lectura: solo ven su propio registro — nombre, zona, fechas y sus 7 temas.
+        let portalManagerId = null;
+        let portalMgrRefListener = null;
+
+        function initPortalSystem() {
+            ensureFirebaseInit();
+            portalManagerId = currentUser.managerId;
+
+            // Oculta toda la interfaz administrativa; solo se ve el portal
+            document.querySelector('header').style.display = 'none';
+            document.querySelector('nav.main-nav').style.display = 'none';
+            document.querySelectorAll('.main-section').forEach(s => s.classList.remove('active'));
+            const portalSection = document.getElementById('section-portal');
+            portalSection.style.display = 'block';
+            portalSection.classList.add('active');
+
+            try {
+                const db = firebase.database();
+                db.ref('mgrTopicsConfig').on('value', snap => {
+                    const data = snap.val();
+                    if (data && Array.isArray(data) && data.length) mgrTopicsConfig = data;
+                });
+                db.ref('managers/' + portalManagerId).on('value', snap => {
+                    const m = snap.val();
+                    if (m) renderPortalView(m);
+                });
+            } catch (e) {
+                console.error('Error Portal Firebase', e);
+            }
+        }
+
+        function renderPortalView(m) {
+            const body = document.getElementById('portal-body');
+            if (!body) return;
+            const avgT = calcMgrTopics(m);
+            const activeIds = getManagerActiveTopics(m);
+            const perms = m.portalPermissions || {};
+
+            // Los 7 temas generales (nunca los 2 de examen, según se pidió)
+            const sevenTopics = mgrTopicsConfig.filter(t => !t.externoOnly);
+
+            let html = `<div style="max-width:640px;margin:40px auto;padding:0 20px;">
+                <div style="background:white;border-radius:14px;padding:28px;box-shadow:0 2px 14px rgba(0,0,0,0.12);">
+                    <h2 style="color:var(--manager-color);margin:0 0 2px 0;">${m.name}</h2>
+                    <p style="color:#777;margin:0 0 20px 0;font-size:13px;">${m.post || ''} ${m.branch ? '· '+m.branch : ''} · ${m.zone}</p>
+
+                    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:18px;font-size:13.5px;">
+                        <div><strong>Inicio:</strong> ${formatDate(m.startDate)}</div>
+                        <div><strong>Término:</strong> ${formatDate(m.endDate)}</div>
+                        ${perms.viewStatus ? `<div><strong>Estatus:</strong> ${m.status}</div>` : ''}
+                    </div>
+
+                    <div style="background:#e8eaf6;padding:16px;border-radius:10px;text-align:center;margin-bottom:22px;">
+                        <div style="font-size:12px;color:#555;">Calificación Total</div>
+                        <div style="font-size:26px;font-weight:bold;color:var(--manager-color);">${avgT}%</div>
+                    </div>
+
+                    <h3 style="font-size:13px;color:#555;margin:0 0 8px 0;">Temas Evaluados</h3>
+                    <div style="border:1px solid #eee;border-radius:8px;overflow:hidden;">
+                        <div style="display:flex;background:#f5f5f5;font-size:11px;font-weight:bold;padding:6px 10px;">
+                            <div style="flex:2.5;">Tema</div><div style="flex:1;text-align:center;">%</div><div style="flex:1;text-align:center;">Calificación</div>
+                        </div>`;
+            sevenTopics.forEach(t => {
+                const active = activeIds.includes(t.id);
+                const w = getTopicWeightForManager(m, t.id, parseFloat(t.pct)||0);
+                const score = m[t.id] !== undefined ? m[t.id] : 0;
+                html += `<div style="display:flex;align-items:center;padding:7px 10px;border-top:1px solid #eee;font-size:12px;${active?'':'opacity:0.45;'}">
+                    <div style="flex:2.5;">${t.name}${!active?' (N/A)':''}</div>
+                    <div style="flex:1;text-align:center;">${w}%</div>
+                    <div style="flex:1;text-align:center;font-weight:bold;">${active?score:'-'}</div>
+                </div>`;
+            });
+            html += `</div>`;
+
+            if (perms.viewObs && m.obs) {
+                html += `<p style="margin:16px 0 0 0;font-size:12px;color:#555;"><strong>Observaciones:</strong> ${m.obs}</p>`;
+            }
+
+            html += `</div>
+                <div style="text-align:center;margin-top:18px;">
+                    <button class="btn" style="background:#e0e0e0;color:#333;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+                </div>
+            </div>`;
+
+            body.innerHTML = html;
+        }
+
         function updateClock() {
             const now = new Date();
             const str = now.toLocaleDateString('es-MX') + " " + now.toLocaleTimeString('es-MX');
             document.getElementById('live-clock').textContent = str;
         }
 
+        // Inicializa Firebase una sola vez, sin importar si ya se llamó antes (login admin o portal)
+        function ensureFirebaseInit() {
+            if (typeof firebase !== 'undefined' && !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        }
+
         function login() {
             const u = document.getElementById('login-email').value.toUpperCase().trim();
-            const p = document.getElementById('login-password').value;
+            const p = document.getElementById('login-password').value.trim();
             if(USERS[u] && USERS[u].pass === p) {
                 currentUser = { email:u, ...USERS[u] };
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 document.getElementById('loginModal').style.display = 'none';
                 initSystem();
-            } else {
-                document.getElementById('login-error').style.display = 'block';
+                return;
             }
+
+            // No es un usuario administrativo: intenta como Portal de Evaluados (Gerenciales)
+            ensureFirebaseInit();
+            document.getElementById('login-error').style.display = 'none';
+            firebase.database().ref('managers').once('value').then(snap => {
+                const data = snap.val() || {};
+                const foundId = Object.keys(data).find(id => data[id].portalUser && data[id].portalUser.toUpperCase().trim() === u);
+                if (foundId && (data[foundId].portalPass || '').trim() === p) {
+                    currentUser = { type: 'portal', managerId: foundId, name: data[foundId].name, email: u };
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    document.getElementById('loginModal').style.display = 'none';
+                    initPortalSystem();
+                } else {
+                    showLoginError();
+                }
+            }).catch(err => {
+                console.error('Error validando acceso de portal:', err);
+                showLoginError();
+            });
+        }
+
+        // Muestra el error de login y deja todo listo para intentar de nuevo sin recargar la página
+        function showLoginError() {
+            const errEl = document.getElementById('login-error');
+            errEl.textContent = 'Usuario o contraseña incorrectos. Verifica e intenta de nuevo.';
+            errEl.style.display = 'block';
+            const passEl = document.getElementById('login-password');
+            passEl.value = '';
+            passEl.focus();
         }
         function logout() { localStorage.clear(); location.reload(); }
 
@@ -1171,6 +1332,8 @@
             tbody.innerHTML = '';
             const zone = document.getElementById('nh-filter-zone').value;
             const onlyActive = document.getElementById('nh-filter-active').checked;
+            const searchEl = document.getElementById('nh-dash-search');
+            const search = searchEl ? searchEl.value.trim().toUpperCase() : '';
 
             // ORDEN: más recientes primero (por Fecha Ingreso), los más antiguos al final
             const sortedForDashboard = [...employees].sort((a,b) => parseDateFromInput(b.startDate) - parseDateFromInput(a.startDate));
@@ -1179,6 +1342,7 @@
                 // Filtro visual (dropdown)
                 if(!zoneMatchesFilter(e.zone, zone, currentUser && currentUser.nhZones)) return;
                 if(onlyActive && e.status !== 'En proceso') return;
+                if(search && !(e.name||'').toUpperCase().includes(search)) return;
 
                 const days = getDays(e.endDate);
                 const prog = calcNHProg(e);
@@ -1351,7 +1515,10 @@
             const searchEl = document.getElementById('mgr-dash-search');
             const search = searchEl ? searchEl.value.trim().toUpperCase() : '';
             
-            managers.sort((a,b) => parseDateFromInput(a.startDate) - parseDateFromInput(b.startDate));
+            // Más recientes primero (por Fecha Ingreso), para dar seguimiento a lo último agregado.
+            // Este orden se comparte con Evaluaciones, Gestión Gerentes y Análisis, ya que todas
+            // recorren el mismo arreglo "managers" sin re-ordenarlo por su cuenta.
+            managers.sort((a,b) => parseDateFromInput(b.startDate) - parseDateFromInput(a.startDate));
 
             managers.forEach(m => {
                 if(!zoneMatchesFilter(m.zone, zone, currentUser && currentUser.mgrZones)) return;
@@ -1982,7 +2149,7 @@
             mgrTopicsConfig.forEach(t => {
                 const th = document.getElementById('mgr-topic-th-' + t.id);
                 if (!th) return;
-                th.innerHTML = t.externoOnly ? t.name : `${t.name} (${t.pct}%)`;
+                th.innerHTML = t.name;
             });
         }
 
@@ -2316,12 +2483,71 @@
             document.getElementById('edit-mgr-zone').value = m.zone || 'ZONA 1';
             document.getElementById('edit-mgr-start').value = m.startDate || '';
             document.getElementById('edit-mgr-end').value = m.endDate || '';
+            document.getElementById('edit-mgr-portal-user').value = m.portalUser || '';
+            document.getElementById('edit-mgr-portal-pass').value = m.portalPass || '';
+            document.getElementById('edit-mgr-portal-viewstatus').checked = !!(m.portalPermissions && m.portalPermissions.viewStatus);
+            document.getElementById('edit-mgr-portal-viewobs').checked = !!(m.portalPermissions && m.portalPermissions.viewObs);
             document.getElementById('editMgrInfoModal').style.display = 'flex';
         }
 
         function closeEditMgrInfo() {
             document.getElementById('editMgrInfoModal').style.display = 'none';
             currentEditMgrId = null;
+        }
+
+        // Sugiere usuario (nombre.apellido@upc.mx) y una contraseña aleatoria, a partir del nombre capturado
+        function generatePortalCredentials() {
+            const name = document.getElementById('edit-mgr-name').value.trim();
+            if (!name) { alert('Primero escribe el nombre.'); return; }
+            const userPart = name.toUpperCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
+                .replace(/[^A-Z\s]/g, '')
+                .trim().split(/\s+/).join('.');
+            document.getElementById('edit-mgr-portal-user').value = userPart + '@UPC.MX';
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let pass = '';
+            for (let i = 0; i < 8; i++) pass += chars[Math.floor(Math.random() * chars.length)];
+            document.getElementById('edit-mgr-portal-pass').value = pass;
+        }
+
+        // Copia usuario y contraseña juntos al portapapeles, listos para pegar y enviar a la persona
+        function copyPortalCredentials() {
+            const user = document.getElementById('edit-mgr-portal-user').value.trim();
+            const pass = document.getElementById('edit-mgr-portal-pass').value.trim();
+            const msg = document.getElementById('copy-portal-msg');
+            if (!user || !pass) {
+                if (msg) { msg.textContent = 'Primero genera o escribe usuario y contraseña.'; msg.style.color = '#c62828'; }
+                return;
+            }
+            const text = `Usuario: ${user}\nContraseña: ${pass}`;
+            const showOk = () => {
+                if (msg) {
+                    msg.textContent = 'Copiado ✓';
+                    msg.style.color = '#2e7d32';
+                    setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
+                }
+            };
+            const showFail = () => {
+                if (msg) { msg.textContent = 'No se pudo copiar automáticamente. Selecciona y copia manualmente.'; msg.style.color = '#c62828'; }
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(showOk).catch(showFail);
+            } else {
+                // Método alterno para navegadores/contextos sin permiso del portapapeles moderno
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.focus(); ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showOk();
+                } catch (e) {
+                    showFail();
+                }
+            }
         }
 
         function saveMgrInfo() {
@@ -2334,6 +2560,10 @@
             }
             const name = document.getElementById('edit-mgr-name').value.trim().toUpperCase();
             if (!name) { alert('El nombre no puede quedar vacío.'); return; }
+
+            const portalUser = document.getElementById('edit-mgr-portal-user').value.trim().toUpperCase();
+            const portalPass = document.getElementById('edit-mgr-portal-pass').value.trim();
+
             const updates = {
                 name: name,
                 post: document.getElementById('edit-mgr-post').value,
@@ -2342,6 +2572,12 @@
                 zone: document.getElementById('edit-mgr-zone').value,
                 startDate: document.getElementById('edit-mgr-start').value,
                 endDate: document.getElementById('edit-mgr-end').value,
+                portalUser: portalUser,
+                portalPass: portalPass,
+                portalPermissions: {
+                    viewStatus: document.getElementById('edit-mgr-portal-viewstatus').checked,
+                    viewObs: document.getElementById('edit-mgr-portal-viewobs').checked,
+                },
             };
             mgrRef.child(currentEditMgrId).update(updates).then(() => {
                 showCloudSave();
@@ -2367,11 +2603,14 @@
             document.getElementById('ext-mgr-name').textContent = m.name;
             document.getElementById('ext-mgr-current-end').textContent = formatDate(m.endDate);
             const origWrap = document.getElementById('ext-mgr-original-wrap');
+            const removeWrap = document.getElementById('ext-mgr-remove-wrap');
             if (m.isExtended && m.originalEndDate) {
                 document.getElementById('ext-mgr-original-end').textContent = formatDate(m.originalEndDate);
                 origWrap.style.display = 'block';
+                removeWrap.style.display = 'block';
             } else {
                 origWrap.style.display = 'none';
+                removeWrap.style.display = 'none';
             }
             document.getElementById('ext-mgr-new-date').value = m.endDate || '';
             document.getElementById('mgrExtensionModal').style.display = 'flex';
@@ -2392,6 +2631,28 @@
                 endDate: newDate,
                 originalEndDate: m.originalEndDate || m.endDate, // conserva la fecha original solo la primera vez
                 isExtended: true,
+            };
+            mgrRef.child(currentExtMgrId).update(updates).then(() => {
+                showCloudSave();
+                closeMgrExtension();
+            }).catch(err => {
+                console.error(err);
+                showLocalSave();
+                closeMgrExtension();
+            });
+        }
+
+        // Quita la extensión: regresa la fecha de término a la fecha original y borra el estado de extendido.
+        // Por si se activó por error o ya no aplica.
+        function removeMgrExtension() {
+            if (!currentExtMgrId) return;
+            const m = managers.find(x => x.id === currentExtMgrId);
+            if (!m || !m.originalEndDate) { closeMgrExtension(); return; }
+            if (!confirm(`¿Quitar la extensión de ${m.name}? Su fecha de término regresará a ${formatDate(m.originalEndDate)}.`)) return;
+            const updates = {
+                endDate: m.originalEndDate,
+                originalEndDate: null,
+                isExtended: false,
             };
             mgrRef.child(currentExtMgrId).update(updates).then(() => {
                 showCloudSave();
@@ -3104,12 +3365,20 @@ Sistema de Seguimiento de Capacitacion — PrestoCash`;
             // Restaurar tema visual guardado (o dejar el clásico por defecto)
             applyVisualTheme(localStorage.getItem('visualTheme') || 'clasico');
 
+            // Firebase se inicializa desde ya (antes de iniciar sesión), para poder validar
+            // credenciales del Portal de Evaluados contra la base de datos en el login.
+            ensureFirebaseInit();
+
             // Sesión guardada
             const u = localStorage.getItem('currentUser');
             if (u) {
                 currentUser = JSON.parse(u);
                 document.getElementById('loginModal').style.display = 'none';
-                initSystem();
+                if (currentUser && currentUser.type === 'portal') {
+                    initPortalSystem();
+                } else {
+                    initSystem();
+                }
             }
             // Restaurar correo extra guardado
             const savedExtra = localStorage.getItem('rpt_extra_email');
