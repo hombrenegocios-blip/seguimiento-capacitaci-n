@@ -1075,6 +1075,11 @@
                     }
                 }, err => {
                     console.error('No se pudo leer userPermissions de Firebase:', err);
+                    const msg = document.getElementById('users-permissions-msg');
+                    if (msg) {
+                        msg.textContent = `✗ No se puede leer userPermissions de la nube (${err.code || err.message || err}). Revisa las Reglas de Firebase para esta ruta.`;
+                        msg.style.color = '#c62828';
+                    }
                 });
 
                 // Escucha en tiempo real el log de respaldos
@@ -1846,7 +1851,10 @@
             const body = document.getElementById('users-permissions-body');
             if (!body) return;
             const zones = ['ZONA 1','ZONA 2','ZONA 3','ZONA 4'];
-            let html = '';
+            let html = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <button type="button" class="btn btn-sm" style="background:#1a237e;color:white;" onclick="testUserPermissionsConnection()"><i class="fas fa-cloud"></i> Verificar guardado en la nube</button>
+                <span id="users-permissions-test-msg" style="font-size:11px;font-weight:bold;"></span>
+            </div>`;
             Object.keys(USERS).forEach(email => {
                 const u = USERS[email];
                 if (u.zone === 'ALL') {
@@ -1874,6 +1882,36 @@
             body.innerHTML = html;
         }
 
+        // Escribe y lee de inmediato un valor de prueba en userPermissions, para confirmar que la
+        // nube SÍ está guardando ese nodo específico (y no solo quedándose en local). Muestra el
+        // error real de Firebase si algo falla, para poder diagnosticarlo con certeza.
+        function testUserPermissionsConnection() {
+            const msg = document.getElementById('users-permissions-test-msg');
+            if (msg) { msg.textContent = 'Verificando...'; msg.style.color = '#555'; }
+            if (!userPermissionsRef) {
+                if (msg) { msg.textContent = '⚠ Aún no se ha conectado a Firebase. Espera unos segundos y vuelve a intentar.'; msg.style.color = '#c62828'; }
+                return;
+            }
+            const testValue = Date.now();
+            userPermissionsRef.child('_connectionTest').set(testValue)
+                .then(() => userPermissionsRef.child('_connectionTest').once('value'))
+                .then(snap => {
+                    if (snap.val() === testValue) {
+                        if (msg) { msg.textContent = '✓ Conexión a la nube funcionando — los cambios sí se están guardando.'; msg.style.color = '#2e7d32'; }
+                        userPermissionsRef.child('_connectionTest').remove().catch(() => {}); // limpieza, no crítico
+                    } else {
+                        if (msg) { msg.textContent = '⚠ Se escribió pero el valor leído no coincide. Revisa la consola.'; msg.style.color = '#c62828'; }
+                    }
+                })
+                .catch(err => {
+                    console.error('Prueba de conexión userPermissions falló:', err);
+                    if (msg) {
+                        msg.textContent = `✗ Error de Firebase: ${err.code || ''} ${err.message || err}. Este nodo probablemente no tiene permiso de escritura en las Reglas de Firebase.`;
+                        msg.style.color = '#c62828';
+                    }
+                });
+        }
+
         // Guarda de inmediato en Firebase los permisos de un usuario cuando se marca/desmarca una casilla
         function saveUserPermissionsFromUI(userName) {
             const nhChecks = document.querySelectorAll(`input[data-user="${userName}"][data-module="nh"]:checked`);
@@ -1886,16 +1924,29 @@
                 if (msg) { msg.textContent = `⚠ ${userName} se quedaría sin acceso a ninguna zona en ningún módulo.`; msg.style.color = '#c62828'; }
             }
 
+            if (!userPermissionsRef) {
+                if (msg) {
+                    msg.innerHTML = `✗ Aún no hay conexión con Firebase. <button type="button" class="btn btn-sm" style="padding:2px 8px;font-size:10px;" onclick="saveUserPermissionsFromUI('${userName}')">Reintentar</button>`;
+                    msg.style.color = '#c62828';
+                }
+                return;
+            }
+
+            if (msg) { msg.textContent = 'Guardando...'; msg.style.color = '#555'; }
             userPermissionsRef.child(userName).set({ nhZones, mgrZones }).then(() => {
                 if (msg) {
-                    msg.textContent = `Guardado ✓ (${userName})`;
+                    msg.textContent = `Guardado en la nube ✓ (${userName})`;
                     msg.style.color = '#2e7d32';
-                    setTimeout(() => { if (msg) msg.textContent = ''; }, 2500);
+                    setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
                 }
                 showCloudSave();
             }).catch(err => {
-                console.error(err);
-                if (msg) { msg.textContent = 'Error al guardar'; msg.style.color = '#c62828'; }
+                console.error('Error guardando userPermissions:', err);
+                if (msg) {
+                    const detail = (err && (err.code || err.message)) ? `${err.code || ''} ${err.message || ''}`.trim() : String(err);
+                    msg.innerHTML = `✗ NO se guardó en la nube (${detail}). <button type="button" class="btn btn-sm" style="padding:2px 8px;font-size:10px;" onclick="saveUserPermissionsFromUI('${userName}')">Reintentar</button>`;
+                    msg.style.color = '#c62828';
+                }
                 showLocalSave();
             });
         }
