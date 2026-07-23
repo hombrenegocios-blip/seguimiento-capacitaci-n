@@ -362,10 +362,7 @@
                     <button type="button" class="btn btn-sm" style="background:#00695c;color:white;padding:4px 10px;font-size:10.5px;" onclick="copyPortalCredentials()"><i class="fas fa-copy"></i> Copiar datos de acceso</button>
                     <span id="copy-portal-msg" style="font-size:10.5px; font-weight:bold; color:#2e7d32;"></span>
                 </div>
-                <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
-                    <label style="font-size:11px;"><input type="checkbox" id="edit-mgr-portal-viewstatus"> Puede ver su Estatus</label>
-                    <label style="font-size:11px;"><input type="checkbox" id="edit-mgr-portal-viewobs"> Puede ver Observaciones</label>
-                </div>
+                <p style="font-size:10px;color:#888;margin:8px 0 0 0;">En el portal siempre ve su estatus (Activo/Aprobado/etc.) y sus 7 temas con resultado, sin porcentajes. Nunca ve Observaciones ni ningún dato interno.</p>
             </div>
 
             <div style="display:flex; gap:10px; margin-top:12px;">
@@ -1168,14 +1165,22 @@
             }
         }
 
+        // Traduce el estatus interno a una etiqueta amigable para el Portal de Evaluados.
+        // "En proceso" se muestra como "Activo" (aún no ha finalizado su evaluación).
+        function portalStatusLabel(status) {
+            if (!status || status === 'En proceso') return 'Activo';
+            return status; // Aprobado, No Aprobado, Renuncia, Baja pasan tal cual (así se marcó en el Dashboard)
+        }
+
         function renderPortalView(m) {
             const body = document.getElementById('portal-body');
             if (!body) return;
             const avgT = calcMgrTopics(m);
             const activeIds = getManagerActiveTopics(m);
-            const perms = m.portalPermissions || {};
+            const statusLabel = portalStatusLabel(m.status);
+            const statusColor = (m.status === 'Aprobado') ? '#2e7d32' : (['No Aprobado','Renuncia','Baja'].includes(m.status) ? '#c62828' : '#1565c0');
 
-            // Los 7 temas generales (nunca los 2 de examen, según se pidió)
+            // Los 7 temas generales (nunca los 2 de examen, según se pidió). Nunca se muestra el % que vale cada uno.
             const sevenTopics = mgrTopicsConfig.filter(t => !t.externoOnly);
 
             let html = `<div style="max-width:640px;margin:40px auto;padding:0 20px;">
@@ -1185,8 +1190,8 @@
 
                     <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:18px;font-size:13.5px;">
                         <div><strong>Inicio:</strong> ${formatDate(m.startDate)}</div>
-                        <div><strong>Término:</strong> ${formatDate(m.endDate)}</div>
-                        ${perms.viewStatus ? `<div><strong>Estatus:</strong> ${m.status}</div>` : ''}
+                        <div><strong>Término:</strong> ${formatDate(m.endDate)}${m.isExtended ? ' <span style="color:#6a1b9a;font-size:11px;">(fecha actualizada)</span>' : ''}</div>
+                        <div><strong>Estatus:</strong> <span style="color:${statusColor};font-weight:bold;">${statusLabel}</span></div>
                     </div>
 
                     <div style="background:#e8eaf6;padding:16px;border-radius:10px;text-align:center;margin-bottom:22px;">
@@ -1197,23 +1202,31 @@
                     <h3 style="font-size:13px;color:#555;margin:0 0 8px 0;">Temas Evaluados</h3>
                     <div style="border:1px solid #eee;border-radius:8px;overflow:hidden;">
                         <div style="display:flex;background:#f5f5f5;font-size:11px;font-weight:bold;padding:6px 10px;">
-                            <div style="flex:2.5;">Tema</div><div style="flex:1;text-align:center;">%</div><div style="flex:1;text-align:center;">Calificación</div>
+                            <div style="flex:2;">Tema</div><div style="flex:1.3;text-align:center;">Resultado</div>
                         </div>`;
             sevenTopics.forEach(t => {
                 const active = activeIds.includes(t.id);
-                const w = getTopicWeightForManager(m, t.id, parseFloat(t.pct)||0);
                 const score = m[t.id] !== undefined ? m[t.id] : 0;
+                const hadFirstAttempt = m.moduleFailures && m.moduleFailures[t.id] !== undefined && m.moduleFailures[t.id] !== null;
+
+                let resultHtml;
+                if (!active) {
+                    resultHtml = `<span style="color:#aaa;">No aplica</span>`;
+                } else if (hadFirstAttempt) {
+                    // Tuvo una segunda oportunidad: se muestra la calificación del primer intento y la nueva
+                    resultHtml = `<span style="color:#c62828;">1er intento: ${m.moduleFailures[t.id]}</span><br><span style="font-weight:bold;">Actual: ${score}</span>`;
+                } else if (!score) {
+                    resultHtml = `<span style="color:#f57c00;font-weight:bold;">Pendiente</span>`;
+                } else {
+                    resultHtml = `<span style="font-weight:bold;">${score}</span>`;
+                }
+
                 html += `<div style="display:flex;align-items:center;padding:7px 10px;border-top:1px solid #eee;font-size:12px;${active?'':'opacity:0.45;'}">
-                    <div style="flex:2.5;">${t.name}${!active?' (N/A)':''}</div>
-                    <div style="flex:1;text-align:center;">${w}%</div>
-                    <div style="flex:1;text-align:center;font-weight:bold;">${active?score:'-'}</div>
+                    <div style="flex:2;">${t.name}</div>
+                    <div style="flex:1.3;text-align:center;">${resultHtml}</div>
                 </div>`;
             });
             html += `</div>`;
-
-            if (perms.viewObs && m.obs) {
-                html += `<p style="margin:16px 0 0 0;font-size:12px;color:#555;"><strong>Observaciones:</strong> ${m.obs}</p>`;
-            }
 
             html += `</div>
                 <div style="text-align:center;margin-top:18px;">
@@ -2485,8 +2498,6 @@
             document.getElementById('edit-mgr-end').value = m.endDate || '';
             document.getElementById('edit-mgr-portal-user').value = m.portalUser || '';
             document.getElementById('edit-mgr-portal-pass').value = m.portalPass || '';
-            document.getElementById('edit-mgr-portal-viewstatus').checked = !!(m.portalPermissions && m.portalPermissions.viewStatus);
-            document.getElementById('edit-mgr-portal-viewobs').checked = !!(m.portalPermissions && m.portalPermissions.viewObs);
             document.getElementById('editMgrInfoModal').style.display = 'flex';
         }
 
@@ -2574,10 +2585,6 @@
                 endDate: document.getElementById('edit-mgr-end').value,
                 portalUser: portalUser,
                 portalPass: portalPass,
-                portalPermissions: {
-                    viewStatus: document.getElementById('edit-mgr-portal-viewstatus').checked,
-                    viewObs: document.getElementById('edit-mgr-portal-viewobs').checked,
-                },
             };
             mgrRef.child(currentEditMgrId).update(updates).then(() => {
                 showCloudSave();
