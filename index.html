@@ -350,18 +350,36 @@
 
             <div style="background:#e8eaf6; padding:10px 12px; border-radius:8px; margin-top:10px;">
                 <div style="display:flex; align-items:center; justify-content:space-between;">
-                    <strong style="font-size:12.5px; color:#1a237e;"><i class="fas fa-user-lock"></i> Acceso al Portal (opcional)</strong>
-                    <button type="button" class="btn btn-sm" style="background:#1a237e;color:white;padding:3px 8px;font-size:10px;" onclick="generatePortalCredentials()"><i class="fas fa-magic"></i> Generar</button>
+                    <strong style="font-size:12.5px; color:#1a237e;"><i class="fas fa-user-lock"></i> Acceso al Portal</strong>
                 </div>
-                <p style="font-size:10px;color:#777;margin:4px 0 8px 0;">Si se llena, esta persona podrá entrar a un portal propio donde solo ve su nombre, zona, fechas y sus 7 temas.</p>
-                <label style="font-size:11px;font-weight:bold;">Usuario</label>
-                <input type="text" id="edit-mgr-portal-user" placeholder="nombre.apellido@upc.mx" style="width:100%;margin-bottom:6px;font-size:12px;">
-                <label style="font-size:11px;font-weight:bold;">Contraseña</label>
-                <input type="text" id="edit-mgr-portal-pass" style="width:100%;margin-bottom:8px;font-size:12px;">
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <button type="button" class="btn btn-sm" style="background:#00695c;color:white;padding:4px 10px;font-size:10.5px;" onclick="copyPortalCredentials()"><i class="fas fa-copy"></i> Copiar datos de acceso</button>
-                    <span id="copy-portal-msg" style="font-size:10.5px; font-weight:bold; color:#2e7d32;"></span>
+                <p style="font-size:10px;color:#777;margin:4px 0 8px 0;">Se genera automáticamente para que pueda entrar a un portal propio donde solo ve su nombre, zona, fechas y sus 7 temas.</p>
+
+                <!-- Modo VISTA: usuario/contraseña ya generados, solo lectura -->
+                <div id="portal-creds-view">
+                    <div style="font-size:12px; line-height:1.7;">
+                        <div><strong>Usuario:</strong> <span id="portal-creds-view-user" style="font-family:monospace;"></span></div>
+                        <div><strong>Contraseña:</strong> <span id="portal-creds-view-pass" style="font-family:monospace;"></span></div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px;">
+                        <button type="button" class="btn btn-sm" style="background:#00695c;color:white;padding:4px 10px;font-size:10.5px;" onclick="copyPortalCredentials()"><i class="fas fa-copy"></i> Copiar datos de acceso</button>
+                        <button type="button" class="btn btn-sm" style="background:#e0e0e0;color:#333;padding:4px 10px;font-size:10.5px;" onclick="showPortalCredsEdit()"><i class="fas fa-pen"></i> Modificar</button>
+                        <span id="copy-portal-msg" style="font-size:10.5px; font-weight:bold; color:#2e7d32;"></span>
+                    </div>
                 </div>
+
+                <!-- Modo EDICIÓN: solo se muestra si el correo/contraseña está mal y hay que corregirlo -->
+                <div id="portal-creds-edit" style="display:none;">
+                    <label style="font-size:11px;font-weight:bold;">Usuario</label>
+                    <input type="text" id="edit-mgr-portal-user" placeholder="nombre.apellido@upc.mx" style="width:100%;margin-bottom:6px;font-size:12px;">
+                    <label style="font-size:11px;font-weight:bold;">Contraseña</label>
+                    <input type="text" id="edit-mgr-portal-pass" style="width:100%;margin-bottom:8px;font-size:12px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-sm" style="background:#1a237e;color:white;padding:4px 10px;font-size:10.5px;" onclick="generatePortalCredentials()"><i class="fas fa-magic"></i> Generar de nuevo</button>
+                        <button type="button" class="btn btn-sm" style="background:#00695c;color:white;padding:4px 10px;font-size:10.5px;" onclick="hidePortalCredsEdit()"><i class="fas fa-check"></i> Listo</button>
+                    </div>
+                    <p style="font-size:9.5px;color:#999;margin:6px 0 0 0;">Los cambios se guardan al dar clic en "Guardar" al final de esta ventana.</p>
+                </div>
+
                 <p style="font-size:10px;color:#888;margin:8px 0 0 0;">En el portal siempre ve su estatus (Activo/Aprobado/etc.) y sus 7 temas con resultado, sin porcentajes. Nunca ve Observaciones ni ningún dato interno.</p>
             </div>
 
@@ -615,6 +633,7 @@
                 <div class="tab" onclick="switchSubTab('mgr', 'analytics')"><i class="fas fa-chart-pie"></i> Análisis</div>
                 <div class="tab" onclick="switchSubTab('mgr', 'evaluations')"><i class="fas fa-clipboard-check"></i> Evaluaciones</div>
                 <div class="tab" onclick="switchSubTab('mgr', 'management')"><i class="fas fa-user-plus"></i> Gestión Gerentes</div>
+                <div class="tab" onclick="switchSubTab('mgr', 'portal-access')"><i class="fas fa-key"></i> Accesos Portal</div>
             </div>
 
             <div id="mgr-dashboard" class="sub-content active">
@@ -769,6 +788,44 @@
                     <table>
                         <thead><tr><th>ID</th><th>Nombre</th><th>Puesto</th><th>Sucursal</th><th>Zona</th><th>Origen</th><th>Inicio</th><th>Término</th><th>Días Rest.</th><th>Acción</th></tr></thead>
                         <tbody id="mgr-mgmt-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===== ACCESOS PORTAL: lista de usuarios/contraseñas para compartir ===== -->
+            <div id="mgr-portal-access" class="sub-content">
+                <div style="background:#e8eaf6; padding:16px 20px; border-radius:8px; margin-bottom:16px;">
+                    <h4 style="color:#1a237e; margin:0 0 10px 0;"><i class="fas fa-key"></i> Usuarios y Contraseñas del Portal</h4>
+                    <p style="font-size:11.5px;color:#666;margin:0 0 12px 0;">Solo se listan las personas que ya tienen acceso al Portal asignado. Selecciona a quiénes les vas a compartir sus temas y copia sus datos de acceso en un solo paso.</p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        <select id="portal-access-zone" onchange="renderPortalAccessList()">
+                            <option value="ALL">Todas las Zonas</option>
+                            <option value="MINE">Mis Zonas</option>
+                            <option value="ZONA 1">ZONA 1</option>
+                            <option value="ZONA 2">ZONA 2</option>
+                            <option value="ZONA 3">ZONA 3</option>
+                            <option value="ZONA 4">ZONA 4</option>
+                        </select>
+                        <select id="portal-access-status" onchange="renderPortalAccessList()">
+                            <option value="ALL">Todos los Estatus</option>
+                            <option value="ACTIVE">Activos / En Proceso</option>
+                            <option value="FINISHED">Finalizados (Aprobado/No Aprobado/Renuncia/Baja)</option>
+                        </select>
+                        <input type="text" id="portal-access-search" placeholder="🔍 Buscar nombre..." style="padding:5px 8px; border:1px solid #ddd; border-radius:4px; font-size:12px; width:200px;" oninput="renderPortalAccessList()">
+                        <button class="btn btn-sm btn-danger" onclick="document.getElementById('portal-access-search').value=''; document.getElementById('portal-access-zone').value='ALL'; document.getElementById('portal-access-status').value='ALL'; renderPortalAccessList();"><i class="fas fa-times"></i> Limpiar</button>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:14px; margin-top:12px; flex-wrap:wrap;">
+                        <button class="btn btn-success" onclick="copySelectedPortalAccess()"><i class="fas fa-copy"></i> Copiar seleccionados (<span id="portal-access-count">0</span>)</button>
+                        <span id="portal-access-msg" style="font-size:11px; font-weight:bold;"></span>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr>
+                            <th style="width:34px;"><input type="checkbox" id="portal-access-select-all" onchange="togglePortalAccessSelectAll(this.checked)" title="Seleccionar todos"></th>
+                            <th>Nombre</th><th>Sucursal</th><th>Zona</th><th>Usuario</th><th>Contraseña</th><th>Estatus</th>
+                        </tr></thead>
+                        <tbody id="mgr-portal-access-body"></tbody>
                     </table>
                 </div>
             </div>
@@ -1325,6 +1382,7 @@
             document.getElementById(`${prefix}-${id}`).classList.add('active');
             if(id === 'analytics') { if(prefix === 'nh') renderNHAnalytics(); if(prefix === 'mgr') renderMGRAnalytics(); }
             if(id === 'evaluations') { if(prefix === 'nh') renderNHEvaluations(); if(prefix === 'mgr') renderMgrEvaluations(); }
+            if(id === 'portal-access' && prefix === 'mgr') renderPortalAccessList();
         }
 
         // ================= NUEVOS INGRESOS =================
@@ -1781,6 +1839,98 @@
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        // ===== Accesos Portal: lista de usuarios/contraseñas para compartir con el personal =====
+        // Solo lee de "managers" (mismo dato ya guardado por Editar), no crea ninguna colección nueva.
+        function renderPortalAccessList() {
+            const tbody = document.getElementById('mgr-portal-access-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            const zoneFilter = document.getElementById('portal-access-zone').value;
+            const statusFilter = document.getElementById('portal-access-status').value;
+            const search = (document.getElementById('portal-access-search').value || '').trim().toUpperCase();
+
+            const FINISHED = ['Aprobado','No Aprobado','Renuncia','Baja'];
+
+            managers.forEach(m => {
+                if (!hasPermission(m.zone, 'managers')) return;
+                if (!m.portalUser) return; // solo quienes ya tienen acceso al Portal asignado
+                if (!zoneMatchesFilter(m.zone, zoneFilter, currentUser && currentUser.mgrZones)) return;
+                const isFinished = FINISHED.includes(m.status);
+                if (statusFilter === 'ACTIVE' && isFinished) return;
+                if (statusFilter === 'FINISHED' && !isFinished) return;
+                if (search && !(m.name||'').toUpperCase().includes(search)) return;
+
+                const statusLabel = portalStatusLabel(m.status);
+                const statusColor = (m.status === 'Aprobado') ? '#2e7d32' : (isFinished ? '#c62828' : '#1565c0');
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align:center"><input type="checkbox" class="portal-access-check" data-id="${m.id}" onchange="updatePortalAccessCount()"></td>
+                    <td style="text-align:left">${m.name}</td>
+                    <td>${m.branch || '-'}</td>
+                    <td>${m.zone}</td>
+                    <td style="font-family:monospace;font-size:11.5px;">${m.portalUser}</td>
+                    <td style="font-family:monospace;font-size:11.5px;">${m.portalPass || '-'}</td>
+                    <td><span style="color:${statusColor};font-weight:bold;">${statusLabel}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updatePortalAccessCount();
+        }
+
+        function togglePortalAccessSelectAll(checked) {
+            document.querySelectorAll('.portal-access-check').forEach(c => c.checked = checked);
+            updatePortalAccessCount();
+        }
+
+        function updatePortalAccessCount() {
+            const count = document.querySelectorAll('.portal-access-check:checked').length;
+            const el = document.getElementById('portal-access-count');
+            if (el) el.textContent = count;
+        }
+
+        // Copia usuario+contraseña de todas las personas seleccionadas, listo para pegar y compartir
+        function copySelectedPortalAccess() {
+            const checks = [...document.querySelectorAll('.portal-access-check:checked')];
+            const msg = document.getElementById('portal-access-msg');
+            if (!checks.length) {
+                if (msg) { msg.textContent = 'Selecciona al menos una persona.'; msg.style.color = '#c62828'; }
+                return;
+            }
+            const ids = checks.map(c => c.getAttribute('data-id'));
+            const lines = ids.map(id => {
+                const m = managers.find(x => x.id === id);
+                if (!m) return '';
+                return `${m.name}\nUsuario: ${m.portalUser}\nContraseña: ${m.portalPass || '-'}`;
+            }).filter(Boolean);
+            const text = lines.join('\n\n');
+
+            const showOk = () => {
+                if (msg) { msg.textContent = `Copiado ✓ (${ids.length} persona${ids.length>1?'s':''})`; msg.style.color = '#2e7d32'; setTimeout(() => { if (msg) msg.textContent = ''; }, 3000); }
+            };
+            const showFail = () => {
+                if (msg) { msg.textContent = 'No se pudo copiar automáticamente. Intenta de nuevo.'; msg.style.color = '#c62828'; }
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(showOk).catch(showFail);
+            } else {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.focus(); ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showOk();
+                } catch (e) {
+                    showFail();
+                }
+            }
         }
 
         // ================= LOGICA COMUN (MODIFICADA PARA LUNA) =================
@@ -2547,8 +2697,20 @@
             document.getElementById('edit-mgr-zone').value = m.zone || 'ZONA 1';
             document.getElementById('edit-mgr-start').value = m.startDate || '';
             document.getElementById('edit-mgr-end').value = m.endDate || '';
-            document.getElementById('edit-mgr-portal-user').value = m.portalUser || '';
-            document.getElementById('edit-mgr-portal-pass').value = m.portalPass || '';
+
+            // Acceso al Portal: si ya tiene usuario/contraseña, se respetan tal cual.
+            // Si todavía no tiene (persona nueva), se generan automáticamente aquí mismo,
+            // sin que el administrador tenga que dar clic en nada — quedan listos para copiar.
+            if (m.portalUser && m.portalPass) {
+                document.getElementById('edit-mgr-portal-user').value = m.portalUser;
+                document.getElementById('edit-mgr-portal-pass').value = m.portalPass;
+            } else {
+                const creds = buildPortalCredentials(m.name || '');
+                document.getElementById('edit-mgr-portal-user').value = creds.user;
+                document.getElementById('edit-mgr-portal-pass').value = creds.pass;
+            }
+            hidePortalCredsEdit(); // arranca en modo vista (solo lectura), con botón "Modificar" disponible
+
             document.getElementById('editMgrInfoModal').style.display = 'flex';
         }
 
@@ -2557,19 +2719,42 @@
             currentEditMgrId = null;
         }
 
-        // Sugiere usuario (nombre.apellido@upc.mx) y una contraseña aleatoria, a partir del nombre capturado
-        function generatePortalCredentials() {
-            const name = document.getElementById('edit-mgr-name').value.trim();
-            if (!name) { alert('Primero escribe el nombre.'); return; }
-            const userPart = name.toUpperCase()
+        // Construye un usuario (nombre.apellido@upc.mx) y contraseña aleatoria a partir de un nombre.
+        // Función pura, sin tocar el DOM — la usan tanto la auto-generación como el botón "Generar de nuevo".
+        function buildPortalCredentials(name) {
+            const userPart = (name || '').toUpperCase()
                 .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
                 .replace(/[^A-Z\s]/g, '')
-                .trim().split(/\s+/).join('.');
-            document.getElementById('edit-mgr-portal-user').value = userPart + '@UPC.MX';
+                .trim().split(/\s+/).filter(Boolean).join('.');
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let pass = '';
             for (let i = 0; i < 8; i++) pass += chars[Math.floor(Math.random() * chars.length)];
-            document.getElementById('edit-mgr-portal-pass').value = pass;
+            return { user: (userPart ? userPart + '@UPC.MX' : ''), pass };
+        }
+
+        // Botón "Generar de nuevo" (modo edición): rehace usuario y contraseña desde el nombre actual
+        function generatePortalCredentials() {
+            const name = document.getElementById('edit-mgr-name').value.trim();
+            if (!name) { alert('Primero escribe el nombre.'); return; }
+            const creds = buildPortalCredentials(name);
+            document.getElementById('edit-mgr-portal-user').value = creds.user;
+            document.getElementById('edit-mgr-portal-pass').value = creds.pass;
+        }
+
+        // Muestra los campos editables de usuario/contraseña (por si el correo o la contraseña están mal)
+        function showPortalCredsEdit() {
+            document.getElementById('portal-creds-view').style.display = 'none';
+            document.getElementById('portal-creds-edit').style.display = 'block';
+        }
+
+        // Vuelve al modo de solo lectura, reflejando lo que quedó capturado en los campos
+        function hidePortalCredsEdit() {
+            const user = document.getElementById('edit-mgr-portal-user').value.trim();
+            const pass = document.getElementById('edit-mgr-portal-pass').value.trim();
+            document.getElementById('portal-creds-view-user').textContent = user || '(sin asignar)';
+            document.getElementById('portal-creds-view-pass').textContent = pass || '(sin asignar)';
+            document.getElementById('portal-creds-edit').style.display = 'none';
+            document.getElementById('portal-creds-view').style.display = 'block';
         }
 
         // Copia usuario y contraseña juntos al portapapeles, listos para pegar y enviar a la persona
