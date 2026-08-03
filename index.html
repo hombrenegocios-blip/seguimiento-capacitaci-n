@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!-- SEGURIDAD: limita a qué dominios se puede conectar/cargar recursos la página, como capa
+         adicional de defensa. No sustituye corregir las Reglas de Firebase (eso es lo esencial). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://*.firebasestorage.app https://firebasestorage.googleapis.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
     <title>Sistema Integral CAP - Nuevos Ingresos & Gerenciales</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -1247,8 +1250,8 @@
 
             let html = `<div style="max-width:640px;margin:40px auto;padding:0 20px;">
                 <div style="background:white;border-radius:14px;padding:28px;box-shadow:0 2px 14px rgba(0,0,0,0.12);">
-                    <h2 style="color:var(--manager-color);margin:0 0 2px 0;">${m.name}</h2>
-                    <p style="color:#777;margin:0 0 20px 0;font-size:13px;">${m.post || ''} ${m.branch ? '· '+m.branch : ''} · ${m.zone}</p>
+                    <h2 style="color:var(--manager-color);margin:0 0 2px 0;">${escapeHtml(m.name)}</h2>
+                    <p style="color:#777;margin:0 0 20px 0;font-size:13px;">${escapeHtml(m.post) || ''} ${m.branch ? '· '+escapeHtml(m.branch) : ''} · ${escapeHtml(m.zone)}</p>
 
                     <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:18px;font-size:13.5px;">
                         <div><strong>Inicio:</strong> ${formatDate(m.startDate)}</div>
@@ -1313,8 +1316,12 @@
         function login() {
             const u = document.getElementById('login-email').value.toUpperCase().trim();
             const p = document.getElementById('login-password').value.trim();
+            if (isLoginLocked()) { showLoginLockedMessage(); return; }
             if(USERS[u] && USERS[u].pass === p) {
-                currentUser = { email:u, ...USERS[u] };
+                clearLoginAttempts();
+                // OJO SEGURIDAD: nunca guardar la contraseña en currentUser/localStorage.
+                // Solo se conserva lo necesario para operar la sesión (zona, nombre, correo).
+                currentUser = { email:u, name: USERS[u].name, zone: USERS[u].zone };
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 document.getElementById('loginModal').style.display = 'none';
                 initSystem();
@@ -1324,21 +1331,53 @@
             // No es un usuario administrativo: intenta como Portal de Evaluados (Gerenciales)
             ensureFirebaseInit();
             document.getElementById('login-error').style.display = 'none';
-            firebase.database().ref('managers').once('value').then(snap => {
+            // Búsqueda indexada: solo baja el registro que coincide con el usuario tecleado,
+            // en vez de descargar la tabla completa de "managers" (con todas las contraseñas)
+            // a la memoria del navegador en cada intento de acceso.
+            firebase.database().ref('managers').orderByChild('portalUser').equalTo(u).limitToFirst(1).once('value').then(snap => {
                 const data = snap.val() || {};
-                const foundId = Object.keys(data).find(id => data[id].portalUser && data[id].portalUser.toUpperCase().trim() === u);
+                const foundId = Object.keys(data)[0];
                 if (foundId && (data[foundId].portalPass || '').trim() === p) {
+                    clearLoginAttempts();
                     currentUser = { type: 'portal', managerId: foundId, name: data[foundId].name, email: u };
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     document.getElementById('loginModal').style.display = 'none';
                     initPortalSystem();
                 } else {
+                    registerFailedLogin();
                     showLoginError();
                 }
             }).catch(err => {
                 console.error('Error validando acceso de portal:', err);
+                registerFailedLogin();
                 showLoginError();
             });
+        }
+
+        // ===== Protección básica contra intentos repetidos de acceso (fuerza bruta desde el formulario) =====
+        const LOGIN_MAX_ATTEMPTS = 5;
+        const LOGIN_LOCK_MS = 60000; // 1 minuto
+        function registerFailedLogin() {
+            let n = parseInt(sessionStorage.getItem('loginAttempts') || '0', 10) + 1;
+            sessionStorage.setItem('loginAttempts', String(n));
+            if (n >= LOGIN_MAX_ATTEMPTS) {
+                sessionStorage.setItem('loginLockUntil', String(Date.now() + LOGIN_LOCK_MS));
+            }
+        }
+        function clearLoginAttempts() {
+            sessionStorage.removeItem('loginAttempts');
+            sessionStorage.removeItem('loginLockUntil');
+        }
+        function isLoginLocked() {
+            const until = parseInt(sessionStorage.getItem('loginLockUntil') || '0', 10);
+            return Date.now() < until;
+        }
+        function showLoginLockedMessage() {
+            const until = parseInt(sessionStorage.getItem('loginLockUntil') || '0', 10);
+            const secs = Math.max(1, Math.ceil((until - Date.now()) / 1000));
+            const errEl = document.getElementById('login-error');
+            errEl.textContent = `Demasiados intentos fallidos. Espera ${secs} segundos e intenta de nuevo.`;
+            errEl.style.display = 'block';
         }
 
         // Muestra el error de login y deja todo listo para intentar de nuevo sin recargar la página
@@ -1431,8 +1470,8 @@
                 const tr = document.createElement('tr');
                 tr.className = rowClass;
                 tr.innerHTML = `
-                    <td style="text-align:left; font-weight:bold">${e.name}</td>
-                    <td>${e.branch}</td><td>${e.zone}</td>
+                    <td style="text-align:left; font-weight:bold">${escapeHtml(e.name)}</td>
+                    <td>${escapeHtml(e.branch)}</td><td>${e.zone}</td>
                     <td>${formatDate(e.startDate)}</td><td>${formatDate(e.endDate)}</td>
                     <td class="${dayClass}">${isInactive?'-':days}</td>
                     <td>${chk('sacCourse')}</td><td>${chk('video1')}</td><td>${chk('video2')}</td><td>${chk('video3')}</td><td>${chk('video4')}</td>
@@ -1467,8 +1506,8 @@
                 const tr = document.createElement('tr');
                 tr.className = rowClass;
                 tr.innerHTML = `
-                    <td style="text-align:left">${e.name}</td>
-                    <td style="white-space:nowrap;font-size:10px">${e.branch||'-'}</td>
+                    <td style="text-align:left">${escapeHtml(e.name)}</td>
+                    <td style="white-space:nowrap;font-size:10px">${escapeHtml(e.branch)||'-'}</td>
                     <td>${e.zone}</td>
                     <td style="white-space:nowrap;font-size:10px">${formatDate(e.startDate)}</td>
                     <td style="white-space:nowrap;font-size:10px">${formatDate(e.endDate)}</td>
@@ -1483,7 +1522,7 @@
                     <td><input type="number" value="${e.feedback2||0}" onchange="updEmp('${e.id}','feedback2',this.value)"></td>
                     <td style="font-weight:bold">${avg}</td>
                     <td><select class="evaluation-status-select" onchange="updEmp('${e.id}','status',this.value)"><option value="En proceso" ${e.status==='En proceso'?'selected':''}>En proceso</option><option value="Aprobado" ${e.status==='Aprobado'?'selected':''}>Aprobado</option><option value="No Aprobado" ${e.status==='No Aprobado'?'selected':''}>No Aprobado</option><option value="Baja" ${e.status==='Baja'?'selected':''}>Baja</option><option value="Renuncia" ${e.status==='Renuncia'?'selected':''}>Renuncia</option></select></td>
-                    <td><textarea class="observation-input" onchange="updEmp('${e.id}','observations',this.value)">${e.observations||''}</textarea></td>
+                    <td><textarea class="observation-input" onchange="updEmp('${e.id}','observations',this.value)">${escapeHtml(e.observations)}</textarea></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1525,12 +1564,12 @@
                 else if(e.status === 'Baja') stClass = 'status-baja';
                 
                 tr.innerHTML = `
-                    <td>${e.id}</td><td style="text-align:left">${e.name}</td><td>${e.branch}</td><td>${e.zone}</td><td>${formatDate(e.startDate)}</td><td>${(e.status!=='En proceso')?'-':days}</td>
+                    <td>${e.id}</td><td style="text-align:left">${escapeHtml(e.name)}</td><td>${escapeHtml(e.branch)}</td><td>${e.zone}</td><td>${formatDate(e.startDate)}</td><td>${(e.status!=='En proceso')?'-':days}</td>
                     <td>${e.hasSalesExperience===true?'Sí':(e.hasSalesExperience===false?'No':'PEND')}</td><td>${e.previousWorkplace||'-'}</td>
                     <td><div class="progress-bar"><div class="progress-fill" style="width:${p}%; background:#2c5aa0"></div></div></td>
                     <td>${e.feedback1Completed?e.feedback1:'-'}</td><td>${e.feedback2Completed?e.feedback2:'-'}</td><td>${avg}</td>
                     <td><span style="padding:2px 6px; border-radius:4px; font-size:10px" class="${stClass}">${e.status}</span></td>
-                    <td>${e.observations||''}</td>
+                    <td>${escapeHtml(e.observations)}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1549,7 +1588,7 @@
                 const tr = document.createElement('tr');
                 tr.className = rowClass;
                 tr.innerHTML = `
-                    <td>${e.id}</td><td style="text-align:left" class="col-name-mgmt">${e.name}</td><td>${e.branch}</td><td>${e.zone}</td><td>${formatDate(e.startDate)}</td><td>${formatDate(e.endDate)}</td>
+                    <td>${e.id}</td><td style="text-align:left" class="col-name-mgmt">${escapeHtml(e.name)}</td><td>${escapeHtml(e.branch)}</td><td>${e.zone}</td><td>${formatDate(e.startDate)}</td><td>${formatDate(e.endDate)}</td>
                     <td class="${getDayClass(days, e.status)}">${isInactive?'-':days}</td>
                     <td><button class="btn btn-danger btn-sm" onclick="delItem('employees','${e.id}')">Eliminar</button></td>
                 `;
@@ -1629,16 +1668,16 @@
                 };
 
                 const totalTopicsCount = mgrTopicsConfig.filter(t => !t.externoOnly || isExterno).length;
-                const topicsBtn = `<button class="topics-btn" onclick="openMgrTopicsSelect('${m.id}')" title="Elegir qué temas cuentan y su % para ${m.name}"><i class="fas fa-list-check"></i> ${activeIds.length}/${totalTopicsCount}</button>`;
+                const topicsBtn = `<button class="topics-btn" onclick="openMgrTopicsSelect('${m.id}')" title="Elegir qué temas cuentan y su % para ${escapeHtml(m.name)}"><i class="fas fa-list-check"></i> ${activeIds.length}/${totalTopicsCount}</button>`;
                 const lockBtn = `<button class="topics-btn" style="background:${locked?'#c62828':'#757575'};margin-top:3px;" onclick="toggleMgrScoresLock('${m.id}')" title="${locked?'Calificaciones bloqueadas - clic para desbloquear':'Clic para bloquear las calificaciones de temas de esta persona'}"><i class="fas fa-${locked?'lock':'lock-open'}"></i> ${locked?'Bloqueado':'Bloquear'}</button>`;
                 const failBtn = `<button class="topics-btn" style="background:${showFails?'#6a1b9a':'#8e24aa'};margin-top:3px;" onclick="toggleMgrFailuresView('${m.id}')" title="Capturar módulos reprobados en primer intento (no afecta el promedio)"><i class="fas fa-clipboard-list"></i> ${showFails?'Ocultar':'Mód. Rep.'}</button>`;
 
                 const tr = document.createElement('tr');
                 tr.className = rowClass;
                 tr.innerHTML = `
-                    <td style="text-align:center"><div style="display:flex; flex-direction:column; gap:3px; align-items:center;"><button class="topics-btn" style="background:var(--manager-color);" onclick="openMgrDetail('${m.id}')" title="Ver todo sobre ${m.name}"><i class="fas fa-eye"></i> Ver</button><button class="topics-btn" style="background:#0277bd;" onclick="openEditMgrInfo('${m.id}')" title="Editar nombre, puesto, sucursal, zona, origen o fechas"><i class="fas fa-pen"></i> Editar</button></div></td>
-                    <td style="text-align:left; font-weight:bold">${m.name}</td>
-                    <td>${m.post}</td><td>${m.branch || '-'}</td><td>${m.zone}</td>
+                    <td style="text-align:center"><div style="display:flex; flex-direction:column; gap:3px; align-items:center;"><button class="topics-btn" style="background:var(--manager-color);" onclick="openMgrDetail('${m.id}')" title="Ver todo sobre ${escapeHtml(m.name)}"><i class="fas fa-eye"></i> Ver</button><button class="topics-btn" style="background:#0277bd;" onclick="openEditMgrInfo('${m.id}')" title="Editar nombre, puesto, sucursal, zona, origen o fechas"><i class="fas fa-pen"></i> Editar</button></div></td>
+                    <td style="text-align:left; font-weight:bold">${escapeHtml(m.name)}</td>
+                    <td>${m.post}</td><td>${escapeHtml(m.branch) || '-'}</td><td>${m.zone}</td>
                     <td>${badge}</td>
                     <td>${formatDate(m.startDate)}</td><td>${formatDate(m.endDate)}${m.isExtended ? `<div style="font-size:9px;color:#6a1b9a;font-weight:bold;">Ext. desde ${formatDate(m.originalEndDate)}</div>` : ''}</td>
                     <td class="${getDayClass(days, m.status)}">${m.status!=='En proceso'?'-':days}</td>
@@ -1692,7 +1731,7 @@
                 const tr = document.createElement('tr');
                 tr.className = rowClass;
                 tr.innerHTML = `
-                    <td style="text-align:left">${m.name}</td>
+                    <td style="text-align:left">${escapeHtml(m.name)}</td>
                     <td>${m.zone}</td>
                     <td style="font-size:11px;">${formatDate(m.startDate)}</td>
                     <td style="font-size:11px;">${formatDate(m.endDate)}${m.isExtended ? `<div style="font-size:9px;color:#6a1b9a;font-weight:bold;">Ext.</div>` : ''}</td>
@@ -1713,7 +1752,7 @@
                         <br>
                         <button class="btn btn-sm" style="background:#6a1b9a;color:white;margin-top:4px;font-size:10px;padding:3px 6px;" onclick="openMgrExtension('${m.id}')" title="Alargar la fecha de término de esta persona"><i class="fas fa-calendar-plus"></i> Extensión</button>
                     </td>
-                    <td><textarea class="observation-input" onchange="updMgr('${m.id}','obs',this.value)">${m.obs||''}</textarea></td>
+                    <td><textarea class="observation-input" onchange="updMgr('${m.id}','obs',this.value)">${escapeHtml(m.obs)}</textarea></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1745,14 +1784,14 @@
                 const tr = document.createElement('tr');
                 tr.className = rowClass;
                 tr.innerHTML = `
-                    <td style="text-align:left">${m.name}</td>
-                    <td>${m.post}</td><td>${m.origin}</td><td>${m.branch||'-'}</td><td>${m.zone}</td>
+                    <td style="text-align:left">${escapeHtml(m.name)}</td>
+                    <td>${m.post}</td><td>${m.origin}</td><td>${escapeHtml(m.branch)||'-'}</td><td>${m.zone}</td>
                     <td>${formatDate(m.startDate)}</td>
                     <td>${formatDate(m.endDate)}${m.isExtended ? `<div style="font-size:9px;color:#6a1b9a;font-weight:bold;">Ext.</div>` : ''}</td>
                     <td class="${getDayClass(days, m.status)}">${m.status!=='En proceso'?'-':days}</td>
                     <td><div class="progress-bar"><div class="progress-fill" style="width:${avgT}%; background:var(--manager-color)"></div></div><div style="font-size:10px;text-align:center">${avgT}%</div></td>
                     <td>${m.status}</td>
-                    <td style="text-align:center"><button class="topics-btn" style="background:var(--manager-color);" onclick="openMgrDetail('${m.id}')" title="Ver todo sobre ${m.name}"><i class="fas fa-eye"></i> Ver</button></td>
+                    <td style="text-align:center"><button class="topics-btn" style="background:var(--manager-color);" onclick="openMgrDetail('${m.id}')" title="Ver todo sobre ${escapeHtml(m.name)}"><i class="fas fa-eye"></i> Ver</button></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1774,8 +1813,8 @@
 
             // Bloque 1: datos generales
             html += `<div style="background:#f0f4f8; padding:8px 12px; border-radius:8px; font-size:12px; line-height:1.6;">
-                <div style="font-weight:bold; font-size:13px;">${m.name}</div>
-                <div>${m.post} ${m.origin} — ${m.branch||'-'} / ${m.zone}</div>
+                <div style="font-weight:bold; font-size:13px;">${escapeHtml(m.name)}</div>
+                <div>${m.post} ${m.origin} — ${escapeHtml(m.branch)||'-'} / ${m.zone}</div>
                 <div>Inicio: ${formatDate(m.startDate)} &nbsp;·&nbsp; Término: ${formatDate(m.endDate)}</div>`;
             if (m.isExtended) {
                 html += `<div style="color:#6a1b9a;">⏳ Extendido (fecha original: ${formatDate(m.originalEndDate)})</div>`;
@@ -1810,7 +1849,7 @@
 
             // Bloque 4: observaciones
             if (m.obs) {
-                html += `<div style="margin-top:10px; font-size:11px;"><strong>Obs.:</strong> ${m.obs}</div>`;
+                html += `<div style="margin-top:10px; font-size:11px;"><strong>Obs.:</strong> ${escapeHtml(m.obs)}</div>`;
             }
 
             document.getElementById('mgr-detail-body').innerHTML = html;
@@ -1832,7 +1871,7 @@
                 const tr = document.createElement('tr');
                 tr.className = rowClass;
                 tr.innerHTML = `
-                    <td>${m.id}</td><td style="text-align:left">${m.name}</td><td>${m.post}</td><td>${m.branch || '-'}</td><td>${m.zone}</td><td>${m.origin}</td>
+                    <td>${m.id}</td><td style="text-align:left">${escapeHtml(m.name)}</td><td>${m.post}</td><td>${escapeHtml(m.branch) || '-'}</td><td>${m.zone}</td><td>${m.origin}</td>
                     <td>${formatDate(m.startDate)}</td><td>${formatDate(m.endDate)}${m.isExtended ? `<div style="font-size:9px;color:#6a1b9a;font-weight:bold;">Ext. desde ${formatDate(m.originalEndDate)}</div>` : ''}</td>
                     <td class="${getDayClass(days, m.status)}">${m.status!=='En proceso'?'-':days}</td>
                     <td><button class="btn btn-danger btn-sm" onclick="delItem('managers','${m.id}')">Eliminar</button></td>
@@ -1868,17 +1907,32 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="text-align:center"><input type="checkbox" class="portal-access-check" data-id="${m.id}" onchange="updatePortalAccessCount()"></td>
-                    <td style="text-align:left">${m.name}</td>
-                    <td>${m.branch || '-'}</td>
+                    <td style="text-align:left">${escapeHtml(m.name)}</td>
+                    <td>${escapeHtml(m.branch) || '-'}</td>
                     <td>${m.zone}</td>
-                    <td style="font-family:monospace;font-size:11.5px;">${m.portalUser}</td>
-                    <td style="font-family:monospace;font-size:11.5px;">${m.portalPass || '-'}</td>
+                    <td style="font-family:monospace;font-size:11.5px;">${escapeHtml(m.portalUser)}</td>
+                    <td style="font-family:monospace;font-size:11.5px;">
+                        <span class="portal-pass-masked" data-pass="${escapeHtml(m.portalPass || '-')}">••••••••</span>
+                        <button type="button" onclick="togglePasswordMask(this)" style="border:none;background:none;cursor:pointer;color:#888;" title="Mostrar/Ocultar"><i class="fas fa-eye"></i></button>
+                    </td>
                     <td><span style="color:${statusColor};font-weight:bold;">${statusLabel}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
 
             updatePortalAccessCount();
+        }
+
+        // Oculta/muestra una contraseña individual en la lista de Accesos Portal (para no dejarlas
+        // siempre visibles en pantalla, por si alguien más está viendo o hay una captura de pantalla)
+        function togglePasswordMask(btn) {
+            const span = btn.previousElementSibling;
+            if (!span) return;
+            if (span.textContent === '••••••••') {
+                span.textContent = span.getAttribute('data-pass');
+            } else {
+                span.textContent = '••••••••';
+            }
         }
 
         function togglePortalAccessSelectAll(checked) {
@@ -2309,6 +2363,20 @@
         
         function parseDateFromInput(s) { if(!s) return null; const p=s.split('-'); return new Date(p[0],p[1]-1,p[2]); }
         function getDays(s) { const end=parseDateFromInput(s); const now=new Date(); now.setHours(0,0,0,0); return Math.ceil((end-now)/(1000*60*60*24)); }
+        // ===== SEGURIDAD: escapa texto antes de insertarlo en innerHTML =====
+        // Cualquier dato que haya sido escrito por una persona (nombre, sucursal, observaciones, etc.)
+        // pasa por aquí antes de mostrarse, para que no se pueda inyectar HTML/JavaScript
+        // a través de esos campos (ej. un nombre como "<img src=x onerror=...>").
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function formatDate(s) { const d=parseDateFromInput(s); return d ? `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}` : ''; }
         function addDays(s,d) { const dt=parseDateFromInput(s); dt.setDate(dt.getDate()+d); return `${dt.getDate()}/${dt.getMonth()+1}`; }
         function calcNHProg(e) { let p=0; if(e.sacCourse) p+=20; if(e.video1) p+=20; if(e.video2) p+=20; if(e.video3) p+=20; if(e.video4) p+=20; return p; }
@@ -3009,7 +3077,7 @@
                     if (diff <= 5) {
                         count++;
                         let msg = diff > 0 ? `Retro vence en ${diff} días. Término del periodo: ${formatDate(m.endDate)}.` : `Retro vencida hace ${Math.abs(diff)} días. Término del periodo: ${formatDate(m.endDate)}.`;
-                        list.innerHTML += `<div class="reminder-item ${diff < 0 ? 'urgent' : 'warning'}"><strong>${m.name}</strong> (${m.branch})<br/>${msg}</div>`;
+                        list.innerHTML += `<div class="reminder-item ${diff < 0 ? 'urgent' : 'warning'}"><strong>${escapeHtml(m.name)}</strong> (${escapeHtml(m.branch)})<br/>${msg}</div>`;
                     }
                 }
             });
