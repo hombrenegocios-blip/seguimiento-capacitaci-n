@@ -1241,12 +1241,62 @@
             const body = document.getElementById('portal-body');
             if (!body) return;
             const avgT = calcMgrTopics(m);
-            const activeIds = getManagerActiveTopics(m);
             const statusLabel = portalStatusLabel(m.status);
             const statusColor = (m.status === 'Aprobado') ? '#2e7d32' : (['No Aprobado','Renuncia','Baja'].includes(m.status) ? '#c62828' : '#1565c0');
+            const isFinished = ['Aprobado','No Aprobado','Renuncia','Baja'].includes(m.status);
+            // La calificación final SOLO se revela cuando ya se aprobó formalmente (status === 'Aprobado').
+            // Mientras esté en cualquier otro estatus (incluido "En proceso"/Activo), aunque ya tenga
+            // algunas calificaciones capturadas, no se muestra: mostrar un promedio parcial daba la
+            // impresión de que la persona ya fue evaluada por completo cuando aún faltan temas por ver.
+            const isApproved = m.status === 'Aprobado';
 
             // Los 7 temas generales (nunca los 2 de examen, según se pidió). Nunca se muestra el % que vale cada uno.
+            // A TODOS se evalúan estos 7 temas: el portal ya no distingue "temas activos/inactivos" para
+            // esta persona, para no dar la impresión de que un tema aún sin capturar fue excluido a propósito
+            // (en vez de eso, un tema sin calificación se muestra simplemente como "Pendiente").
             const sevenTopics = mgrTopicsConfig.filter(t => !t.externoOnly);
+
+            let completedCount = 0;
+            let topicRowsHtml = '';
+            sevenTopics.forEach(t => {
+                const score = m[t.id] !== undefined ? m[t.id] : 0;
+                const hadFirstAttempt = m.moduleFailures && m.moduleFailures[t.id] !== undefined && m.moduleFailures[t.id] !== null;
+                const isDone = hadFirstAttempt || (parseFloat(score) > 0);
+                if (isDone) completedCount++;
+
+                let resultHtml;
+                if (hadFirstAttempt) {
+                    // Tuvo una segunda oportunidad: se muestra la calificación del primer intento y la nueva
+                    resultHtml = `<span style="color:#c62828;">1er intento: ${m.moduleFailures[t.id]}</span><br><span style="font-weight:bold;">Actual: ${score}</span>`;
+                } else if (!score) {
+                    resultHtml = `<span style="color:#f57c00;font-weight:bold;">Pendiente</span>`;
+                } else {
+                    resultHtml = `<span style="font-weight:bold;color:#2e7d32;">${score}</span>`;
+                }
+
+                topicRowsHtml += `<div style="display:flex;align-items:center;padding:7px 10px;border-top:1px solid #eee;font-size:12px;${isDone?'background:#e8f5e9;':''}">
+                    <div style="flex:2;">${t.name}</div>
+                    <div style="flex:1.3;text-align:center;">${resultHtml}</div>
+                </div>`;
+            });
+            const progressPct = Math.round((completedCount / sevenTopics.length) * 100);
+
+            // Contador de días restantes antes del término (reutiliza el mismo cálculo que el dashboard interno)
+            let daysBlockHtml;
+            if (isFinished) {
+                daysBlockHtml = `<div><strong>Días Restantes:</strong> <span style="color:#888;">Finalizado</span></div>`;
+            } else {
+                const daysLeft = getDays(m.endDate);
+                const daysColor = daysLeft < 0 ? '#c62828' : (daysLeft < 10 ? '#f57f17' : '#2e7d32');
+                const daysText = daysLeft < 0 ? 'Vencido' : `${daysLeft} día${daysLeft === 1 ? '' : 's'}`;
+                daysBlockHtml = `<div><strong>Días Restantes:</strong> <span style="color:${daysColor};font-weight:bold;">${daysText}</span></div>`;
+            }
+
+            const gradeBoxHtml = isApproved
+                ? `<div style="font-size:12px;color:#555;">Calificación Final</div>
+                   <div style="font-size:26px;font-weight:bold;color:var(--manager-color);">${avgT}%</div>`
+                : `<div style="font-size:12px;color:#555;">Calificación Final</div>
+                   <div style="font-size:14.5px;font-weight:bold;color:#f57c00;">Pendiente — se define al aprobar la evaluación</div>`;
 
             let html = `<div style="max-width:640px;margin:40px auto;padding:0 20px;">
                 <div style="background:white;border-radius:14px;padding:28px;box-shadow:0 2px 14px rgba(0,0,0,0.12);">
@@ -1257,43 +1307,31 @@
                         <div><strong>Inicio:</strong> ${formatDate(m.startDate)}</div>
                         <div><strong>Término:</strong> ${formatDate(m.endDate)}${m.isExtended ? ' <span style="color:#6a1b9a;font-size:11px;">(fecha actualizada)</span>' : ''}</div>
                         <div><strong>Estatus:</strong> <span style="color:${statusColor};font-weight:bold;">${statusLabel}</span></div>
+                        ${daysBlockHtml}
+                    </div>
+
+                    <div style="margin-bottom:18px;">
+                        <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;">
+                            <span>Progreso de Temas Completados</span>
+                            <span style="font-weight:bold;color:#2e7d32;">${completedCount}/${sevenTopics.length} · ${progressPct}%</span>
+                        </div>
+                        <div style="background:#e0e0e0;border-radius:8px;height:14px;overflow:hidden;">
+                            <div style="background:#4caf50;height:100%;width:${progressPct}%;transition:width .3s;"></div>
+                        </div>
                     </div>
 
                     <div style="background:#e8eaf6;padding:16px;border-radius:10px;text-align:center;margin-bottom:22px;">
-                        <div style="font-size:12px;color:#555;">Calificación Total</div>
-                        <div style="font-size:26px;font-weight:bold;color:var(--manager-color);">${avgT}%</div>
+                        ${gradeBoxHtml}
                     </div>
 
                     <h3 style="font-size:13px;color:#555;margin:0 0 8px 0;">Temas Evaluados</h3>
                     <div style="border:1px solid #eee;border-radius:8px;overflow:hidden;">
                         <div style="display:flex;background:#f5f5f5;font-size:11px;font-weight:bold;padding:6px 10px;">
                             <div style="flex:2;">Tema</div><div style="flex:1.3;text-align:center;">Resultado</div>
-                        </div>`;
-            sevenTopics.forEach(t => {
-                const active = activeIds.includes(t.id);
-                const score = m[t.id] !== undefined ? m[t.id] : 0;
-                const hadFirstAttempt = m.moduleFailures && m.moduleFailures[t.id] !== undefined && m.moduleFailures[t.id] !== null;
-
-                let resultHtml;
-                if (!active) {
-                    resultHtml = `<span style="color:#aaa;">No aplica</span>`;
-                } else if (hadFirstAttempt) {
-                    // Tuvo una segunda oportunidad: se muestra la calificación del primer intento y la nueva
-                    resultHtml = `<span style="color:#c62828;">1er intento: ${m.moduleFailures[t.id]}</span><br><span style="font-weight:bold;">Actual: ${score}</span>`;
-                } else if (!score) {
-                    resultHtml = `<span style="color:#f57c00;font-weight:bold;">Pendiente</span>`;
-                } else {
-                    resultHtml = `<span style="font-weight:bold;">${score}</span>`;
-                }
-
-                html += `<div style="display:flex;align-items:center;padding:7px 10px;border-top:1px solid #eee;font-size:12px;${active?'':'opacity:0.45;'}">
-                    <div style="flex:2;">${t.name}</div>
-                    <div style="flex:1.3;text-align:center;">${resultHtml}</div>
-                </div>`;
-            });
-            html += `</div>`;
-
-            html += `</div>
+                        </div>
+                        ${topicRowsHtml}
+                    </div>
+                </div>
                 <div style="text-align:center;margin-top:18px;">
                     <button class="btn" style="background:#e0e0e0;color:#333;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
                 </div>
