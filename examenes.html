@@ -31,7 +31,7 @@
         input[type="text"], input[type="password"], input[type="number"], select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; outline: none; font-size: 0.9rem; margin-top: 4px; transition: 0.2s; }
         input:focus, select:focus, textarea:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
         
-        .search-bar { position: relative; max-width: 350px; margin-bottom: 20px; }
+        .search-bar { position: relative; width: 100%; }
         .search-bar i { position: absolute; left: 12px; top: 15px; color: var(--text-muted); }
         .search-bar input { padding-left: 35px; width: 100%; }
 
@@ -61,21 +61,31 @@
         th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.85rem; }
         td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
         
+        .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 15px 0 5px 0; border-top: 1px solid var(--border); margin-top: 10px; }
+        .pagination-info { font-size: 0.85rem; color: var(--text-muted); font-weight:600; }
+        .pagination-controls { display: flex; align-items: center; }
+        .pagination-controls button { padding: 6px 12px; margin-left: 5px; border: 1px solid var(--border); background: var(--surface); border-radius: 4px; cursor: pointer; color: var(--primary); transition: 0.2s;}
+        .pagination-controls button:hover:not(:disabled) { background: #F1F5F9; }
+        .pagination-controls button:disabled { opacity: 0.4; cursor: not-allowed; color: var(--text-muted); }
+        
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
-        .modal-content { background: var(--surface); padding: 30px; border-radius: 12px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: var(--surface); padding: 30px; border-radius: 12px; width: 100%; max-width: 750px; max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
         
         .review-box { background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
         .review-box p { margin-bottom: 10px; font-size: 0.95rem; }
-        .review-box .ans-text { background: var(--surface); padding: 10px; border-left: 3px solid var(--primary-light); border-radius: 4px; font-style: italic; color: var(--text-main); margin-bottom: 15px; }
+        .review-box .ans-text { background: var(--surface); padding: 10px; border-radius: 4px; color: var(--text-main); margin-bottom: 10px; }
 
         .exam-player { display: flex; height: calc(100vh - 130px); gap: 20px; }
         .exam-main { flex: 1; background: var(--surface); border-radius: 8px; padding: 40px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
         .exam-sidebar { width: 280px; background: var(--surface); border-radius: 8px; padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; }
         .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
-        .nav-sq { aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: center; align-items: center; font-weight: 600; cursor: pointer; color: var(--text-muted); font-size: 0.85rem; }
+        .nav-sq { aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: center; align-items: center; font-weight: 600; cursor: pointer; color: var(--text-muted); font-size: 0.85rem; transition: 0.2s; }
+        
         .nav-sq.answered { background: #D1FAE5; border-color: var(--success); color: #065F46; }
+        .nav-sq.missing { background: #FEE2E2 !important; border-color: var(--danger) !important; color: #991B1B !important; }
         .nav-sq.current { border-color: var(--primary-light); background: #EFF6FF; color: var(--primary-light); }
+        
         .option-lbl { display: flex; align-items: center; gap: 12px; padding: 15px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: var(--surface); }
         
         .checkbox-list { max-height: 180px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: #F8FAFC; }
@@ -85,48 +95,65 @@
         .toast { background: var(--sidebar); color: white; padding: 15px 25px; border-radius: 6px; display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s forwards; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         
-        /* Estilos específicos para la Analítica */
         .analytics-bar-bg { width: 100%; background: var(--border); height: 12px; border-radius: 6px; overflow: hidden; margin-top: 8px; }
         .analytics-bar-fill { height: 100%; border-radius: 6px; transition: width 0.8s ease-in-out; }
+        
+        @keyframes pulseAlert { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
+        .timer-warning { color: var(--danger) !important; animation: pulseAlert 1s infinite; }
+        
+        .loader-spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid white; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .metric-card { background: var(--surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border); border-bottom: 4px solid var(--primary-light); text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
+        .metric-value { font-size: 2.8rem; font-weight: 700; color: var(--primary); margin-top: 10px; line-height: 1; }
+        .metric-title { font-size: 0.85rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .pulse-dot { display: inline-block; width: 10px; height: 10px; background: var(--success); border-radius: 50%; margin-right: 8px; animation: pulseAlert 1.5s infinite; }
+        
+        .filter-panel { display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; background: var(--surface); padding: 15px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .filter-group { display: flex; flex-direction: column; flex: 1; min-width: 200px; }
+        .filter-group label { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; text-transform: uppercase; }
+        .filter-group select, .filter-group input { margin-top: 0; padding: 8px 12px; }
     </style>
 </head>
 <body>
 
-<!-- OVERLAY DE CONEXIÓN (se oculta cuando Firebase ya cargó los datos) -->
 <div id="view-connecting" style="position:fixed; inset:0; background:linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:5000; color:white;">
     <i class="fa-solid fa-graduation-cap" style="font-size:2.5rem; margin-bottom:15px;"></i>
     <div style="font-weight:600; font-size:1.05rem;">Eval Cap</div>
     <div id="connecting-msg" style="margin-top:10px; opacity:0.85; font-size:0.9rem;"><i class="fa-solid fa-circle-notch fa-spin"></i> Conectando con la base de datos...</div>
 </div>
 
-<!-- LOGIN -->
+<div id="view-submitting" class="modal-overlay hidden" style="z-index: 6000; flex-direction: column; color: white;">
+    <div class="loader-spinner"></div>
+    <h3 style="margin: 0; font-weight: 600;">Guardando Resultados...</h3>
+    <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 10px;">Por favor, no cierres esta ventana.</p>
+</div>
+
 <div id="view-login" class="hidden">
     <div class="login-box">
         <h2 style="text-align: center; color: var(--primary); margin-bottom: 25px;"><i class="fa-solid fa-graduation-cap"></i> Eval Cap</h2>
-        <div style="margin-bottom: 15px;"><label>Usuario Institucional</label><input type="text" id="login-user" value="MAESTRO" style="text-transform: uppercase;"></div>
-        <div style="margin-bottom: 20px;"><label>Contraseña</label><input type="password" id="login-pass" value="123"></div>
+        <div style="margin-bottom: 15px;"><label>Usuario Institucional</label><input type="text" id="login-user" placeholder="Ej. JUAN_PEREZ@EXAMEN.COM" autocomplete="off" style="text-transform: uppercase;"></div>
+        <div style="margin-bottom: 20px;"><label>Contraseña</label><input type="password" id="login-pass" placeholder="Contraseña" autocomplete="new-password"></div>
         <button class="btn btn-primary" style="width: 100%;" onclick="login()">Ingresar al Sistema</button>
         <p id="login-error" class="hidden" style="color: var(--danger); font-size: 0.85rem; margin-top: 15px; text-align: center;">Credenciales incorrectas.</p>
     </div>
 </div>
 
-<!-- APP DASHBOARD -->
 <div id="app-dashboard" class="app-container hidden">
-    
-    <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-header"><i class="fa-solid fa-layer-group"></i> Eval Cap</div>
         <div id="nav-maestro" class="hidden" style="margin-top: 20px;">
-            <div class="nav-item active" onclick="switchTab('tab-lista', this)"><i class="fa-solid fa-list-check"></i> Exámenes</div>
-            <div class="nav-item" onclick="switchTab('tab-resultados', this)"><i class="fa-solid fa-chart-line"></i> Calificaciones</div>
-            <div class="nav-item" onclick="switchTab('tab-usuarios', this)"><i class="fa-solid fa-users-gear"></i> Usuarios</div>
+            <div class="nav-item active" onclick="switchTab('tab-dashboard', this)"><i class="fa-solid fa-chart-bar"></i> Monitor y Métricas</div>
+            <div class="nav-item" onclick="switchTab('tab-lista', this)"><i class="fa-solid fa-folder-open"></i> Exámenes</div>
+            <div class="nav-item" onclick="switchTab('tab-resultados', this)"><i class="fa-solid fa-file-signature"></i> Calificaciones</div>
+            <div class="nav-item" onclick="switchTab('tab-usuarios', this)"><i class="fa-solid fa-users"></i> Alumnos</div>
+            <div class="nav-item" onclick="switchTab('tab-admins', this)"><i class="fa-solid fa-user-shield"></i> Administradores</div>
         </div>
         <div id="nav-alumno" class="hidden" style="margin-top: 20px;">
             <div class="nav-item active" onclick="switchTab('tab-mis-examenes', this)"><i class="fa-solid fa-pen-to-square"></i> Mis Evaluaciones</div>
         </div>
     </div>
 
-    <!-- MAIN CONTENT -->
     <div class="main-content">
         <div class="topbar">
             <div id="user-greeting" style="font-weight: 600;"></div>
@@ -135,39 +162,57 @@
         
         <div class="content-area">
             
-            <!-- [MAESTRO] TABLA EXAMENES -->
-            <div id="tab-lista" class="tab-content hidden">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                    <div>
-                        <h2 style="color: var(--primary); margin-bottom: 10px;">Catálogo de Exámenes</h2>
-                        <div class="search-bar"><i class="fa-solid fa-search"></i><input type="text" id="search-exams" placeholder="Buscar examen..." onkeyup="renderExamsList()"></div>
-                    </div>
-                    <button class="btn btn-primary" onclick="openCreateExam()"><i class="fa-solid fa-plus"></i> Crear Nuevo</button>
+            <div id="tab-dashboard" class="tab-content hidden">
+                <h2 style="color: var(--primary); margin-bottom: 20px;"><i class="fa-solid fa-chart-pie"></i> Control General de Evaluaciones</h2>
+                <div class="grid-cards" style="margin-bottom: 30px;">
+                    <div class="metric-card"><div class="metric-title">Exámenes Aplicados Hoy</div><div class="metric-value" id="dash-today">0</div></div>
+                    <div class="metric-card" style="border-bottom-color: var(--success);"><div class="metric-title">Aplicados Este Mes</div><div class="metric-value" id="dash-month" style="color: var(--success);">0</div></div>
+                    <div class="metric-card" style="border-bottom-color: var(--warning);"><div class="metric-title">Total Histórico Aplicados</div><div class="metric-value" id="dash-total" style="color: var(--warning);">0</div></div>
                 </div>
-                <div id="maestro-exam-list" class="grid-cards"></div>
+                <h3 style="color: var(--primary); margin-bottom: 15px;"><span class="pulse-dot"></span> Radar en Vivo (Evaluándose Ahora)</h3>
+                <div class="card" style="overflow-x: auto; padding: 15px;">
+                    <table style="min-width: 600px; width: 100%;">
+                        <thead><tr><th>Alumno (Usuario)</th><th>Examen</th><th>Hora de Inicio</th><th>Estatus</th></tr></thead>
+                        <tbody id="dash-live-tbody"></tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- [MAESTRO] CREAR / EDITAR EXAMEN -->
+            <!-- CARPETAS DE EXÁMENES -->
+            <div id="tab-lista" class="tab-content hidden">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div style="flex:1; max-width:400px;">
+                        <h2 style="color: var(--primary); margin-bottom: 10px;">Catálogo de Exámenes</h2>
+                        <div class="search-bar" style="max-width:100%;"><i class="fa-solid fa-search"></i><input type="text" id="search-exams" placeholder="Buscar examen..." onkeyup="renderExamsList()"></div>
+                    </div>
+                    <button class="btn btn-primary" onclick="openCreateExam()" style="margin-top:35px;"><i class="fa-solid fa-plus"></i> Crear Nuevo</button>
+                </div>
+                <div id="maestro-exam-list"></div>
+            </div>
+
             <div id="tab-crear" class="tab-content hidden">
                 <input type="hidden" id="ex-edit-id">
                 <div class="card">
                     <h2 id="title-crear-editar" style="margin-bottom: 20px; color: var(--primary);"><i class="fa-solid fa-gear"></i> Configuración de Examen</h2>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 15px;">
+                    <div style="display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr; gap: 15px;">
                         <div><label>Título del Examen</label><input type="text" id="ex-title"></div>
+                        <div><label>Categoría / Carpeta</label><input type="text" id="ex-category" placeholder="Ej. Cajas, Sistemas" value="General"></div>
                         <div><label>Minutos</label><input type="number" id="ex-time" value="30" min="1"></div>
                         <div><label>Aprobar (%)</label><input type="number" id="ex-pass" value="80" min="1" max="100"></div>
-                        <div><label>Max Intentos</label><input type="number" id="ex-attempts" value="1" min="1" max="5"></div>
+                        <div><label>Intentos</label><input type="number" id="ex-attempts" value="1" min="1" max="5"></div>
                     </div>
                 </div>
                 <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                         <div>
                             <h2 style="color: var(--primary); display: inline-block;">Reactivos</h2>
                             <span id="total-pts-badge" class="badge badge-success" style="margin-left: 10px;">100% Ponderado</span>
                         </div>
-                        <div style="display: flex; gap: 10px;">
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <button class="btn btn-outline" style="border-color: var(--primary-light); color: var(--primary-light);" onclick="openBankModal()"><i class="fa-solid fa-book-open"></i> Importar del Banco</button>
+                            <span style="color: var(--border);">|</span>
                             <button class="btn btn-outline" onclick="autoDistributeWeights()"><i class="fa-solid fa-scale-balanced"></i> Re-ponderar a 100</button>
-                            <select id="q-type"><option value="opcion">Opción Múltiple</option><option value="abierta">Pregunta Abierta</option></select>
+                            <select id="q-type" style="width: auto;"><option value="opcion">Opción Múltiple</option><option value="abierta">Pregunta Abierta</option></select>
                             <button class="btn btn-primary" onclick="addQuestionBuilder()">+ Agregar</button>
                         </div>
                     </div>
@@ -179,53 +224,90 @@
                 </div>
             </div>
 
-            <!-- [MAESTRO] RESULTADOS -->
             <div id="tab-resultados" class="tab-content hidden">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                    <div>
-                        <h2 style="color: var(--primary); margin-bottom: 10px;">Monitor de Calificaciones</h2>
-                        <div class="search-bar"><i class="fa-solid fa-search"></i><input type="text" id="search-results" placeholder="Buscar alumno, ID o título..." onkeyup="renderResults()"></div>
+                <h2 style="color: var(--primary); margin-bottom: 15px;"><i class="fa-solid fa-file-signature"></i> Monitor de Calificaciones</h2>
+                <div class="filter-panel">
+                    <div class="filter-group">
+                        <label>Buscar Texto</label>
+                        <div class="search-bar" style="width:100%; margin-bottom:0;"><i class="fa-solid fa-search"></i><input type="text" id="search-results" placeholder="Nombre, Folio..." onkeyup="renderResults(true)"></div>
                     </div>
-                    <button class="btn btn-success" onclick="exportToCSV()" style="margin-top: 35px;"><i class="fa-solid fa-file-csv"></i> Exportar a Excel</button>
+                    <div class="filter-group">
+                        <label>Filtrar por Plantilla de Examen</label>
+                        <select id="filter-exam-results" onchange="renderResults(true)"><option value="">Todos los Exámenes</option></select>
+                    </div>
+                    <div class="filter-group" style="min-width: 150px;">
+                        <label>Filtrar por Estatus</label>
+                        <select id="filter-status-results" onchange="renderResults(true)">
+                            <option value="">Todos</option><option value="Aprobado">Aprobados</option><option value="Reprobado">Reprobados</option><option value="Pendiente Revisión">Pendiente Revisión</option><option value="Anulado (Abandono)">Abandonos</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: flex-end; padding-bottom: 2px;">
+                        <button class="btn btn-success" onclick="exportToCSV()" style="height: 38px;"><i class="fa-solid fa-file-csv"></i> Exportar</button>
+                    </div>
                 </div>
-                <div class="card">
-                    <table>
-                        <thead><tr><th>ID</th><th>Alumno (Usuario)</th><th>Examen</th><th>Fecha y Hora</th><th>Calificación</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                <div class="card" style="overflow-x: auto; margin-bottom: 0;">
+                    <table style="min-width: 900px; width: 100%;">
+                        <thead><tr><th>Folio de Aplicación</th><th>Alumno (Usuario)</th><th>Examen</th><th>Fecha y Hora</th><th>Calificación</th><th>Estatus</th><th>Acciones</th></tr></thead>
                         <tbody id="results-tbody"></tbody>
                     </table>
+                    <div id="results-pagination" class="pagination-container"></div>
                 </div>
             </div>
 
-            <!-- [MAESTRO] GESTIÓN DE USUARIOS -->
             <div id="tab-usuarios" class="tab-content hidden">
+                <h2 style="color: var(--primary); margin-bottom: 15px;"><i class="fa-solid fa-users"></i> Directorio de Alumnos Operativos</h2>
+                <div class="filter-panel">
+                    <div class="filter-group">
+                        <label>Buscar Texto</label>
+                        <div class="search-bar" style="width:100%; margin-bottom:0;"><i class="fa-solid fa-search"></i><input type="text" id="search-users" placeholder="Buscar por nombre o usuario..." onkeyup="renderUsers(true)"></div>
+                    </div>
+                    <div class="filter-group" style="max-width: 300px;">
+                        <label>Estado de Asignación</label>
+                        <select id="filter-assign-users" onchange="renderUsers(true)">
+                            <option value="">Todos los Alumnos</option><option value="con_examen">Con examen asignado</option><option value="sin_examen">Sin exámenes (Ociosos)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: flex-end; padding-bottom: 2px; margin-left:auto;">
+                        <button class="btn btn-primary" onclick="openUserModal()" style="height: 38px;"><i class="fa-solid fa-user-plus"></i> Nuevo Alumno</button>
+                    </div>
+                </div>
+                <div class="card" style="overflow-x: auto; margin-bottom: 0;">
+                    <table style="min-width: 700px; width: 100%;">
+                        <thead><tr><th>Nombre Completo</th><th>Usuario Institucional</th><th>Examen Asignado</th><th>Acciones</th></tr></thead>
+                        <tbody id="users-tbody"></tbody>
+                    </table>
+                    <div id="users-pagination" class="pagination-container"></div>
+                </div>
+            </div>
+
+            <div id="tab-admins" class="tab-content hidden">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                     <div>
-                        <h2 style="color: var(--primary); margin-bottom: 10px;">Directorio de Usuarios</h2>
-                        <div class="search-bar"><i class="fa-solid fa-search"></i><input type="text" id="search-users" placeholder="Buscar por nombre o usuario..." onkeyup="renderUsers()"></div>
+                        <h2 style="color: var(--primary); margin-bottom: 5px;"><i class="fa-solid fa-user-shield"></i> Administradores del Sistema</h2>
+                        <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:15px;">Usuarios con privilegios totales para crear exámenes, calificar y ver métricas.</p>
+                        <div class="search-bar" style="max-width: 400px;"><i class="fa-solid fa-search"></i><input type="text" id="search-admins" placeholder="Buscar administrador..." onkeyup="renderAdmins()"></div>
                     </div>
-                    <button class="btn btn-primary" onclick="openUserModal()"><i class="fa-solid fa-user-plus"></i> Nuevo Colaborador</button>
+                    <button class="btn btn-primary" onclick="openAdminModal()" style="margin-top: 20px;"><i class="fa-solid fa-plus"></i> Nuevo Administrador</button>
                 </div>
-                <div class="card">
-                    <table>
-                        <thead><tr><th>Nombre Completo</th><th>Usuario Institucional</th><th>Exámenes Asignados</th><th>Acciones</th></tr></thead>
-                        <tbody id="users-tbody"></tbody>
+                <div class="card" style="overflow-x: auto;">
+                    <table style="min-width: 700px; width: 100%;">
+                        <thead><tr><th>Nombre Completo</th><th>Usuario Institucional</th><th>Rol</th><th>Acciones</th></tr></thead>
+                        <tbody id="admins-tbody"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- [ALUMNO] LISTA EXAMENES -->
             <div id="tab-mis-examenes" class="tab-content hidden">
                 <h2 style="margin-bottom: 20px; color: var(--primary);">Mis Evaluaciones Asignadas</h2>
                 <div id="alumno-exam-list" class="grid-cards"></div>
             </div>
 
-            <!-- [ALUMNO] REPRODUCTOR WIZARD -->
             <div id="tab-reproductor" class="tab-content hidden" style="height: 100%; padding: 0;">
                 <div class="exam-player">
                     <div class="exam-main">
                         <div style="display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; font-weight: 600;">
                             <span id="player-progress">Progreso</span>
-                            <span class="badge badge-neutral" id="player-exam-id">ID: </span>
+                            <span class="badge badge-neutral" id="player-exam-id">Plantilla: </span>
                         </div>
                         <h2 id="player-q-text" style="margin-bottom: 25px; font-size: 1.2rem;"></h2>
                         <div id="player-q-input" style="flex: 1;"></div>
@@ -252,23 +334,22 @@
     </div>
 </div>
 
-<!-- MODAL: GESTIÓN DE USUARIOS -->
+<!-- MODAL ALUMNOS -->
 <div id="modal-user" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 450px;">
         <div class="modal-header">
-            <h3 id="modal-user-title">Gestión de Colaborador</h3>
+            <h3 id="modal-user-title">Gestión de Alumno</h3>
             <button class="btn btn-outline" onclick="closeModal('modal-user')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div>
             <input type="hidden" id="mu-mode">
-            
             <div id="modal-user-new-fields">
                 <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div><label>Nombres</label><input type="text" id="mu-first-name" oninput="generateUsername()" placeholder="Ej. JUAN" style="text-transform: uppercase;"></div>
                     <div><label>Apellidos</label><input type="text" id="mu-last-name" oninput="generateUsername()" placeholder="Ej. PEREZ" style="text-transform: uppercase;"></div>
                 </div>
                 <div class="form-group">
-                    <label>Correo Generado Automáticamente</label>
+                    <label>Usuario Generado Automáticamente</label>
                     <input type="text" id="mu-username-new" readonly style="background: #F1F5F9; color: var(--primary); text-transform: uppercase; font-weight: bold; border-color: transparent;">
                 </div>
             </div>
@@ -276,7 +357,7 @@
             <div id="modal-user-edit-fields" class="hidden">
                 <div class="form-group">
                     <div style="background: #F8FAFC; padding: 15px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 15px;">
-                        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: bold;">COLABORADOR:</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: bold;">ALUMNO:</div>
                         <div id="mu-edit-name" style="font-size: 1.1rem; font-weight: 700; color: var(--primary);"></div>
                         <div id="mu-edit-email" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 5px;"></div>
                     </div>
@@ -285,35 +366,147 @@
 
             <div class="form-group">
                 <label>Contraseña de Acceso</label>
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                     <input type="text" id="mu-pass" placeholder="Ingresa una clave o genérala">
-                    <button class="btn btn-outline" onclick="autoGenPass()"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                    <button class="btn btn-outline" onclick="autoGenPass('mu-pass')" title="Generar Contraseña"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
                 </div>
+                <button class="btn btn-outline" style="width: 100%; font-size: 0.8rem; color: var(--primary); border-color: var(--primary-light);" onclick="copyCredentials('mu')"><i class="fa-solid fa-copy"></i> Copiar Usuario y Contraseña</button>
             </div>
             
             <div class="form-group" id="mu-exams-group" style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px;">
-                <label style="color: var(--primary);"><i class="fa-solid fa-file-signature"></i> Asignar Exámenes:</label>
-                <div class="checkbox-list" id="mu-exams-list"></div>
+                <label style="color: var(--primary);"><i class="fa-solid fa-file-signature"></i> Asignar Examen:</label>
+                <div class="checkbox-list" id="mu-exams-list" style="margin-bottom: 10px;"></div>
                 
-                <div id="reset-attempts-container" class="hidden" style="margin-top: 15px; padding: 10px; background: #FEF2F2; border: 1px dashed var(--danger); border-radius: 6px;">
-                    <label class="checkbox-item" style="color: var(--danger); font-weight: 600; margin: 0;">
-                        <input type="checkbox" id="mu-reset-attempts"> Borrar intentos previos (Rehabilita los exámenes seleccionados)
-                    </label>
+                <div class="checkbox-item" style="margin-bottom:15px; background:#FEF2F2; border:1px solid var(--danger); padding:10px; border-radius:6px; color:var(--danger);">
+                    <input type="checkbox" id="mu-anti-cheat">
+                    <label for="mu-anti-cheat" style="font-weight:600; cursor:pointer;"><i class="fa-solid fa-shield-halved"></i> Activar Modo Anti-Trampa (Bloquea salir de la pestaña)</label>
+                </div>
+                
+                <div style="padding: 12px; background: #EFF6FF; border: 1px dashed var(--primary-light); border-radius: 6px;">
+                    <label style="font-size: 0.85rem; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-life-ring"></i> Otorgar Intentos Extra:</label>
+                    <div style="display:flex; align-items:center; gap:10px; margin-top: 5px;">
+                        <input type="number" id="mu-extra-attempts" value="0" min="0" max="10" style="width: 80px; padding: 6px; text-align:center; font-weight:bold;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); line-height:1.3;">Si el alumno reprobó o se salió por error, suma +1 aquí para dejarlo intentar de nuevo.</span>
+                    </div>
                 </div>
             </div>
-
             <button class="btn btn-primary" style="width: 100%; margin-top: 20px; padding: 12px;" onclick="saveUser()">Guardar Cambios</button>
         </div>
     </div>
 </div>
 
-<!-- MODAL: REVISIÓN / CONSULTA DE EXAMEN -->
+<!-- MODAL ADMINISTRADORES -->
+<div id="modal-admin" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3 id="modal-admin-title" style="color: var(--primary);"><i class="fa-solid fa-user-shield"></i> Gestión de Administrador</h3>
+            <button class="btn btn-outline" onclick="closeModal('modal-admin')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div>
+            <input type="hidden" id="ma-mode">
+            <div id="modal-admin-new-fields">
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div><label>Nombres</label><input type="text" id="ma-first-name" oninput="generateAdminUsername()" placeholder="Ej. LAURA" style="text-transform: uppercase;"></div>
+                    <div><label>Apellidos</label><input type="text" id="ma-last-name" oninput="generateAdminUsername()" placeholder="Ej. GOMEZ" style="text-transform: uppercase;"></div>
+                </div>
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label>Usuario Generado Automáticamente</label>
+                    <input type="text" id="ma-username-new" readonly style="background: #F1F5F9; color: var(--primary); text-transform: uppercase; font-weight: bold; border-color: transparent;">
+                    <span style="font-size:0.75rem; color:var(--success);"><i class="fa-solid fa-circle-info"></i> Se agregará el sufijo _ADM.</span>
+                </div>
+            </div>
+            <div id="modal-admin-edit-fields" class="hidden">
+                <div class="form-group">
+                    <div style="background: #F8FAFC; padding: 15px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 15px;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: bold;">ADMINISTRADOR:</div>
+                        <div id="ma-edit-name" style="font-size: 1.1rem; font-weight: 700; color: var(--primary);"></div>
+                        <div id="ma-edit-email" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 5px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Contraseña Maestra de Acceso</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="ma-pass" placeholder="Ingresa una clave segura">
+                    <button class="btn btn-outline" onclick="autoGenPass('ma-pass')" title="Generar Contraseña"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                </div>
+                <button class="btn btn-outline" style="width: 100%; font-size: 0.8rem; color: var(--primary); border-color: var(--primary-light);" onclick="copyCredentials('ma')"><i class="fa-solid fa-copy"></i> Copiar Usuario y Contraseña</button>
+            </div>
+            <button class="btn btn-success" style="width: 100%; margin-top: 25px; padding: 12px;" onclick="saveAdmin()"><i class="fa-solid fa-shield-halved"></i> Guardar Administrador</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL BANCO DE PREGUNTAS -->
+<div id="modal-bank" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header">
+            <h3 style="color: var(--primary);"><i class="fa-solid fa-book-open"></i> Banco de Preguntas Histórico</h3>
+            <button class="btn btn-outline" onclick="closeModal('modal-bank')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:15px;">Despliega un examen anterior, marca las preguntas que deseas reciclar y presiona Importar.</p>
+        <div id="bank-content" style="max-height: 50vh; overflow-y: auto; margin-bottom: 20px; border: 1px solid var(--border); padding: 10px; border-radius: 6px; background:#F8FAFC;"></div>
+        <div style="text-align: right; border-top: 1px solid var(--border); padding-top: 15px;">
+            <button class="btn btn-outline" onclick="closeModal('modal-bank')" style="margin-right: 10px;">Cancelar</button>
+            <button class="btn btn-primary" onclick="importFromBank()"><i class="fa-solid fa-file-import"></i> Importar Seleccionadas</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-instructions" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 550px;">
+        <div class="modal-header">
+            <h3 style="color: var(--primary);"><i class="fa-solid fa-clipboard-list"></i> Instrucciones de Evaluación</h3>
+            <button class="btn btn-outline" onclick="closeModal('modal-instructions')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div>
+            <h4 id="inst-title" style="margin-bottom: 15px; font-size: 1.2rem;"></h4>
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div style="background: #EFF6FF; padding: 12px; border-radius: 6px; flex: 1; text-align: center; border: 1px solid #BFDBFE;">
+                    <i class="fa-regular fa-clock" style="color: var(--primary-light); font-size: 1.5rem; margin-bottom: 5px;"></i>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">DURACIÓN</div>
+                    <div id="inst-time" style="font-weight: 700; color: var(--primary);"></div>
+                </div>
+                <div style="background: #F8FAFC; padding: 12px; border-radius: 6px; flex: 1; text-align: center; border: 1px solid var(--border);">
+                    <i class="fa-solid fa-list-ol" style="color: var(--text-muted); font-size: 1.5rem; margin-bottom: 5px;"></i>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">REACTIVOS</div>
+                    <div id="inst-qcount" style="font-weight: 700;"></div>
+                </div>
+                <div style="background: #ECFDF5; padding: 12px; border-radius: 6px; flex: 1; text-align: center; border: 1px solid #A7F3D0;">
+                    <i class="fa-solid fa-check-double" style="color: var(--success); font-size: 1.5rem; margin-bottom: 5px;"></i>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">APROBATORIO</div>
+                    <div id="inst-pass" style="font-weight: 700; color: var(--success);"></div>
+                </div>
+            </div>
+            
+            <div style="background: #F8FAFC; padding: 15px; border-radius: 6px; border: 1px dashed var(--text-muted); margin-bottom: 20px;">
+                <h4 style="margin-bottom: 10px; font-size: 0.95rem;">Reglas de la Plataforma:</h4>
+                <ul style="margin-left: 20px; font-size: 0.9rem; color: var(--text-main); line-height: 1.5;">
+                    <li>El cronómetro comenzará al dar clic en <strong>"Comenzar Evaluación"</strong>. Si el tiempo se agota, el examen se enviará automáticamente hasta donde hayas contestado.</li>
+                    <li>Utiliza la <strong>cuadrícula de números</strong> para navegar. Las preguntas contestadas se pintarán de <strong style="color:var(--success);">verde</strong>. Si te faltan preguntas, se marcarán de <strong style="color:var(--danger);">rojo</strong>.</li>
+                    <li>Al terminar, asegúrate de presionar siempre el botón verde de <strong>"Finalizar y Enviar"</strong> para registrar tu calificación definitiva.</li>
+                </ul>
+            </div>
+            
+            <div id="anti-cheat-warning" class="hidden" style="background: #FEF2F2; border: 1px solid var(--danger); padding: 12px; border-radius: 6px; margin-bottom: 20px; color: var(--danger); font-size: 0.85rem;">
+                <p style="font-weight: bold; margin-bottom: 5px;"><i class="fa-solid fa-shield-halved"></i> Modo Anti-Trampa Activado:</p>
+                <ul style="margin-left: 20px;">
+                    <li>Estrictamente prohibido salir de esta pestaña o cambiar de ventana. Hacerlo anulará tu examen automáticamente.</li>
+                </ul>
+            </div>
+            
+            <button id="btn-start-exam" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 1rem;"><i class="fa-solid fa-play"></i> Estoy listo, Comenzar Evaluación</button>
+        </div>
+    </div>
+</div>
+
 <div id="modal-grade" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 700px;">
         <div class="modal-header">
             <h3 id="modal-grade-title"><i class="fa-solid fa-pen-nib"></i> Revisión: <span id="mg-student" style="color:var(--primary);"></span></h3>
             <button class="btn btn-outline" onclick="closeModal('modal-grade')"><i class="fa-solid fa-xmark"></i></button>
         </div>
+        <div id="mg-summary-container"></div>
         <div id="mg-content"></div>
         <div style="text-align: right; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;" id="grading-footer">
             <button class="btn btn-success" onclick="saveGrades()"><i class="fa-solid fa-check-double"></i> Confirmar y Guardar Calificación</button>
@@ -321,23 +514,19 @@
     </div>
 </div>
 
-<!-- MODAL: ANALÍTICA DE REACTIVOS (NUEVO) -->
 <div id="modal-analytics" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 700px;">
         <div class="modal-header">
             <h3 id="modal-analytics-title" style="color: var(--primary);"><i class="fa-solid fa-chart-pie"></i> Analítica</h3>
             <button class="btn btn-outline" onclick="closeModal('modal-analytics')"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div id="ma-content" style="max-height: 60vh; overflow-y: auto;">
-            <!-- Contenido dinámico de las barras -->
-        </div>
+        <div id="ma-content" style="max-height: 60vh; overflow-y: auto;"></div>
     </div>
 </div>
 
 <div id="toast-container"></div>
 
 <script>
-    // ===== CONFIGURACIÓN FIREBASE (mismo proyecto que CAPACITACION, nodos exclusivos de Exámenes) =====
     const firebaseConfig = {
         apiKey: "AIzaSyBDHj-dts63M2Vgvwag4YzTTYtk1I3-iN4",
         authDomain: "seguimiento-capacitacion.firebaseapp.com",
@@ -353,55 +542,38 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         examDb = firebase.database();
     } else {
-        document.getElementById('connecting-msg').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No se pudo cargar el SDK de Firebase (gstatic.com). Revisa tu conexión a internet, o si algún bloqueador de anuncios/antivirus está bloqueando ese dominio, y recarga la página.';
+        document.getElementById('connecting-msg').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No se pudo cargar el SDK de Firebase. Revisa tu conexión a internet y recarga.';
     }
 
-    // Nodos EXCLUSIVOS de Exámenes. No comparten nombre ni tocan los nodos de
-    // Nuevos Ingresos/Gerenciales (employees, managers, backupLog, mgrTopicsConfig, userPermissions).
-    const FB_PATHS = { users: 'examUsers', exams: 'examExams', results: 'examResults' };
-
-    // --- 1. BASE DE DATOS EN TIEMPO REAL (Firebase Realtime Database) ---
-    // CACHE mantiene en memoria una copia de cada nodo, sincronizada en vivo vía on('value').
-    // DB.get/DB.save conservan la misma forma que antes (localStorage) para no tocar el resto del código.
-    let CACHE = { users: {}, exams: [], results: [] };
+    const FB_PATHS = { users: 'examUsers', exams: 'examExams', results: 'examResults', liveSessions: 'examLiveSessions' };
+    let CACHE = { users: {}, exams: [], results: [], liveSessions: {} };
     let dbLoadedCount = 0;
-    const TOTAL_DB_NODES = 3;
+    const TOTAL_DB_NODES = 4;
     let allNodesReady = false;
 
-    const DB = {
-        get: (key) => CACHE[key],
-        save: (key, data) => {
-            CACHE[key] = data;
-            examDb.ref(FB_PATHS[key]).set(data);
-        }
-    };
+    const DB = { get: (key) => CACHE[key], save: (key, data) => { CACHE[key] = data; examDb.ref(FB_PATHS[key]).set(data); } };
 
     function initFirebaseSync() {
         Object.keys(FB_PATHS).forEach(key => {
             let firstLoad = true;
             examDb.ref(FB_PATHS[key]).on('value', snap => {
                 const val = snap.val();
-                CACHE[key] = val || (key === 'users' ? {} : []);
+                CACHE[key] = val || (key === 'users' || key === 'liveSessions' ? {} : []);
 
                 if (firstLoad) {
                     firstLoad = false;
                     if (key === 'users' && Object.keys(CACHE.users).length === 0) {
-                        // Primer uso de esta base: crea el usuario MAESTRO por defecto
-                        const seedUsers = { "MAESTRO": { role: "maestro", pass: "123", name: "EDUARDO R.", firstName: "EDUARDO", lastName: "R.", assignedExams: [] } };
-                        CACHE.users = seedUsers;
-                        examDb.ref(FB_PATHS.users).set(seedUsers);
+                        const seedUsers = { "MAESTRO": { role: "maestro", pass: "123", name: "EDUARDO R.", firstName: "EDUARDO", lastName: "R.", assignedExams: [], extraAttempts: {}, antiCheat: false } };
+                        CACHE.users = seedUsers; examDb.ref(FB_PATHS.users).set(seedUsers);
                     }
                     dbLoadedCount++;
                     if (dbLoadedCount === TOTAL_DB_NODES) onFirebaseReady();
                 } else if (allNodesReady) {
-                    // Cambio en tiempo real desde otro dispositivo/sesión: refresca solo
-                    // vistas de solo-lectura visibles, sin interrumpir formularios abiertos.
                     refreshLiveViews();
                 }
             }, err => {
-                console.error('Error de conexión Firebase (Exámenes):', err);
                 const msg = document.getElementById('connecting-msg');
-                if (msg) msg.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No se pudo conectar a la base de datos. Verifica tu conexión a internet.';
+                if (msg) msg.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No se pudo conectar a la base de datos.';
             });
         });
     }
@@ -412,20 +584,38 @@
         document.getElementById('view-login').classList.remove('hidden');
     }
 
+    function populateDynamicFilters() {
+        const exams = DB.get('exams');
+        const examFilterSel = document.getElementById('filter-exam-results');
+        if (examFilterSel) {
+            const currentVal = examFilterSel.value;
+            examFilterSel.innerHTML = '<option value="">Todos los Exámenes</option>' + exams.map(ex => `<option value="${ex.id}">${ex.title}</option>`).join('');
+            if(Array.from(examFilterSel.options).some(opt => opt.value === currentVal)) examFilterSel.value = currentVal;
+        }
+    }
+
     function refreshLiveViews() {
         const visibleTab = document.querySelector('.tab-content:not(.hidden)');
         if (!visibleTab) return;
         const id = visibleTab.id;
+        populateDynamicFilters(); 
         if (id === 'tab-lista') renderExamsList();
         if (id === 'tab-resultados') renderResults();
         if (id === 'tab-usuarios') renderUsers();
+        if (id === 'tab-admins') renderAdmins();
         if (id === 'tab-mis-examenes') renderStudentExams();
+        if (id === 'tab-dashboard') renderDashboard(); 
     }
 
     if (fbSdkOk) initFirebaseSync();
-    let currentUser = null, activeExam = null, activeAnswers = {}, currentIndex = 0, timerInt = null, timeLeft = 0, currentGradingResultId = null;
+    
+    let currentUser = null, activeExam = null, activeAnswers = {}, currentIndex = 0, timerInt = null, timeLeft = 0;
+    let currentGradingResultId = null;
+    let alertTriggered = false, alertThreshold = 0;
+    
+    let resPage = 1; const resPerPage = 15;
+    let usrPage = 1; const usrPerPage = 15;
 
-    // --- UTILIDADES ---
     const showToast = (msg, type = 'success') => {
         const c = document.getElementById('toast-container'), t = document.createElement('div');
         t.className = 'toast'; t.style.borderLeft = `4px solid var(--${type})`;
@@ -437,10 +627,13 @@
         document.querySelectorAll('.tab-content').forEach(d => d.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
         if (el) { document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); el.classList.add('active'); }
+        populateDynamicFilters();
         if (id === 'tab-lista') renderExamsList();
-        if (id === 'tab-resultados') renderResults();
-        if (id === 'tab-usuarios') renderUsers();
+        if (id === 'tab-resultados') renderResults(true);
+        if (id === 'tab-usuarios') renderUsers(true);
+        if (id === 'tab-admins') renderAdmins();
         if (id === 'tab-mis-examenes') renderStudentExams();
+        if (id === 'tab-dashboard') renderDashboard();
     };
 
     const openModal = (id) => document.getElementById(id).classList.remove('hidden');
@@ -448,60 +641,97 @@
 
     function shuffleArray(array) {
         let newArr = [...array];
-        for (let i = newArr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-        }
+        for (let i = newArr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [newArr[i], newArr[j]] = [newArr[j], newArr[i]]; }
         return newArr;
     }
 
-    // --- AUTENTICACIÓN ---
     function login() {
         const inputUser = document.getElementById('login-user').value.trim().toUpperCase();
         const inputPass = document.getElementById('login-pass').value;
         const users = DB.get('users');
         
-        const foundKey = Object.keys(users).find(key => key.toUpperCase() === inputUser);
+        const foundKey = Object.keys(users).find(key => {
+            let actualUser = users[key].username ? users[key].username.toUpperCase() : key.toUpperCase();
+            return actualUser === inputUser || key.toUpperCase() === inputUser;
+        });
 
         if (foundKey && users[foundKey].pass === inputPass) {
-            currentUser = { username: foundKey, ...users[foundKey] };
+            currentUser = { id: foundKey, username: users[foundKey].username || foundKey, ...users[foundKey] };
             document.getElementById('view-login').classList.add('hidden');
             document.getElementById('app-dashboard').classList.remove('hidden');
             document.getElementById('user-greeting').innerText = `Bienvenido, ${currentUser.name}`;
             
             if (currentUser.role.toLowerCase() === 'maestro') {
                 document.getElementById('nav-maestro').classList.remove('hidden');
-                switchTab('tab-lista', document.querySelector('#nav-maestro .nav-item'));
+                switchTab('tab-dashboard', document.querySelector('#nav-maestro .nav-item'));
             } else {
                 document.getElementById('nav-alumno').classList.remove('hidden');
                 switchTab('tab-mis-examenes', document.querySelector('#nav-alumno .nav-item'));
             }
-        } else {
-            document.getElementById('login-error').classList.remove('hidden');
-        }
+        } else { document.getElementById('login-error').classList.remove('hidden'); }
     }
+    
     function logout() { if(timerInt) clearInterval(timerInt); location.reload(); }
 
-    // --- MÓDULO MAESTRO: GESTIÓN DE USUARIOS ---
-    function renderUsers() {
-        const users = DB.get('users'), q = document.getElementById('search-users').value.toLowerCase(), tbody = document.getElementById('users-tbody');
-        let html = '';
+    function renderDashboard() {
+        const results = DB.get('results') || [];
+        const live = DB.get('liveSessions') || {};
+        let countToday = 0, countMonth = 0, total = results.length;
+        const now = new Date(), todayStr = now.toDateString(), currentMonth = now.getMonth(), currentYear = now.getFullYear();
+
+        results.forEach(r => {
+            let d = new Date(r.timestamp);
+            if (d.toDateString() === todayStr) countToday++;
+            if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) countMonth++;
+        });
+
+        document.getElementById('dash-today').innerText = countToday;
+        document.getElementById('dash-month').innerText = countMonth;
+        document.getElementById('dash-total').innerText = total;
+
+        let liveHtml = '';
+        Object.keys(live).forEach(userId => {
+            let session = live[userId];
+            let startTimeStr = new Date(session.start).toLocaleTimeString('es-MX', {hour: '2-digit', minute:'2-digit'});
+            liveHtml += `<tr><td><strong>${session.name}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${session.userDisplay}</span></td><td>${session.examTitle}</td><td>${startTimeStr}</td><td><span class="badge badge-warning" style="animation: pulseAlert 1.5s infinite;"><i class="fa-solid fa-satellite-dish"></i> En Examen</span></td></tr>`;
+        });
+        document.getElementById('dash-live-tbody').innerHTML = liveHtml || '<tr><td colspan="4" style="text-align:center; padding: 25px; color:var(--text-muted);"><i class="fa-solid fa-mug-hot" style="font-size:2rem; margin-bottom:10px; display:block;"></i> Nadie se está evaluando en este momento.</td></tr>';
+    }
+
+    function renderUsers(resetPage = false) {
+        if(resetPage) usrPage = 1;
+        const users = DB.get('users');
+        const qText = document.getElementById('search-users').value.toLowerCase();
+        const fAssign = document.getElementById('filter-assign-users').value;
+        const tbody = document.getElementById('users-tbody');
+        
+        let filteredUsers = [];
         Object.keys(users).forEach(k => {
             const u = users[k];
             if (u.role.toLowerCase() === 'maestro') return; 
             
-            if(u.name.toLowerCase().includes(q) || k.toLowerCase().includes(q)) {
-                let assignedCount = u.assignedExams ? u.assignedExams.length : 0;
-                html += `
-                <tr>
-                    <td style="font-weight:600;">${u.name}</td>
-                    <td>${k}</td>
-                    <td><span class="badge badge-info">${assignedCount} Asignados</span></td>
-                    <td><button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openUserModal('${k}')"><i class="fa-solid fa-pen"></i> Asignar / Editar</button></td>
-                </tr>`;
-            }
+            let displayUser = u.username || k;
+            let assignedCount = u.assignedExams ? u.assignedExams.length : 0;
+            
+            let matchText = u.name.toLowerCase().includes(qText) || displayUser.toLowerCase().includes(qText);
+            let matchAssign = (fAssign === "") || (fAssign === "con_examen" && assignedCount > 0) || (fAssign === "sin_examen" && assignedCount === 0);
+            if(matchText && matchAssign) filteredUsers.push({ id: k, ...u, displayUser, assignedCount });
         });
-        tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center;">No se encontraron usuarios operativos.</td></tr>';
+
+        const total = filteredUsers.length;
+        const totalPages = Math.ceil(total / usrPerPage) || 1;
+        if(usrPage > totalPages) usrPage = totalPages;
+        const paginated = filteredUsers.slice((usrPage - 1) * usrPerPage, usrPage * usrPerPage);
+
+        tbody.innerHTML = paginated.map(u => {
+            let badgeStyle = u.assignedCount > 0 ? "badge-info" : "badge-neutral";
+            let textStatus = u.assignedCount > 0 ? "1 Asignado" : "0 Asignados";
+            return `<tr><td style="font-weight:600;">${u.name}</td><td>${u.displayUser}</td><td><span class="badge ${badgeStyle}">${textStatus}</span></td><td><button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openUserModal('${u.id}')"><i class="fa-solid fa-pen"></i> Asignar / Editar</button></td></tr>`;
+        }).join('') || '<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--text-muted);">No se encontraron alumnos con los filtros seleccionados.</td></tr>';
+
+        let htmlPage = `<div class="pagination-info">Mostrando ${(usrPage-1)*usrPerPage + (total>0?1:0)} a ${Math.min(usrPage*usrPerPage, total)} de ${total} registros</div>`;
+        htmlPage += `<div class="pagination-controls"><button ${usrPage === 1 ? 'disabled' : ''} onclick="usrPage--; renderUsers()"><i class="fa-solid fa-chevron-left"></i> Anterior</button><span style="font-size:0.85rem; margin:0 10px; font-weight:600;">Página ${usrPage} de ${totalPages}</span><button ${usrPage === totalPages ? 'disabled' : ''} onclick="usrPage++; renderUsers()">Siguiente <i class="fa-solid fa-chevron-right"></i></button></div>`;
+        document.getElementById('users-pagination').innerHTML = htmlPage;
     }
 
     function generateUsername() {
@@ -510,53 +740,62 @@
         const f = document.getElementById('mu-first-name').value.trim().toUpperCase();
         const l = document.getElementById('mu-last-name').value.trim().toUpperCase();
         if(!f && !l) { document.getElementById('mu-username-new').value = ''; return; }
-        const combined = (f + ' ' + l).trim().replace(/\s+/g, '.');
+        const combined = (f + ' ' + l).trim().replace(/\s+/g, '_');
         document.getElementById('mu-username-new').value = combined + '@EXAMEN.COM';
     }
 
-    function autoGenPass() {
+    function autoGenPass(inputId) {
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        let pass = '';
-        for(let i=0; i<6; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
-        document.getElementById('mu-pass').value = pass;
+        let pass = ''; for(let i=0; i<6; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+        document.getElementById(inputId).value = pass;
+    }
+    
+    function copyCredentials(prefix) {
+        let u = document.getElementById(`${prefix}-username-new`)?.value || document.getElementById(`${prefix}-edit-email`)?.innerText;
+        let p = document.getElementById(`${prefix}-pass`).value;
+        if(!u || !p) return showToast("Faltan datos para copiar.", "warning");
+        let txt = `Acceso Eval Cap\nUsuario: ${u}\nContraseña: ${p}`;
+        navigator.clipboard.writeText(txt).then(() => showToast("Credenciales copiadas al portapapeles exitosamente"));
     }
 
     function openUserModal(username = '') {
         const users = DB.get('users'), allExams = DB.get('exams');
         const listDiv = document.getElementById('mu-exams-list');
-        listDiv.innerHTML = allExams.map(ex => `<label class="checkbox-item"><input type="checkbox" class="exam-checkbox" value="${ex.id}"> [${ex.id}] ${ex.title}</label>`).join('') || '<p style="font-size:0.85rem; color:var(--text-muted);">No hay exámenes creados.</p>';
-        document.getElementById('mu-reset-attempts').checked = false;
+        const extraAttsInput = document.getElementById('mu-extra-attempts');
+        const antiCheatInput = document.getElementById('mu-anti-cheat');
+        
+        listDiv.innerHTML = '<label class="checkbox-item"><input type="radio" name="exam-assign" class="exam-radio" value=""> <strong style="color:var(--text-muted);">[Ninguno] No asignar ningún examen</strong></label>' + 
+        allExams.map(ex => `<label class="checkbox-item"><input type="radio" name="exam-assign" class="exam-radio" value="${ex.id}"> [${ex.id}] ${ex.title}</label>`).join('') || '<p style="font-size:0.85rem; color:var(--text-muted);">No hay exámenes creados.</p>';
 
         if (username) {
             const u = users[username];
-            document.getElementById('modal-user-title').innerText = "Editar Colaborador y Asignaciones";
+            document.getElementById('modal-user-title').innerText = "Editar Alumno y Asignaciones";
             document.getElementById('mu-mode').value = username;
-            
             document.getElementById('modal-user-new-fields').style.display = 'none';
             document.getElementById('modal-user-edit-fields').style.display = 'block';
-            document.getElementById('reset-attempts-container').style.display = 'block';
-            
             document.getElementById('mu-edit-name').innerText = u.name;
-            document.getElementById('mu-edit-email').innerText = username;
+            document.getElementById('mu-edit-email').innerText = u.username || username;
             document.getElementById('mu-pass').value = u.pass;
             
-            if(u.assignedExams) {
-                document.querySelectorAll('.exam-checkbox').forEach(cb => { 
-                    if(u.assignedExams.map(String).includes(String(cb.value))) cb.checked = true; 
-                });
-            }
-        } else {
-            document.getElementById('modal-user-title').innerText = "Nuevo Colaborador";
-            document.getElementById('mu-mode').value = ""; 
+            let currentExtra = 0;
+            if(u.assignedExams && u.assignedExams.length > 0) {
+                document.querySelectorAll('.exam-radio').forEach(cb => { if(u.assignedExams.map(String).includes(String(cb.value))) cb.checked = true; });
+                if(u.extraAttempts) currentExtra = u.extraAttempts[u.assignedExams[0]] || 0;
+            } else { document.querySelector('.exam-radio[value=""]').checked = true; }
             
+            extraAttsInput.value = currentExtra;
+            antiCheatInput.checked = u.antiCheat || false;
+            
+        } else {
+            document.getElementById('modal-user-title').innerText = "Nuevo Alumno";
+            document.getElementById('mu-mode').value = ""; 
             document.getElementById('modal-user-new-fields').style.display = 'block';
             document.getElementById('modal-user-edit-fields').style.display = 'none';
-            document.getElementById('reset-attempts-container').style.display = 'none';
-            
-            document.getElementById('mu-first-name').value = ""; 
-            document.getElementById('mu-last-name').value = "";
-            document.getElementById('mu-username-new').value = ""; 
-            document.getElementById('mu-pass').value = "";
+            document.getElementById('mu-first-name').value = ""; document.getElementById('mu-last-name').value = "";
+            document.getElementById('mu-username-new').value = ""; document.getElementById('mu-pass').value = "";
+            document.querySelector('.exam-radio[value=""]').checked = true;
+            extraAttsInput.value = 0;
+            antiCheatInput.checked = false;
         }
         openModal('modal-user');
     }
@@ -565,19 +804,26 @@
         const mode = document.getElementById('mu-mode').value;
         let users = DB.get('users');
         let assigned = [];
-        document.querySelectorAll('.exam-checkbox:checked').forEach(cb => assigned.push(String(cb.value)));
+        
+        const selectedRadio = document.querySelector('.exam-radio:checked');
+        if (selectedRadio && selectedRadio.value !== "") assigned.push(String(selectedRadio.value));
+
+        let extraAtt = parseInt(document.getElementById('mu-extra-attempts').value) || 0;
+        let isAntiCheat = document.getElementById('mu-anti-cheat').checked;
 
         if (mode) { 
             const p = document.getElementById('mu-pass').value.trim();
             if(!p) return showToast("La contraseña no puede estar vacía", "danger");
 
-            if(document.getElementById('mu-reset-attempts').checked && assigned.length > 0) {
-                let results = DB.get('results').filter(res => !(String(res.studentUser) === String(mode) && assigned.includes(String(res.examId))));
-                DB.save('results', results);
-            }
+            let extraObj = users[mode].extraAttempts || {};
+            if(assigned.length > 0) extraObj[assigned[0]] = extraAtt;
+
             users[mode].pass = p; 
             users[mode].assignedExams = assigned; 
-            showToast("Colaborador actualizado correctamente");
+            users[mode].extraAttempts = extraObj;
+            users[mode].antiCheat = isAntiCheat;
+            
+            showToast("Alumno actualizado correctamente");
         } else { 
             const f = document.getElementById('mu-first-name').value.toUpperCase().trim();
             const l = document.getElementById('mu-last-name').value.toUpperCase().trim();
@@ -586,58 +832,146 @@
             const fullName = (f + ' ' + l).trim();
 
             if(!u || !f || !l || !p) return showToast("Llena Nombres, Apellidos y Contraseña", "danger");
-            if (users[u]) return showToast("El correo generado ya existe. Evita duplicados.", "danger");
+            const dbKey = u.replace(/\./g, '_');
+            if (users[dbKey]) return showToast("El usuario ya existe. Evita duplicados.", "danger");
 
-            users[u] = { name: fullName, firstName: f, lastName: l, pass: p, role: 'alumno', assignedExams: assigned }; 
-            showToast("Colaborador creado exitosamente");
+            let extraObj = {};
+            if(assigned.length > 0) extraObj[assigned[0]] = extraAtt;
+
+            users[dbKey] = { username: u, name: fullName, firstName: f, lastName: l, pass: p, role: 'alumno', assignedExams: assigned, extraAttempts: extraObj, antiCheat: isAntiCheat }; 
+            showToast("Alumno creado exitosamente");
         }
-        
-        DB.save('users', users); closeModal('modal-user'); renderUsers(); 
+        DB.save('users', users); closeModal('modal-user'); renderUsers(true); 
     }
 
-    // --- MÓDULO MAESTRO: EXAMENES ---
+    function renderAdmins() {
+        const users = DB.get('users'), q = document.getElementById('search-admins').value.toLowerCase(), tbody = document.getElementById('admins-tbody');
+        let html = '';
+        Object.keys(users).forEach(k => {
+            const u = users[k];
+            if (u.role.toLowerCase() !== 'maestro') return; 
+            let displayUser = u.username || k;
+            if(u.name.toLowerCase().includes(q) || displayUser.toLowerCase().includes(q)) {
+                html += `<tr><td style="font-weight:600;">${u.name}</td><td style="color:var(--primary); font-weight:600;">${displayUser}</td><td><span class="badge badge-success">Administrador</span></td><td><button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openAdminModal('${k}')"><i class="fa-solid fa-pen"></i></button>${k !== 'MAESTRO' ? `<button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="deleteAdmin('${k}')" title="Eliminar Admin"><i class="fa-solid fa-trash"></i></button>` : ''}</td></tr>`;
+            }
+        });
+        tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center;">No hay administradores registrados.</td></tr>';
+    }
+
+    function generateAdminUsername() {
+        const mode = document.getElementById('ma-mode').value;
+        if(mode) return;
+        const f = document.getElementById('ma-first-name').value.trim().toUpperCase();
+        const l = document.getElementById('ma-last-name').value.trim().toUpperCase();
+        if(!f && !l) { document.getElementById('ma-username-new').value = ''; return; }
+        const combined = (f + ' ' + l).trim().replace(/\s+/g, '_');
+        document.getElementById('ma-username-new').value = combined + '_ADM@EXAMEN.COM';
+    }
+
+    function openAdminModal(username = '') {
+        const users = DB.get('users');
+        if (username) {
+            const u = users[username];
+            document.getElementById('modal-admin-title').innerHTML = `<i class="fa-solid fa-user-shield"></i> Editar Administrador`;
+            document.getElementById('ma-mode').value = username;
+            document.getElementById('modal-admin-new-fields').style.display = 'none';
+            document.getElementById('modal-admin-edit-fields').style.display = 'block';
+            document.getElementById('ma-edit-name').innerText = u.name;
+            document.getElementById('ma-edit-email').innerText = u.username || username;
+            document.getElementById('ma-pass').value = u.pass;
+        } else {
+            document.getElementById('modal-admin-title').innerHTML = `<i class="fa-solid fa-user-shield"></i> Nuevo Administrador`;
+            document.getElementById('ma-mode').value = ""; 
+            document.getElementById('modal-admin-new-fields').style.display = 'block';
+            document.getElementById('modal-admin-edit-fields').style.display = 'none';
+            document.getElementById('ma-first-name').value = ""; document.getElementById('ma-last-name').value = "";
+            document.getElementById('ma-username-new').value = ""; document.getElementById('ma-pass').value = "";
+        }
+        openModal('modal-admin');
+    }
+
+    function saveAdmin() {
+        const mode = document.getElementById('ma-mode').value;
+        let users = DB.get('users');
+        if (mode) { 
+            const p = document.getElementById('ma-pass').value.trim();
+            if(!p) return showToast("La contraseña no puede estar vacía", "danger");
+            users[mode].pass = p; showToast("Administrador actualizado");
+        } else { 
+            const f = document.getElementById('ma-first-name').value.toUpperCase().trim();
+            const l = document.getElementById('ma-last-name').value.toUpperCase().trim();
+            const u = document.getElementById('ma-username-new').value.toUpperCase().trim();
+            const p = document.getElementById('ma-pass').value.trim();
+            const fullName = (f + ' ' + l).trim();
+            if(!u || !f || !l || !p) return showToast("Llena Nombres, Apellidos y Contraseña", "danger");
+            const dbKey = u.replace(/\./g, '_');
+            if (users[dbKey]) return showToast("El usuario ya existe.", "danger");
+            users[dbKey] = { username: u, name: fullName, firstName: f, lastName: l, pass: p, role: 'maestro', extraAttempts: {}, antiCheat: false }; 
+            showToast("Administrador creado exitosamente");
+        }
+        DB.save('users', users); closeModal('modal-admin'); renderAdmins(); 
+    }
+
+    function deleteAdmin(username) {
+        if(username === 'MAESTRO') return showToast("El administrador principal no puede ser borrado.", "danger");
+        if(confirm(`ATENCIÓN: ¿Seguro que deseas eliminar este Administrador?\nYa no tendrá acceso a la plataforma.`)) {
+            let users = DB.get('users'); delete users[username]; DB.save('users', users); renderAdmins(); showToast("Administrador eliminado", "success");
+        }
+    }
+
     function renderExamsList() {
         const q = document.getElementById('search-exams').value.toLowerCase();
-        const exams = DB.get('exams').filter(e => e.title.toLowerCase().includes(q) || String(e.id).toLowerCase().includes(q));
+        let exams = DB.get('exams').filter(e => e.title.toLowerCase().includes(q) || String(e.id).toLowerCase().includes(q));
         
-        document.getElementById('maestro-exam-list').innerHTML = exams.map(ex => `
-            <div class="card" style="margin:0;">
-                <h3 style="margin-bottom:10px; color:var(--primary);">${ex.title}</h3>
-                <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px; display:flex; gap:15px;">
-                    <span><i class="fa-solid fa-fingerprint"></i> ${ex.id}</span>
-                    <span><i class="fa-regular fa-clock"></i> ${ex.time} min</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div class="badge badge-info">${ex.questions.length} Reactivos</div>
-                    <div style="display:flex; gap:10px;">
-                        <button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--primary);" onclick="openAnalytics('${ex.id}')" title="Analítica de Reactivos"><i class="fa-solid fa-chart-pie"></i></button>
-                        <button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openEditExam('${ex.id}')" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                        <button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="deleteExam('${ex.id}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+        let grouped = {};
+        exams.forEach(ex => { let cat = ex.category || 'General'; if(!grouped[cat]) grouped[cat] = []; grouped[cat].push(ex); });
+
+        let html = '';
+        Object.keys(grouped).sort().forEach(cat => {
+            html += `
+            <details open style="margin-bottom: 20px; background: transparent;">
+                <summary style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 15px; cursor: pointer; border-bottom: 2px solid var(--border); padding-bottom: 5px;">
+                    <i class="fa-solid fa-folder-open" style="color: var(--warning);"></i> Carpeta: ${cat} 
+                    <span class="badge badge-neutral" style="font-size:0.7rem; vertical-align:middle; margin-left:5px;">${grouped[cat].length} Plantillas</span>
+                </summary>
+                <div class="grid-cards" style="margin-top: 15px; margin-bottom: 15px;">
+            `;
+            html += grouped[cat].sort((a,b) => b.id.localeCompare(a.id)).map(ex => `
+                <div class="card" style="margin:0;">
+                    <h3 style="margin-bottom:10px; color:var(--primary);">${ex.title}</h3>
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px; display:flex; gap:15px; background:#F8FAFC; padding:8px; border-radius:6px; border:1px dashed var(--border);">
+                        <span style="font-weight:bold; color:var(--text-main);"><i class="fa-solid fa-fingerprint"></i> Folio: ${ex.id}</span>
+                        <span><i class="fa-regular fa-clock"></i> ${ex.time} min</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="badge badge-info">${ex.questions.length} Reactivos</div>
+                        <div style="display:flex; gap:10px;">
+                            <button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--primary);" onclick="openAnalytics('${ex.id}')" title="Analítica"><i class="fa-solid fa-chart-pie"></i></button>
+                            <button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openEditExam('${ex.id}')" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="deleteExam('${ex.id}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('') || '<p>No hay exámenes registrados.</p>';
+            `).join('');
+            html += `</div></details>`;
+        });
+        document.getElementById('maestro-exam-list').innerHTML = html || '<p style="color:var(--text-muted);">No hay exámenes registrados.</p>';
     }
 
     function deleteExam(id) {
-        if(confirm(`ATENCIÓN: ¿Estás completamente seguro de ELIMINAR el examen ${id}?\n\nLos alumnos perderán acceso a él de forma permanente.`)) {
+        if(confirm(`ATENCIÓN: ¿Seguro que deseas ELIMINAR la plantilla de examen ${id}?`)) {
             let exams = DB.get('exams').filter(e => String(e.id) !== String(id));
-            DB.save('exams', exams);
-            renderExamsList();
-            showToast("Examen eliminado de la base de datos", "success");
+            DB.save('exams', exams); populateDynamicFilters(); renderExamsList(); showToast("Plantilla eliminada");
         }
     }
 
     function openCreateExam() {
         document.getElementById('ex-edit-id').value = "";
         document.getElementById('title-crear-editar').innerHTML = '<i class="fa-solid fa-gear"></i> Crear Nuevo Examen';
-        document.getElementById('ex-title').value = "";
-        document.getElementById('ex-time').value = "30";
-        document.getElementById('ex-pass').value = "80";
-        document.getElementById('ex-attempts').value = "1";
-        document.getElementById('q-container').innerHTML = "";
-        checkTotalSum();
-        switchTab('tab-crear');
+        document.getElementById('ex-title').value = ""; document.getElementById('ex-category').value = "General";
+        document.getElementById('ex-time').value = "30"; document.getElementById('ex-pass').value = "80";
+        document.getElementById('ex-attempts').value = "1"; document.getElementById('q-container').innerHTML = "";
+        checkTotalSum(); switchTab('tab-crear');
     }
 
     function openEditExam(id) {
@@ -646,22 +980,42 @@
         
         document.getElementById('ex-edit-id').value = ex.id;
         document.getElementById('title-crear-editar').innerHTML = `<i class="fa-solid fa-pen"></i> Editar Examen (${ex.id})`;
-        document.getElementById('ex-title').value = ex.title;
-        document.getElementById('ex-time').value = ex.time;
-        document.getElementById('ex-pass').value = ex.passScore;
+        document.getElementById('ex-title').value = ex.title; document.getElementById('ex-category').value = ex.category || "General";
+        document.getElementById('ex-time').value = ex.time; document.getElementById('ex-pass').value = ex.passScore;
         document.getElementById('ex-attempts').value = ex.maxAttempts || 1;
-        
         document.getElementById('q-container').innerHTML = "";
         ex.questions.forEach(q => addQuestionBuilder(q));
-        
-        checkTotalSum();
-        switchTab('tab-crear');
+        checkTotalSum(); switchTab('tab-crear');
+    }
+
+    function openBankModal() {
+        const exams = DB.get('exams');
+        if(exams.length === 0) return showToast("Aún no tienes historial de exámenes guardados.", "warning");
+        let html = '';
+        exams.forEach(ex => {
+            if(ex.questions.length === 0) return;
+            html += `
+            <details style="margin-bottom:10px; background:#fff; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                <summary style="font-weight:600; color:var(--primary); cursor:pointer;"><i class="fa-solid fa-folder-open" style="margin-right:5px;"></i> ${ex.title} <span class="badge badge-neutral" style="margin-left:10px;">${ex.questions.length} Reactivos</span></summary>
+                <div style="margin-top:15px; padding-left:5px; display:flex; flex-direction:column; gap:8px;">`;
+            ex.questions.forEach(q => {
+                const safeQ = encodeURIComponent(JSON.stringify(q));
+                html += `<label class="checkbox-item" style="background:#F8FAFC; padding:10px; border-radius:6px; border:1px solid var(--border); cursor:pointer;"><input type="checkbox" class="bank-q-cb" value="${safeQ}"><div style="flex:1; margin-left:5px;"><div style="font-weight:600; font-size:0.9rem;">${q.text}</div><div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;"><i class="fa-solid fa-tag"></i> Tipo: ${q.type === 'opcion' ? 'Opción Múltiple' : 'Abierta'}</div></div></label>`;
+            });
+            html += `</div></details>`;
+        });
+        document.getElementById('bank-content').innerHTML = html; openModal('modal-bank');
+    }
+
+    function importFromBank() {
+        const checkboxes = document.querySelectorAll('.bank-q-cb:checked');
+        if(checkboxes.length === 0) return showToast("Selecciona al menos una pregunta para importar.", "warning");
+        checkboxes.forEach(cb => { let qData = JSON.parse(decodeURIComponent(cb.value)); qData.id = Date.now() + Math.floor(Math.random() * 10000); addQuestionBuilder(qData); });
+        autoDistributeWeights(); closeModal('modal-bank'); showToast(`${checkboxes.length} preguntas importadas con éxito.`);
     }
 
     function updateSelectOpts(id) {
-        const val = document.getElementById(`opts-${id}`).value;
-        const sel = document.getElementById(`corr-${id}`);
-        const currentSelected = sel.value;
+        const val = document.getElementById(`opts-${id}`).value; const sel = document.getElementById(`corr-${id}`); const currentSelected = sel.value;
         sel.innerHTML = val.split(';').filter(o=>o.trim()).map(o=>`<option value="${o.trim()}">${o.trim()}</option>`).join('');
         if(Array.from(sel.options).some(opt => opt.value === currentSelected)) sel.value = currentSelected;
     }
@@ -669,9 +1023,7 @@
     function addQuestionBuilder(qData = null) {
         const type = qData ? qData.type : document.getElementById('q-type').value;
         const id = qData ? qData.id : (Date.now() + Math.floor(Math.random() * 1000));
-        const weight = qData ? qData.weight : 0;
-        const text = qData ? qData.text : "";
-        
+        const weight = qData ? qData.weight : 0; const text = qData ? qData.text : "";
         let html = `
             <div class="q-builder card" style="background:#FAFAFA; border:1px dashed var(--border); padding:15px;" id="qb-${id}" data-type="${type}">
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
@@ -679,22 +1031,12 @@
                     <div><label style="font-size:0.8rem;">Valor %:</label><input type="number" class="q-weight" value="${weight}" style="width:70px; padding:3px;" oninput="checkTotalSum()"><button type="button" class="btn btn-outline" style="padding:3px 8px; margin-left:10px; color:var(--danger);" onclick="this.closest('.q-builder').remove(); autoDistributeWeights();"><i class="fa-solid fa-trash"></i></button></div>
                 </div>
                 <div><input type="text" class="q-text" placeholder="Escribe la pregunta..." value="${text}"></div>`;
-                
         if(type === 'opcion') {
             const optsStr = qData && qData.options ? qData.options.join('; ') : "";
-            html += `<div style="margin-top:10px;">
-                        <input type="text" class="q-opts" placeholder="Opción A; Opción B" id="opts-${id}" value="${optsStr}" oninput="updateSelectOpts('${id}')">
-                        <select class="q-correct" id="corr-${id}" style="margin-top:5px;"></select>
-                     </div>`;
+            html += `<div style="margin-top:10px;"><input type="text" class="q-opts" placeholder="Opción A; Opción B" id="opts-${id}" value="${optsStr}" oninput="updateSelectOpts('${id}')"><select class="q-correct" id="corr-${id}" style="margin-top:5px;"></select></div>`;
         }
-        
-        html += `</div>`;
-        document.getElementById('q-container').insertAdjacentHTML('beforeend', html);
-        
-        if(type === 'opcion') {
-            updateSelectOpts(id); 
-            if(qData && qData.correct) document.getElementById(`corr-${id}`).value = qData.correct;
-        }
+        html += `</div>`; document.getElementById('q-container').insertAdjacentHTML('beforeend', html);
+        if(type === 'opcion') { updateSelectOpts(id); if(qData && qData.correct) document.getElementById(`corr-${id}`).value = qData.correct; }
         if(!qData) autoDistributeWeights();
     }
 
@@ -709,32 +1051,29 @@
     function checkTotalSum() {
         let t = 0; document.querySelectorAll('.q-weight').forEach(e => t += parseFloat(e.value||0));
         const badge = document.getElementById('total-pts-badge');
-        badge.innerText = `${t}% Ponderado`;
-        badge.className = t === 100 ? 'badge badge-success' : 'badge badge-danger';
+        badge.innerText = `${t}% Ponderado`; badge.className = t === 100 ? 'badge badge-success' : 'badge badge-danger';
         return t;
     }
     
     function generateSequentialId() {
-        let exams = DB.get('exams'), max = 0;
-        exams.forEach(e => {
-            let idStr = String(e.id);
-            if(idStr.startsWith('EXM-')) {
-                let parts = idStr.split('-');
-                if(parts.length > 1 && !isNaN(parts[1]) && parseInt(parts[1]) > max) max = parseInt(parts[1]);
-            }
-        });
-        return "EXM-" + (max + 1).toString().padStart(3, '0');
+        const d = new Date(); const datePart = d.getFullYear().toString().slice(-2) + (d.getMonth()+1).toString().padStart(2,'0') + d.getDate().toString().padStart(2,'0');
+        const randomPart = Math.floor(Math.random() * 9000 + 1000); return `EXM-${datePart}-${randomPart}`;
+    }
+
+    function generateFolio() {
+        let res = DB.get('results') || []; let max = 0;
+        res.forEach(r => { if(r.folio && r.folio.startsWith('EVAL-')) { let n = parseInt(r.folio.split('-')[1]); if(n > max) max = n; }});
+        return "EVAL-" + String(max + 1).padStart(5, '0');
     }
 
     function saveExam() {
         const editId = document.getElementById('ex-edit-id').value;
         const title = document.getElementById('ex-title').value.trim();
+        const category = document.getElementById('ex-category').value.trim() || 'General';
         const time = parseInt(document.getElementById('ex-time').value);
         const passScore = parseInt(document.getElementById('ex-pass').value);
         const maxAttempts = parseInt(document.getElementById('ex-attempts').value);
-        
         let qBlocks = document.querySelectorAll('.q-builder'), questions = [];
-        
         if(!title || qBlocks.length === 0) return showToast("Falta título o preguntas", "danger");
         if(checkTotalSum() !== 100) return showToast("La ponderación debe sumar exactamente 100%", "danger");
 
@@ -753,132 +1092,104 @@
         let exams = DB.get('exams');
         if(editId) {
             let idx = exams.findIndex(e => String(e.id) === String(editId));
-            if(idx > -1) exams[idx] = { id: editId, title, time, passScore, maxAttempts, questions, totalWeight: 100 };
+            if(idx > -1) exams[idx] = { id: editId, title, category, time, passScore, maxAttempts, questions, totalWeight: 100 };
             showToast("Cambios guardados. No afectará a exámenes ya presentados.");
         } else {
-            exams.push({ id: generateSequentialId(), title, time, passScore, maxAttempts, questions, totalWeight: 100 }); 
+            exams.push({ id: generateSequentialId(), title, category, time, passScore, maxAttempts, questions, totalWeight: 100 }); 
             showToast("Examen Creado Exitosamente");
         }
-        
-        DB.save('exams', exams); 
-        switchTab('tab-lista');
+        DB.save('exams', exams); populateDynamicFilters(); switchTab('tab-lista');
     }
 
-    // --- MÓDULO MAESTRO: ANALÍTICA DE REACTIVOS (NUEVO) ---
+    // ====== CALIFICACIONES ======
     function openAnalytics(examId) {
         const results = DB.get('results').filter(r => String(r.examId) === String(examId));
         const exam = DB.get('exams').find(e => String(e.id) === String(examId));
-
         if (results.length === 0) return showToast("Aún no hay resultados para analizar en este examen.", "warning");
 
         let html = `<div style="margin-bottom: 20px;"><h4>Total de exámenes presentados: ${results.length}</h4></div>`;
-
-        let stats = {};
-        exam.questions.forEach(q => { stats[q.id] = { text: q.text, type: q.type, earned: 0, max: 0, correct: 0, answers: 0 }; });
-
-        results.forEach(res => {
-            res.answers.forEach(ans => {
-                if(stats[ans.qId]) {
-                    stats[ans.qId].answers++;
-                    stats[ans.qId].earned += ans.earned;
-                    stats[ans.qId].max += ans.maxPts;
-                    if(ans.type === 'opcion' && ans.earned > 0) stats[ans.qId].correct++;
-                }
-            });
-        });
+        let stats = {}; exam.questions.forEach(q => { stats[q.id] = { text: q.text, type: q.type, earned: 0, max: 0, correct: 0, answers: 0 }; });
+        results.forEach(res => { res.answers.forEach(ans => { if(stats[ans.qId]) { stats[ans.qId].answers++; stats[ans.qId].earned += ans.earned; stats[ans.qId].max += ans.maxPts; if(ans.type === 'opcion' && ans.earned > 0) stats[ans.qId].correct++; }}); });
 
         exam.questions.forEach((q, idx) => {
-            let s = stats[q.id];
-            if(s.answers === 0) return;
-
+            let s = stats[q.id]; if(s.answers === 0) return;
             let pct = 0, statText = "";
-            if(q.type === 'opcion') {
-                pct = Math.round((s.correct / s.answers) * 100);
-                statText = `${pct}% de aciertos (${s.correct}/${s.answers})`;
-            } else {
-                pct = Math.round((s.earned / s.max) * 100);
-                statText = `Promedio de puntos: ${pct}%`;
-            }
-
+            if(q.type === 'opcion') { pct = Math.round((s.correct / s.answers) * 100); statText = `${pct}% de aciertos (${s.correct}/${s.answers})`; } 
+            else { pct = Math.round((s.earned / s.max) * 100); statText = `Promedio de puntos: ${pct}%`; }
             let color = pct >= 80 ? 'var(--success)' : (pct >= 60 ? 'var(--warning)' : 'var(--danger)');
 
             html += `
             <div style="margin-bottom: 15px; border: 1px solid var(--border); padding: 15px; border-radius: 6px;">
                 <p style="font-weight: 600; margin-bottom: 5px;">${idx + 1}. ${q.text}</p>
-                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px;">
-                    <span>${q.type === 'opcion' ? 'Opción Múltiple' : 'Pregunta Abierta'}</span>
-                    <span style="font-weight: bold; color: ${color};">${statText}</span>
-                </div>
-                <div class="analytics-bar-bg">
-                    <div class="analytics-bar-fill" style="width: ${pct}%; background: ${color};"></div>
-                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px;"><span>${q.type === 'opcion' ? 'Opción Múltiple' : 'Pregunta Abierta'}</span><span style="font-weight: bold; color: ${color};">${statText}</span></div>
+                <div class="analytics-bar-bg"><div class="analytics-bar-fill" style="width: ${pct}%; background: ${color};"></div></div>
                 ${pct < 60 ? `<p style="font-size: 0.8rem; color: var(--danger); margin-top: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> Alerta: La mayoría reprueba este tema.</p>` : ''}
             </div>`;
         });
 
-        document.getElementById('ma-content').innerHTML = html;
-        document.getElementById('modal-analytics-title').innerHTML = `<i class="fa-solid fa-chart-pie"></i> Analítica: ${exam.title}`;
-        openModal('modal-analytics');
-        
-        // Timeout para activar la animación de la barra CSS
-        setTimeout(() => {
-            document.querySelectorAll('.analytics-bar-fill').forEach(el => {
-                let w = el.style.width; el.style.width = '0'; 
-                setTimeout(() => el.style.width = w, 50);
-            });
-        }, 100);
+        document.getElementById('ma-content').innerHTML = html; openModal('modal-analytics');
+        setTimeout(() => { document.querySelectorAll('.analytics-bar-fill').forEach(el => { let w = el.style.width; el.style.width = '0'; setTimeout(() => el.style.width = w, 50); }); }, 100);
     }
 
-    // --- MÓDULO MAESTRO: RESULTADOS Y CALIFICACIÓN ---
-    function formatDateTime(isoString) {
-        return new Date(isoString).toLocaleString('es-MX', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
-    }
+    function formatDateTime(isoString) { return new Date(isoString).toLocaleString('es-MX', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}); }
 
     function exportToCSV() {
-        const results = DB.get('results');
+        const qText = document.getElementById('search-results').value.toLowerCase();
+        const fExam = document.getElementById('filter-exam-results').value;
+        const fStatus = document.getElementById('filter-status-results').value;
+        
+        const results = DB.get('results').filter(r => {
+            let matchText = r.studentName.toLowerCase().includes(qText) || r.examTitle.toLowerCase().includes(qText) || String(r.folio).toLowerCase().includes(qText) || String(r.examId).toLowerCase().includes(qText) || r.studentUser.toLowerCase().includes(qText);
+            let matchExam = (fExam === "" || String(r.examId) === String(fExam));
+            let matchStatus = (fStatus === "" || r.status === fStatus);
+            return matchText && matchExam && matchStatus;
+        });
+
         if(results.length === 0) return showToast("No hay resultados para exportar", "warning");
         
-        let csv = "ID Examen,Alumno,Usuario,Titulo Examen,Fecha Termino,Calificacion,Estatus\n";
+        let csv = "Folio,ID Plantilla,Alumno,Usuario,Titulo Examen,Fecha Termino,Calificacion,Estatus\n";
         results.forEach(r => {
-            let date = new Date(r.timestamp).toLocaleString('es-MX');
-            let t = r.examTitle.replace(/,/g, ' '); 
-            csv += `"${r.examId}","${r.studentName}","${r.studentUser}","${t}","${date}","${r.score}%","${r.status}"\n`;
+            let date = new Date(r.timestamp).toLocaleString('es-MX'); let t = r.examTitle.replace(/,/g, ' '); let folioStr = r.folio || r.examId;
+            csv += `"${folioStr}","${r.examId}","${r.studentName}","${r.studentUser}","${t}","${date}","${r.score}%","${r.status}"\n`;
         });
         
         const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' }); 
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `Calificaciones_EvalCap_${new Date().getTime()}.csv`;
-        link.click();
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `Calificaciones_EvalCap_${new Date().getTime()}.csv`; link.click();
     }
 
-    function renderResults() {
-        const q = document.getElementById('search-results').value.toLowerCase();
-        const results = DB.get('results').filter(r => r.studentName.toLowerCase().includes(q) || r.examTitle.toLowerCase().includes(q) || String(r.examId).toLowerCase().includes(q) || r.studentUser.toLowerCase().includes(q));
+    function renderResults(resetPage = false) {
+        if(resetPage) resPage = 1;
+        const qText = document.getElementById('search-results').value.toLowerCase();
+        const fExam = document.getElementById('filter-exam-results').value;
+        const fStatus = document.getElementById('filter-status-results').value;
+        
+        let results = DB.get('results').filter(r => {
+            let matchText = r.studentName.toLowerCase().includes(qText) || r.examTitle.toLowerCase().includes(qText) || String(r.folio).toLowerCase().includes(qText) || String(r.examId).toLowerCase().includes(qText) || r.studentUser.toLowerCase().includes(qText);
+            let matchExam = (fExam === "" || String(r.examId) === String(fExam));
+            let matchStatus = (fStatus === "" || r.status === fStatus);
+            return matchText && matchExam && matchStatus;
+        });
         
         results.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const total = results.length; const totalPages = Math.ceil(total / resPerPage) || 1;
+        if(resPage > totalPages) resPage = totalPages;
+        const paginated = results.slice((resPage - 1) * resPerPage, resPage * resPerPage);
 
-        document.getElementById('results-tbody').innerHTML = results.map(r => {
+        document.getElementById('results-tbody').innerHTML = paginated.map(r => {
             let badge = r.status === 'Pendiente Revisión' ? 'badge-warning' : (r.status === 'Aprobado' ? 'badge-success' : 'badge-danger');
             let actionBtn = r.status === 'Pendiente Revisión' 
                 ? `<button type="button" class="btn btn-primary" style="font-size:0.75rem;" onclick="openGradingModal('${r.id}')"><i class="fa-solid fa-pen-nib"></i> Calificar</button>`
                 : `<button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openGradingModal('${r.id}', true)"><i class="fa-solid fa-eye"></i> Ver</button>`;
-            return `
-            <tr>
-                <td><span class="badge badge-neutral">${r.examId}</span></td>
-                <td><strong>${r.studentName}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${r.studentUser}</span></td>
-                <td>${r.examTitle}</td>
-                <td>${formatDateTime(r.timestamp)}</td>
-                <td><strong>${r.status === 'Pendiente Revisión' ? '--' : r.score + '%'}</strong></td>
-                <td><span class="badge ${badge}">${r.status}</span></td>
-                <td>
-                    <div style="display:flex; gap:5px;">
-                        ${actionBtn}
-                        <button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="deleteResult('${r.id}')" title="Borrar intento"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </td>
-            </tr>`;
-        }).join('') || '<tr><td colspan="7" style="text-align:center;">No se encontraron resultados.</td></tr>';
+            
+            let displayScore = r.status === 'Pendiente Revisión' ? `<strong>${r.score}%</strong><br><span style="font-size:0.70rem; color:var(--warning); font-weight:bold;">(Parcial / Por revisar)</span>` : `<strong>${r.score}%</strong>`;
+            let displayFolio = r.folio ? r.folio : r.examId;
+                
+            return `<tr><td><span class="badge badge-neutral" style="font-size:0.80rem; background:#E2E8F0; color:var(--primary); font-weight:800;">${displayFolio}</span></td><td><strong>${r.studentName}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${r.studentUser}</span></td><td>${r.examTitle}</td><td>${formatDateTime(r.timestamp)}</td><td>${displayScore}</td><td><span class="badge ${badge}">${r.status}</span></td><td><div style="display:flex; gap:5px;">${actionBtn}<button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="deleteResult('${r.id}')" title="Borrar intento"><i class="fa-solid fa-trash"></i></button></div></td></tr>`;
+        }).join('') || '<tr><td colspan="7" style="text-align:center; padding: 20px; color: var(--text-muted);">No se encontraron resultados con los filtros actuales.</td></tr>';
+
+        let htmlPage = `<div class="pagination-info">Mostrando ${(resPage-1)*resPerPage + (total>0?1:0)} a ${Math.min(resPage*resPerPage, total)} de ${total} registros</div>`;
+        htmlPage += `<div class="pagination-controls"><button ${resPage === 1 ? 'disabled' : ''} onclick="resPage--; renderResults()"><i class="fa-solid fa-chevron-left"></i> Anterior</button><span style="font-size:0.85rem; margin:0 10px; font-weight:600;">Página ${resPage} de ${totalPages}</span><button ${resPage === totalPages ? 'disabled' : ''} onclick="resPage++; renderResults()">Siguiente <i class="fa-solid fa-chevron-right"></i></button></div>`;
+        document.getElementById('results-pagination').innerHTML = htmlPage;
     }
 
     function deleteResult(id) {
@@ -888,106 +1199,154 @@
         }
     }
 
+    function updateGradingSummary(resultsObj) {
+        let totalQuestions = resultsObj.answers.length; let correctCount = 0; let earnedSum = 0;
+        resultsObj.answers.forEach(a => { earnedSum += (a.earned || 0); if (a.earned === a.maxPts && a.maxPts > 0) correctCount++; });
+        document.getElementById('mg-summary-container').innerHTML = `
+        <div style="display:flex; justify-content:space-around; background:#F8FAFC; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="text-align:center;"><div style="font-size:0.8rem; color:var(--text-muted); font-weight:bold;">TOTAL REACTIVOS</div><div style="font-size:1.5rem; font-weight:bold; color:var(--text-main);">${totalQuestions}</div></div>
+            <div style="text-align:center;"><div style="font-size:0.8rem; color:var(--success); font-weight:bold;">ACIERTOS</div><div style="font-size:1.5rem; font-weight:bold; color:var(--success);">${correctCount}</div></div>
+            <div style="text-align:center;"><div style="font-size:0.8rem; color:var(--primary); font-weight:bold;">CALIFICACIÓN</div><div style="font-size:1.5rem; font-weight:bold; color:var(--primary);" id="live-grade-score">${Math.round(earnedSum)}%</div></div>
+        </div>`;
+    }
+
     function openGradingModal(resultId, readOnly = false) {
         currentGradingResultId = resultId;
         const result = DB.get('results').find(r => String(r.id) === String(resultId));
         document.getElementById('modal-grade-title').innerHTML = readOnly ? `<i class="fa-solid fa-eye"></i> Consulta de Examen: <span style="color:var(--primary);">${result.studentName}</span>` : `<i class="fa-solid fa-pen-nib"></i> Calificar: <span style="color:var(--primary);">${result.studentName}</span>`;
+        updateGradingSummary(result);
         
         let html = '';
         result.answers.forEach((ans, idx) => {
             if (ans.type === 'opcion') {
+                let isCorrect = ans.earned === ans.maxPts;
+                let iconHTML = isCorrect ? '<i class="fa-solid fa-circle-check" style="color: var(--success); font-size: 1.4rem;"></i>' : '<i class="fa-solid fa-circle-xmark" style="color: var(--danger); font-size: 1.4rem;"></i>';
                 html += `
-                <div class="review-box">
-                    <p><strong>${idx+1}. ${ans.text}</strong></p>
-                    <p style="font-size:0.85rem; color:var(--text-muted);">Respuesta Correcta: ${ans.correct}</p>
-                    <div class="ans-text" style="border-left-color: ${ans.earned === ans.maxPts ? 'var(--success)' : 'var(--danger)'};">
-                        Seleccionó: ${ans.answer} <span style="float:right; font-weight:bold;">${ans.earned} / ${ans.maxPts} pts</span>
-                    </div>
+                <div class="review-box" style="border-left: 4px solid ${isCorrect ? 'var(--success)' : 'var(--danger)'};">
+                    <div style="display:flex; justify-content:space-between; align-items:start;"><p><strong>${idx+1}. ${ans.text}</strong></p><span class="badge ${isCorrect ? 'badge-success' : 'badge-danger'}">Calificado Automáticamente</span></div>
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">Respuesta Correcta: <strong>${ans.correct}</strong></p>
+                    <div class="ans-text" style="display:flex; justify-content:space-between; align-items:center; background: ${isCorrect ? '#ECFDF5' : '#FEF2F2'}; border: 1px solid ${isCorrect ? '#A7F3D0' : '#FECACA'};"><span>Seleccionó: <strong>${ans.answer}</strong></span><div style="display:flex; align-items:center; gap:15px;"><span style="font-weight:bold; font-size:1.1rem;">${ans.earned} / ${ans.maxPts} pts</span>${iconHTML}</div></div>
                 </div>`;
             } else {
                 html += `
-                <div class="review-box" style="border-left: 4px solid var(--warning);">
-                    <p><strong>${idx+1}. ${ans.text}</strong> <span class="badge badge-info" style="float:right;">Max: ${ans.maxPts} Pts</span></p>
-                    <div class="ans-text">${ans.answer}</div>
+                <div class="review-box" style="border-left: 4px solid var(--warning); background: #FFFBEB;">
+                    <div style="display:flex; justify-content:space-between; align-items:start;"><p><strong>${idx+1}. ${ans.text}</strong></p><span class="badge badge-warning">Requiere Revisión Manual</span></div>
+                    <div class="ans-text" style="background:#fff; border: 1px solid var(--border);">${ans.answer}</div>
                     ${!readOnly ? `
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <label style="font-weight:600; font-size:0.9rem;">Puntos a otorgar:</label>
-                            <input type="number" class="manual-grade-input" data-qid="${ans.qId}" max="${ans.maxPts}" min="0" value="0" style="width:100px;">
-                        </div>` : `<div style="text-align:right; font-weight:bold; color:var(--primary);">Puntos otorgados: ${ans.earned} / ${ans.maxPts}</div>`}
+                        <div style="display:flex; align-items:center; gap:10px; margin-top: 15px; flex-wrap: wrap; background: #fff; padding: 12px; border-radius: 6px; border: 1px dashed var(--warning);">
+                            <button class="btn" style="background: #ECFDF5; color: var(--success); border: 1px solid var(--success);" onclick="document.getElementById('grade-${ans.qId}').value = ${ans.maxPts}; document.getElementById('grade-${ans.qId}').style.borderColor='var(--success)'; document.getElementById('grade-${ans.qId}').style.backgroundColor='#ECFDF5';"><i class="fa-solid fa-check"></i> Correcta (${ans.maxPts} pts)</button>
+                            <button class="btn" style="background: #FEF2F2; color: var(--danger); border: 1px solid var(--danger);" onclick="document.getElementById('grade-${ans.qId}').value = 0; document.getElementById('grade-${ans.qId}').style.borderColor='var(--danger)'; document.getElementById('grade-${ans.qId}').style.backgroundColor='#FEF2F2';"><i class="fa-solid fa-xmark"></i> Incorrecta (0 pts)</button>
+                            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;"><label style="font-weight:600; font-size:0.9rem; color: var(--primary);">Manual:</label><input type="number" class="manual-grade-input" id="grade-${ans.qId}" data-qid="${ans.qId}" max="${ans.maxPts}" min="0" value="" placeholder="pts" style="width:70px; padding: 8px; text-align:center; font-weight:bold;" oninput="this.style.borderColor='var(--primary-light)'; this.style.backgroundColor='#fff'; if(Number(this.value) > ${ans.maxPts}) this.value = ${ans.maxPts}; if(Number(this.value) < 0) this.value = 0;"><span style="font-weight:bold; color:var(--text-muted);">/ ${ans.maxPts}</span></div>
+                        </div>` : `<div style="text-align:right; font-weight:bold; color:var(--primary); background:#fff; padding:10px; border-radius:6px;">Puntos otorgados: ${ans.earned} / ${ans.maxPts}</div>`}
                 </div>`;
             }
         });
-        document.getElementById('mg-content').innerHTML = html;
-        document.getElementById('grading-footer').style.display = readOnly ? 'none' : 'block';
-        openModal('modal-grade');
+        document.getElementById('mg-content').innerHTML = html; document.getElementById('grading-footer').style.display = readOnly ? 'none' : 'block'; openModal('modal-grade');
     }
 
     function saveGrades() {
-        if(!confirm("¿Confirmas la calificación final?\n\nEsta acción modificará el estatus del alumno de manera irreversible en el registro.")) return;
+        let allGraded = true;
+        document.querySelectorAll('.manual-grade-input').forEach(inp => { if (inp.value === "") { inp.style.borderColor = "var(--danger)"; inp.style.backgroundColor = "#FEF2F2"; allGraded = false; }});
+        if (!allGraded) return showToast("¡Atención! Te faltan preguntas abiertas por calificar.", "danger");
+        if(!confirm("¿Confirmas la calificación final?")) return;
 
-        let results = DB.get('results');
-        let idx = results.findIndex(r => String(r.id) === String(currentGradingResultId));
+        let results = DB.get('results'); let idx = results.findIndex(r => String(r.id) === String(currentGradingResultId));
+        document.querySelectorAll('.manual-grade-input').forEach(inp => { let ansObj = results[idx].answers.find(a => String(a.qId) === String(inp.dataset.qid)); if(ansObj) ansObj.earned = Math.max(0, Math.min(Number(inp.value), ansObj.maxPts)); });
+        let totalEarned = 0; results[idx].answers.forEach(a => { totalEarned += a.earned; });
+        results[idx].score = Math.round(totalEarned); results[idx].status = results[idx].score >= results[idx].passScore ? 'Aprobado' : 'Reprobado';
         
-        document.querySelectorAll('.manual-grade-input').forEach(inp => {
-            let ansObj = results[idx].answers.find(a => String(a.qId) === String(inp.dataset.qid));
-            if(ansObj) ansObj.earned = Number(inp.value) > ansObj.maxPts ? ansObj.maxPts : Number(inp.value);
-        });
-
-        let totalEarned = 0; 
-        results[idx].answers.forEach(a => { totalEarned += a.earned; });
-        
-        results[idx].score = Math.round(totalEarned);
-        results[idx].status = results[idx].score >= results[idx].passScore ? 'Aprobado' : 'Reprobado';
-        
-        DB.save('results', results); closeModal('modal-grade'); renderResults(); showToast("Examen Calificado y Guardado permanentemente.");
+        DB.save('results', results); closeModal('modal-grade'); renderResults(true); showToast("Examen Calificado permanentemente.");
     }
 
-    // --- MÓDULO ALUMNO ---
+    // ====== MOTOR DEL ALUMNO (QUEMAR INTENTO AL INICIAR & SENSOR DE PESTAÑAS) ======
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && activeExam && currentUser && currentUser.antiCheat) {
+            window.cheatWarnings = (window.cheatWarnings || 0) + 1;
+            if (window.cheatWarnings >= 6) {
+                alert("🚨 PENALIZACIÓN POR TRAMPA\n\nHas abandonado la pestaña del examen repetidas veces. El examen ha sido anulado y enviado automáticamente.");
+                forceSubmit(false, "Anulado (Trampa)");
+            } else { showToast(`¡Advertencia! No salgas de la pestaña del examen o será anulado automáticamente.`, "danger"); }
+        }
+    });
+
     function renderStudentExams() {
+        const liveUser = DB.get('users')[currentUser.id];
+        if (liveUser) currentUser = { id: currentUser.id, username: liveUser.username || currentUser.id, ...liveUser };
+
         const allExams = DB.get('exams');
-        const results = DB.get('results').filter(r => String(r.studentUser) === String(currentUser.username));
+        const results = DB.get('results').filter(r => String(r.studentUserId) === String(currentUser.id) || String(r.studentUser) === String(currentUser.username));
         const myAssigned = currentUser.assignedExams || [];
-        
         const myExams = allExams.filter(e => myAssigned.map(String).includes(String(e.id)));
 
         document.getElementById('alumno-exam-list').innerHTML = myExams.map(ex => {
-            const myAttempts = results.filter(r => String(r.examId) === String(ex.id)).length;
-            const max = ex.maxAttempts || 1;
+            const myAttempts = results.filter(r => String(r.examId) === String(ex.id) && r.status !== 'Anulado (Abandono)').length;
+            const myExtra = (currentUser.extraAttempts && currentUser.extraAttempts[ex.id]) ? parseInt(currentUser.extraAttempts[ex.id]) : 0;
+            const max = (ex.maxAttempts || 1) + myExtra;
             const canAttempt = myAttempts < max;
+            
             const doneText = canAttempt ? (myAttempts > 0 ? `Reintentar (Intento ${myAttempts+1}/${max})` : "Presentar Examen") : "Intentos Agotados";
             
             return `
             <div class="card" style="margin:0; opacity: ${canAttempt ? '1' : '0.6'}">
                 <h3 style="margin-bottom:10px; color:var(--primary);">${ex.title}</h3>
-                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
-                    <i class="fa-regular fa-clock"></i> ${ex.time} min | Intentos: ${myAttempts} / ${max}
-                </p>
-                <button type="button" class="btn btn-primary" style="width:100%;" ${canAttempt ? `onclick="startExam('${ex.id}')"` : 'disabled'}>
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;"><i class="fa-regular fa-clock"></i> ${ex.time} min | Intentos: ${myAttempts} / ${max}</p>
+                <button type="button" class="btn btn-primary" style="width:100%;" ${canAttempt ? `onclick="openInstructions('${ex.id}')"` : 'disabled'}>
                     ${!canAttempt ? '<i class="fa-solid fa-lock"></i> ' : ''} ${doneText}
                 </button>
             </div>`;
         }).join('') || '<p style="color:var(--text-muted);">No tienes evaluaciones asignadas.</p>';
     }
 
+    function openInstructions(id) {
+        const ex = DB.get('exams').find(e => String(e.id) === String(id));
+        if(!ex) return showToast("Error al cargar examen", "danger");
+        
+        document.getElementById('inst-title').innerText = ex.title;
+        document.getElementById('inst-time').innerText = `${ex.time} Minutos`;
+        document.getElementById('inst-qcount').innerText = `${ex.questions.length}`;
+        document.getElementById('inst-pass').innerText = `${ex.passScore}%`;
+        
+        if(currentUser.antiCheat) {
+            document.getElementById('anti-cheat-warning').classList.remove('hidden');
+        } else {
+            document.getElementById('anti-cheat-warning').classList.add('hidden');
+        }
+        
+        document.getElementById('btn-start-exam').onclick = () => { closeModal('modal-instructions'); startExam(id); };
+        openModal('modal-instructions');
+    }
+
     function startExam(id) {
+        window.cheatWarnings = 0; 
         const originalExam = DB.get('exams').find(e => String(e.id) === String(id));
         activeExam = JSON.parse(JSON.stringify(originalExam)); 
-        
-        // Motor Anti-Copias
         activeExam.questions = shuffleArray(activeExam.questions);
-        activeExam.questions.forEach(q => {
-            if(q.type === 'opcion') q.options = shuffleArray(q.options);
-        });
+        activeExam.questions.forEach(q => { if(q.type === 'opcion') q.options = shuffleArray(q.options); });
 
-        activeAnswers = {}; currentIndex = 0; switchTab('tab-reproductor');
-        document.getElementById('player-exam-id').innerText = `ID: ${activeExam.id}`;
+        activeAnswers = {}; currentIndex = 0; 
+        
+        window.currentAttemptId = Date.now();
+        let res = DB.get('results');
+        let placeholderResult = {
+            id: window.currentAttemptId, folio: generateFolio(), examId: activeExam.id, examTitle: activeExam.title,
+            passScore: activeExam.passScore, studentUserId: currentUser.id, studentUser: currentUser.username, 
+            studentName: currentUser.name, timestamp: new Date().toISOString(), score: 0, 
+            status: 'Anulado (Abandono)', answers: []
+        };
+        res.push(placeholderResult);
+        DB.save('results', res);
+        
+        switchTab('tab-reproductor'); document.getElementById('player-exam-id').innerText = `Plantilla: ${activeExam.id}`;
+        examDb.ref(FB_PATHS.liveSessions + '/' + currentUser.id).set({ name: currentUser.name, userDisplay: currentUser.username, examTitle: activeExam.title, start: Date.now() });
         
         timeLeft = activeExam.time * 60; 
+        alertThreshold = activeExam.time >= 30 ? 300 : 60;
+        alertTriggered = false;
+        
+        if(timerInt) clearInterval(timerInt); 
         updateTimer(); 
         timerInt = setInterval(() => { 
-            timeLeft--; 
-            updateTimer(); 
-            if(timeLeft === 300) { showToast("¡Atención! Te quedan 5 minutos.", "warning"); }
+            timeLeft--; updateTimer(); 
             if(timeLeft <= 0){ clearInterval(timerInt); forceSubmit(true); } 
         }, 1000);
         
@@ -996,22 +1355,30 @@
     
     function updateTimer() {
         const m = Math.floor(Math.max(0, timeLeft)/60).toString().padStart(2,'0'), s = (Math.max(0, timeLeft)%60).toString().padStart(2,'0');
-        const t = document.getElementById('player-timer'); 
-        t.innerText = `${m}:${s}`; 
+        const t = document.getElementById('player-timer'); t.innerText = `${m}:${s}`; 
         
-        if(timeLeft <= 300) { t.classList.add('timer-warning'); } 
-        else { t.classList.remove('timer-warning'); }
+        if (timeLeft === alertThreshold && !alertTriggered) { alertTriggered = true; let mins = alertThreshold / 60; showToast(`¡Atención! El tiempo se agota. Te quedan ${mins} minuto(s).`, "warning"); }
+        if(timeLeft <= alertThreshold) { t.classList.add('timer-warning'); } else { t.classList.remove('timer-warning'); }
     }
 
-    function isValidAns(qId) {
-        const q = activeExam.questions.find(x => String(x.id) === String(qId)), a = activeAnswers[qId];
-        return a && (q.type === 'opcion' || a.trim().length >= 2);
-    }
+    function isValidAns(qId) { const q = activeExam.questions.find(x => String(x.id) === String(qId)), a = activeAnswers[qId]; return a && (q.type === 'opcion' || a.trim().length >= 2); }
+    
     function saveAns() {
-        const q = activeExam.questions[currentIndex], val = q.type==='abierta' ? document.getElementById('ans-input').value : (document.querySelector('input[name="ans-radio"]:checked')?.value || "");
-        if(val.trim()!=="") activeAnswers[q.id] = val; else delete activeAnswers[q.id];
+        if(!activeExam || currentIndex >= activeExam.questions.length) return;
+        const q = activeExam.questions[currentIndex]; let val = "";
+        if (q.type === 'abierta') { const el = document.getElementById('ans-input'); if(el) val = el.value; } 
+        else { const el = document.querySelector('input[name="ans-radio"]:checked'); if(el) val = el.value; }
+        if(val.trim() !== "") activeAnswers[q.id] = val; else delete activeAnswers[q.id]; 
     }
-    function renderGrid() { document.getElementById('player-grid').innerHTML = activeExam.questions.map((q,i)=>`<div class="nav-sq ${isValidAns(q.id)?'answered':''} ${i===currentIndex?'current':''}" onclick="saveAns(); currentIndex=${i}; renderQuestion(); renderGrid();">${i+1}</div>`).join(''); }
+    
+    function renderGrid(highlightMissing = false) { 
+        document.getElementById('player-grid').innerHTML = activeExam.questions.map((q,i)=> {
+            let statusClass = isValidAns(q.id) ? 'answered' : (highlightMissing ? 'missing' : '');
+            let currClass = i === currentIndex ? 'current' : '';
+            return `<div class="nav-sq ${statusClass} ${currClass}" onclick="saveAns(); currentIndex=${i}; renderQuestion(); renderGrid();">${i+1}</div>`;
+        }).join(''); 
+    }
+    
     function navExam(d) { saveAns(); currentIndex+=d; renderQuestion(); renderGrid(); }
 
     function renderQuestion() {
@@ -1019,58 +1386,71 @@
         document.getElementById('player-progress').innerText = `Reactivo ${currentIndex+1} de ${activeExam.questions.length}`;
         document.getElementById('player-q-text').innerText = q.text;
         const v = activeAnswers[q.id] || "";
-        document.getElementById('player-q-input').innerHTML = q.type==='abierta' 
-            ? `<textarea id="ans-input" rows="8" placeholder="Redacta tu respuesta aquí..." oninput="liveChk()">${v}</textarea>`
-            : q.options.map(o => `<label class="option-lbl" onclick="liveChk()"><input type="radio" name="ans-radio" value="${o}" ${v===o?'checked':''}> ${o}</label>`).join('');
+        
+        if (q.type === 'abierta') { document.getElementById('player-q-input').innerHTML = `<textarea id="ans-input" rows="8" placeholder="Redacta tu respuesta aquí..." oninput="liveChk()">${v}</textarea>`; } 
+        else { document.getElementById('player-q-input').innerHTML = q.options.map((o, idx) => { const safeO = o.replace(/"/g, '&quot;'); return `<label class="option-lbl" style="cursor: pointer;"><input type="radio" name="ans-radio" value="${safeO}" ${v===o?'checked':''} onchange="liveChk()"> <span style="margin-left: 8px;">${o}</span></label>`; }).join(''); }
         document.getElementById('btn-prev').disabled = currentIndex===0; document.getElementById('btn-next').disabled = currentIndex===activeExam.questions.length-1;
     }
+    
     function liveChk() { saveAns(); renderGrid(); }
 
     function confirmSubmit() {
-        saveAns(); renderGrid();
-        let inv = []; activeExam.questions.forEach((q,i) => { if(!isValidAns(q.id)) inv.push(i+1); });
-        if (inv.length > 0 && !confirm(`Faltan preguntas por responder: ${inv.join(', ')}. ¿Enviar de todas formas?`)) return;
+        saveAns(); let inv = []; activeExam.questions.forEach((q,i) => { if(!isValidAns(q.id)) inv.push(i+1); });
+        if (inv.length > 0) { renderGrid(true); if(!confirm(`Faltan preguntas por responder: ${inv.join(', ')}. ¿Enviar de todas formas?`)) return; }
         forceSubmit(false);
     }
 
-    function forceSubmit(isTimeout) {
+    function forceSubmit(isTimeout, forceStatus = null) {
         clearInterval(timerInt); saveAns();
         let needsReview = false, totalEarnedAuto = 0, answersLog = [];
         
         activeExam.questions.forEach(q => {
-            const ansText = activeAnswers[q.id] || "Sin responder";
-            let earned = 0;
+            const ansText = activeAnswers[q.id] || "Sin responder"; let earned = 0;
             if (q.type === 'opcion') { if (ansText === q.correct) earned = q.weight; totalEarnedAuto += earned; } else { needsReview = true; }
             answersLog.push({ qId: q.id, type: q.type, text: q.text, answer: ansText, correct: q.correct, maxPts: q.weight, earned: earned });
         });
 
-        let status = needsReview ? 'Pendiente Revisión' : (Math.round(totalEarnedAuto) >= activeExam.passScore ? 'Aprobado' : 'Reprobado');
+        let status = forceStatus ? forceStatus : (needsReview ? 'Pendiente Revisión' : (Math.round(totalEarnedAuto) >= activeExam.passScore ? 'Aprobado' : 'Reprobado'));
 
         let res = DB.get('results');
+        let idx = res.findIndex(r => r.id === window.currentAttemptId);
         
-        res.push({
-            id: Date.now(), 
-            examId: activeExam.id, 
-            examTitle: activeExam.title,
-            passScore: activeExam.passScore,
-            studentUser: currentUser.username, 
-            studentName: currentUser.name,
-            timestamp: new Date().toISOString(), 
-            score: Math.round(totalEarnedAuto), 
-            status: status, 
-            answers: answersLog 
-        });
-        
-        DB.save('results', res);
-        
-        if(isTimeout) {
-            showToast("¡Tiempo agotado! Tu examen ha sido guardado hasta donde contestaste.", "warning");
+        if (idx > -1) {
+            res[idx].score = Math.round(totalEarnedAuto);
+            res[idx].status = status;
+            res[idx].answers = answersLog;
+            res[idx].timestamp = new Date().toISOString();
         } else {
-            showToast("Examen enviado correctamente. Se ha descontado un intento.", "success");
+            res.push({
+                id: Date.now(), folio: generateFolio(), examId: activeExam.id, examTitle: activeExam.title,
+                passScore: activeExam.passScore, studentUserId: currentUser.id, studentUser: currentUser.username, 
+                studentName: currentUser.name, timestamp: new Date().toISOString(), score: Math.round(totalEarnedAuto), 
+                status: status, answers: answersLog 
+            });
         }
         
-        activeExam = null;
-        switchTab('tab-mis-examenes', document.querySelector('#nav-alumno .nav-item'));
+        document.getElementById('view-submitting').classList.remove('hidden');
+        examDb.ref(FB_PATHS.liveSessions + '/' + currentUser.id).remove();
+
+        if (!navigator.onLine) {
+            examDb.ref(FB_PATHS.results).set(res); 
+            document.getElementById('view-submitting').classList.add('hidden');
+            showToast("Sin conexión. Guardado localmente, se sincronizará automáticamente.", "warning");
+            activeExam = null; switchTab('tab-mis-examenes', document.querySelector('#nav-alumno .nav-item'));
+            return;
+        }
+
+        examDb.ref(FB_PATHS.results).set(res).then(() => {
+            CACHE.results = res; document.getElementById('view-submitting').classList.add('hidden');
+            if(forceStatus) { showToast("Examen anulado y enviado al servidor.", "danger"); }
+            else if(isTimeout) { showToast("¡Tiempo agotado! Examen guardado y confirmado.", "warning"); } 
+            else { showToast("Examen enviado y confirmado correctamente.", "success"); }
+            activeExam = null; switchTab('tab-mis-examenes', document.querySelector('#nav-alumno .nav-item'));
+        }).catch(err => {
+            document.getElementById('view-submitting').classList.add('hidden');
+            showToast("Falla de servidor. No cierres sesión, se guardará en segundo plano.", "danger");
+            activeExam = null; switchTab('tab-mis-examenes', document.querySelector('#nav-alumno .nav-item'));
+        });
     }
 </script>
 </body>
