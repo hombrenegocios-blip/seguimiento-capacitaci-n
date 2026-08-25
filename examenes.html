@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eval Cap - Enterprise LMS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;600;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js" onerror="window.__fbLoadFailed=true"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js" onerror="window.__fbLoadFailed=true"></script>
@@ -43,8 +45,8 @@
         .badge-neutral { background: #E2E8F0; color: #475569; }
 
         .app-container { display: flex; width: 100%; height: 100%; }
-        #view-login { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); }
-        .login-box { background: var(--surface); padding: 40px; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        #view-login { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); position: relative; }
+        .login-box { background: var(--surface); padding: 40px; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 10; }
         
         .sidebar { width: 250px; background-color: var(--sidebar); color: white; display: flex; flex-direction: column; }
         .sidebar-header { padding: 25px 20px; font-size: 1.2rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -57,9 +59,10 @@
         
         .card { background: var(--surface); border-radius: 8px; padding: 25px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.85rem; }
-        td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        th { text-align: left; padding: 10px 8px; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.8rem; }
+        td { padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
         
         .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 15px 0 5px 0; border-top: 1px solid var(--border); margin-top: 10px; }
         .pagination-info { font-size: 0.85rem; color: var(--text-muted); font-weight:600; }
@@ -72,13 +75,13 @@
         .modal-content { background: var(--surface); padding: 30px; border-radius: 12px; width: 100%; max-width: 750px; max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
         
-        .review-box { background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .review-box { background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; transition: 0.3s; }
         .review-box p { margin-bottom: 10px; font-size: 0.95rem; }
         .review-box .ans-text { background: var(--surface); padding: 10px; border-radius: 4px; color: var(--text-main); margin-bottom: 10px; }
 
         .exam-player { display: flex; height: calc(100vh - 130px); gap: 20px; }
         .exam-main { flex: 1; background: var(--surface); border-radius: 8px; padding: 40px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
-        .exam-sidebar { width: 280px; background: var(--surface); border-radius: 8px; padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; }
+        .exam-sidebar { width: 280px; background: var(--surface); border-radius: 8px; padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
         .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 15px; }
         .nav-sq { aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: center; align-items: center; font-weight: 600; cursor: pointer; color: var(--text-muted); font-size: 0.85rem; transition: 0.2s; }
         
@@ -88,7 +91,7 @@
         
         .option-lbl { display: flex; align-items: center; gap: 12px; padding: 15px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: var(--surface); }
         
-        .checkbox-list { max-height: 180px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: #F8FAFC; }
+        .checkbox-list { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: #F8FAFC; }
         .checkbox-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.9rem; }
         
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
@@ -113,6 +116,122 @@
         .filter-group { display: flex; flex-direction: column; flex: 1; min-width: 200px; }
         .filter-group label { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; text-transform: uppercase; }
         .filter-group select, .filter-group input { margin-top: 0; padding: 8px 12px; }
+        
+        .emoji-btn { cursor: pointer; transition: transform 0.1s; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; background: #F8FAFC; border-radius: 6px; padding: 5px; border: 1px solid var(--border); user-select: none; }
+        .emoji-btn:hover { transform: scale(1.1); background: #EFF6FF; border-color: var(--primary-light); }
+
+        /* ====================================================
+           FIRMA ERV - EFECTO ESTAMPIDA ÉPICA (TAMAÑO 1/4 - MINIATURA)
+           ==================================================== */
+        .dev-wrapper {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            z-index: 50;
+        }
+
+        .bracket-hitbox {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 40px; height: 40px;
+            cursor: pointer;
+            z-index: 55;
+        }
+
+        /* El corchete por defecto (Súper imperceptible y chiquito) */
+        .bracket-icon {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.2);
+            font-family: monospace;
+            font-weight: bold;
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            transform: translateY(0) scale(1) rotate(0deg);
+            opacity: 1;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s, opacity 0.5s ease 0.5s;
+            pointer-events: none;
+        }
+
+        /* Al pasar el mouse, el corchete vuela y desaparece rápido */
+        .dev-wrapper:hover .bracket-icon {
+            transform: translateY(-20px) scale(0.2) rotate(90deg);
+            opacity: 0;
+            transition: transform 0.4s ease, opacity 0.2s ease;
+            transition-delay: 0s;
+        }
+
+        /* --- TARJETA BASE A ESCALA 1/4 (0.45) --- */
+        .erv-logo-card {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 290px;
+            padding: 22px 25px;
+            border-radius: 16px;
+            font-family: 'Montserrat', sans-serif;
+            pointer-events: none; 
+            
+            /* LA MAGIA DEL TAMAÑO: Se reduce al 45% (Aprox 1/4 del area total) anclado a la esquina */
+            transform-origin: bottom left;
+            transform: scale(0.45);
+            
+            background: rgba(255, 255, 255, 0);
+            box-shadow: 0 0 0 rgba(0,0,0,0);
+            border: 1px solid rgba(226, 232, 240, 0);
+            transition: background 0.6s ease, box-shadow 0.6s ease, border 0.6s ease;
+        }
+
+        /* Tarjeta visible al Hover */
+        .dev-wrapper:hover .erv-logo-card {
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+            border: 1px solid rgba(226, 232, 240, 1);
+            pointer-events: auto;
+        }
+
+        /* ====================================================
+           ESTADO BASE DE LAS PIEZAS (ESTAMAPIDA FUERA DE PANTALLA)
+           ==================================================== */
+        .fly-piece {
+            display: inline-block;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 0.6s ease;
+        }
+
+        /* Vuelan muy lejos porque el contenedor está escalado */
+        .piece-e { transform: translate(-100vw, -200vh) rotate(-180deg) scale(0.1); transition-delay: 0s; }
+        .piece-r { transform: translate(20vw, -250vh) rotate(-90deg) scale(0.1); transition-delay: 0.05s; }
+        .piece-v { transform: translate(100vw, -180vh) rotate(180deg) scale(0.1); transition-delay: 0.1s; }
+        .piece-icon { transform: translate(200vw, -120vh) rotate(360deg) scale(0.1); transition-delay: 0.02s; }
+        .piece-div { transform: translate(150vw, -40vh) rotate(90deg) scale(0.1); transition-delay: 0.08s; }
+        .piece-name { transform: translate(120vw, 80vh) rotate(-45deg) scale(0.1); transition-delay: 0.12s; }
+
+        /* ====================================================
+           ESTADO HOVER (ATERRIZAN MAGÍCAMENTE)
+           ==================================================== */
+        .dev-wrapper:hover .fly-piece {
+            opacity: 1;
+            transform: translate(0, 0) rotate(0deg) scale(1) !important;
+            transition: transform 1s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease;
+        }
+
+        .dev-wrapper:hover .piece-e { transition-delay: 0.1s; }
+        .dev-wrapper:hover .piece-r { transition-delay: 0.15s; }
+        .dev-wrapper:hover .piece-v { transition-delay: 0.2s; }
+        .dev-wrapper:hover .piece-icon { transition-delay: 0.3s; }
+        .dev-wrapper:hover .piece-div { transition-delay: 0.4s; }
+        .dev-wrapper:hover .piece-name { transition-delay: 0.5s; }
+
+        /* --- Estilos internos del Logo ERV --- */
+        .brand-wrapper { display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
+        .text-grad { font-size: 3.8rem; font-weight: 900; line-height: 1; letter-spacing: -2px; background: linear-gradient(90deg, #0A2F5C 0%, #14B8A6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .icon-code { margin-left: 6px; display: flex; align-items: center; }
+        .divider-container { display: flex; align-items: center; justify-content: center; margin: 15px 0; }
+        .divider-line { height: 1px; background-color: #d1d5db; flex-grow: 1; max-width: 70px; }
+        .powered-by-text { margin: 0 12px; font-size: 0.65rem; font-weight: 600; color: #4b5563; letter-spacing: 2px; }
+        .full-name { font-size: 1rem; font-weight: 800; color: #0A2F5C; letter-spacing: 0.5px; margin: 0; line-height: 1.3; text-align: center; }
     </style>
 </head>
 <body>
@@ -129,6 +248,7 @@
     <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 10px;">Por favor, no cierres esta ventana.</p>
 </div>
 
+<!-- VISTA DEL LOGIN -->
 <div id="view-login" class="hidden">
     <div class="login-box">
         <h2 style="text-align: center; color: var(--primary); margin-bottom: 25px;"><i class="fa-solid fa-graduation-cap"></i> Eval Cap</h2>
@@ -136,6 +256,41 @@
         <div style="margin-bottom: 20px;"><label>Contraseña</label><input type="password" id="login-pass" placeholder="Contraseña" autocomplete="new-password"></div>
         <button class="btn btn-primary" style="width: 100%;" onclick="login()">Ingresar al Sistema</button>
         <p id="login-error" class="hidden" style="color: var(--danger); font-size: 0.85rem; margin-top: 15px; text-align: center;">Credenciales incorrectas.</p>
+    </div>
+    
+    <!-- FIRMA EFECTO ESTAMPIDA ÉPICA (TAMAÑO 1/4 - DISCRETA EN LOGIN) -->
+    <div class="dev-wrapper" title="Plataforma Desarrollada por Eduardo Rodríguez">
+        <div class="bracket-hitbox"></div>
+        <div class="bracket-icon">&lt;/&gt;</div>
+        
+        <div class="erv-logo-card">
+            <div class="brand-wrapper">
+                <span class="text-grad fly-piece piece-e">E</span>
+                <span class="text-grad fly-piece piece-r">R</span>
+                <span class="text-grad fly-piece piece-v">V</span>
+                <div class="icon-code fly-piece piece-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="url(#gradIcon)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <defs>
+                            <linearGradient id="gradIcon" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#0A2F5C;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#14B8A6;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <polyline points="16 18 22 12 16 6" />
+                        <polyline points="8 6 2 12 8 18" />
+                        <line x1="14" y1="4" x2="10" y2="20" />
+                        <circle cx="22" cy="12" r="1.5" fill="#14B8A6" stroke="none"/>
+                        <circle cx="2" cy="12" r="1.5" fill="#0A2F5C" stroke="none"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="divider-container fly-piece piece-div">
+                <div class="divider-line"></div>
+                <div class="powered-by-text">POWERED BY</div>
+                <div class="divider-line"></div>
+            </div>
+            <div class="full-name fly-piece piece-name">EDUARDO RODRÍGUEZ VILANO</div>
+        </div>
     </div>
 </div>
 
@@ -171,21 +326,20 @@
                 </div>
                 <h3 style="color: var(--primary); margin-bottom: 15px;"><span class="pulse-dot"></span> Radar en Vivo (Evaluándose Ahora)</h3>
                 <div class="card" style="overflow-x: auto; padding: 15px;">
-                    <table style="min-width: 600px; width: 100%;">
-                        <thead><tr><th>Alumno (Usuario)</th><th>Examen</th><th>Hora de Inicio</th><th>Estatus</th></tr></thead>
+                    <table style="width: 100%;">
+                        <thead><tr><th>Alumno</th><th>Examen</th><th>Hora de Inicio</th><th>Estatus</th></tr></thead>
                         <tbody id="dash-live-tbody"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- CARPETAS DE EXÁMENES -->
             <div id="tab-lista" class="tab-content hidden">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                     <div style="flex:1; max-width:400px;">
                         <h2 style="color: var(--primary); margin-bottom: 10px;">Catálogo de Exámenes</h2>
-                        <div class="search-bar" style="max-width:100%;"><i class="fa-solid fa-search"></i><input type="text" id="search-exams" placeholder="Buscar examen..." onkeyup="renderExamsList()"></div>
+                        <div class="search-bar" style="max-width:100%;"><i class="fa-solid fa-search"></i><input type="text" id="search-exams" placeholder="Buscar examen por título o ID..." onkeyup="renderExamsList()"></div>
                     </div>
-                    <button class="btn btn-primary" onclick="openCreateExam()" style="margin-top:35px;"><i class="fa-solid fa-plus"></i> Crear Nuevo</button>
+                    <button class="btn btn-primary" onclick="openCreateExam()" style="margin-top:35px;"><i class="fa-solid fa-plus"></i> Crear Nuevo Examen</button>
                 </div>
                 <div id="maestro-exam-list"></div>
             </div>
@@ -194,9 +348,29 @@
                 <input type="hidden" id="ex-edit-id">
                 <div class="card">
                     <h2 id="title-crear-editar" style="margin-bottom: 20px; color: var(--primary);"><i class="fa-solid fa-gear"></i> Configuración de Examen</h2>
-                    <div style="display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr; gap: 15px;">
-                        <div><label>Título del Examen</label><input type="text" id="ex-title"></div>
-                        <div><label>Categoría / Carpeta</label><input type="text" id="ex-category" placeholder="Ej. Cajas, Sistemas" value="General"></div>
+                    <div style="display: grid; grid-template-columns: 2.5fr 1.5fr 1fr 1fr 1fr; gap: 15px;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <label style="margin:0;">Título del Examen</label>
+                                <div style="position: relative;">
+                                    <button type="button" class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="document.getElementById('emoji-picker').classList.toggle('hidden')">😀 Emojis</button>
+                                    <div id="emoji-picker" class="hidden" style="position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 10px; width: 280px; max-height: 220px; overflow-y: auto; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; z-index: 100; box-shadow: 0 8px 15px rgba(0,0,0,0.15); margin-top: 5px;">
+                                        <span class="emoji-btn" onclick="insertEmoji('📝')">📝</span><span class="emoji-btn" onclick="insertEmoji('📋')">📋</span><span class="emoji-btn" onclick="insertEmoji('📚')">📚</span><span class="emoji-btn" onclick="insertEmoji('💻')">💻</span><span class="emoji-btn" onclick="insertEmoji('🖥️')">🖥️</span><span class="emoji-btn" onclick="insertEmoji('🖨️')">🖨️</span><span class="emoji-btn" onclick="insertEmoji('📊')">📊</span>
+                                        <span class="emoji-btn" onclick="insertEmoji('📈')">📈</span><span class="emoji-btn" onclick="insertEmoji('📉')">📉</span><span class="emoji-btn" onclick="insertEmoji('🎯')">🎯</span><span class="emoji-btn" onclick="insertEmoji('🏆')">🏆</span><span class="emoji-btn" onclick="insertEmoji('🥇')">🥇</span><span class="emoji-btn" onclick="insertEmoji('⭐')">⭐</span><span class="emoji-btn" onclick="insertEmoji('🧠')">🧠</span>
+                                        <span class="emoji-btn" onclick="insertEmoji('💡')">💡</span><span class="emoji-btn" onclick="insertEmoji('🚀')">🚀</span><span class="emoji-btn" onclick="insertEmoji('🔥')">🔥</span><span class="emoji-btn" onclick="insertEmoji('⚙️')">⚙️</span><span class="emoji-btn" onclick="insertEmoji('🛠️')">🛠️</span><span class="emoji-btn" onclick="insertEmoji('🔧')">🛠️</span><span class="emoji-btn" onclick="insertEmoji('🛒')">🛒</span>
+                                        <span class="emoji-btn" onclick="insertEmoji('📦')">📦</span><span class="emoji-btn" onclick="insertEmoji('🚚')">🚚</span><span class="emoji-btn" onclick="insertEmoji('💰')">💰</span><span class="emoji-btn" onclick="insertEmoji('💸')">💸</span><span class="emoji-btn" onclick="insertEmoji('💳')">💳</span><span class="emoji-btn" onclick="insertEmoji('🏢')">🏢</span><span class="emoji-btn" onclick="insertEmoji('🏪')">🏢</span>
+                                        <span class="emoji-btn" onclick="insertEmoji('👔')">💼</span><span class="emoji-btn" onclick="insertEmoji('🤝')">🤝</span><span class="emoji-btn" onclick="insertEmoji('🗣️')">🗣️</span><span class="emoji-btn" onclick="insertEmoji('🛎️')">🛎️</span><span class="emoji-btn" onclick="insertEmoji('📱')">📱</span><span class="emoji-btn" onclick="insertEmoji('📞')">📞</span><span class="emoji-btn" onclick="insertEmoji('🔍')">🔍</span>
+                                        <span class="emoji-btn" onclick="insertEmoji('✅')">✅</span><span class="emoji-btn" onclick="insertEmoji('❌')">❌</span><span class="emoji-btn" onclick="insertEmoji('⚠️')">⚠️</span><span class="emoji-btn" onclick="insertEmoji('🛑')">🛑</span><span class="emoji-btn" onclick="insertEmoji('🔐')">🔐</span><span class="emoji-btn" onclick="insertEmoji('🕒')">⏱️</span><span class="emoji-btn" onclick="insertEmoji('📅')">📅</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="text" id="ex-title">
+                        </div>
+                        <div>
+                            <label>Categoría / Carpeta</label>
+                            <select id="ex-category-select" onchange="toggleNewCat()"></select>
+                            <input type="text" id="ex-category-new" placeholder="Nombre de nueva carpeta..." class="hidden" style="margin-top:5px;">
+                        </div>
                         <div><label>Minutos</label><input type="number" id="ex-time" value="30" min="1"></div>
                         <div><label>Aprobar (%)</label><input type="number" id="ex-pass" value="80" min="1" max="100"></div>
                         <div><label>Intentos</label><input type="number" id="ex-attempts" value="1" min="1" max="5"></div>
@@ -212,8 +386,8 @@
                             <button class="btn btn-outline" style="border-color: var(--primary-light); color: var(--primary-light);" onclick="openBankModal()"><i class="fa-solid fa-book-open"></i> Importar del Banco</button>
                             <span style="color: var(--border);">|</span>
                             <button class="btn btn-outline" onclick="autoDistributeWeights()"><i class="fa-solid fa-scale-balanced"></i> Re-ponderar a 100</button>
-                            <select id="q-type" style="width: auto;"><option value="opcion">Opción Múltiple</option><option value="abierta">Pregunta Abierta</option></select>
-                            <button class="btn btn-primary" onclick="addQuestionBuilder()">+ Agregar</button>
+                            <select id="q-type" style="width: auto;"><option value="opcion">Opción Múltiple</option><option value="vf">Verdadero / Falso</option><option value="abierta">Pregunta Abierta</option></select>
+                            <button class="btn btn-primary" onclick="addQuestionBuilder()">+ Agregar Pregunta</button>
                         </div>
                     </div>
                     <div id="q-container"></div>
@@ -245,9 +419,9 @@
                         <button class="btn btn-success" onclick="exportToCSV()" style="height: 38px;"><i class="fa-solid fa-file-csv"></i> Exportar</button>
                     </div>
                 </div>
-                <div class="card" style="overflow-x: auto; margin-bottom: 0;">
-                    <table style="min-width: 900px; width: 100%;">
-                        <thead><tr><th>Folio de Aplicación</th><th>Alumno (Usuario)</th><th>Examen</th><th>Fecha y Hora</th><th>Calificación</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                <div class="card" style="overflow-x: auto; margin-bottom: 0; padding: 15px;">
+                    <table style="width: 100%; min-width: 650px;">
+                        <thead><tr><th>Folio</th><th>Alumno</th><th>Examen</th><th>Fecha</th><th>Calif.</th><th>Estatus</th><th>Acciones</th></tr></thead>
                         <tbody id="results-tbody"></tbody>
                     </table>
                     <div id="results-pagination" class="pagination-container"></div>
@@ -271,8 +445,8 @@
                         <button class="btn btn-primary" onclick="openUserModal()" style="height: 38px;"><i class="fa-solid fa-user-plus"></i> Nuevo Alumno</button>
                     </div>
                 </div>
-                <div class="card" style="overflow-x: auto; margin-bottom: 0;">
-                    <table style="min-width: 700px; width: 100%;">
+                <div class="card" style="overflow-x: auto; margin-bottom: 0; padding: 15px;">
+                    <table style="width: 100%; min-width: 600px;">
                         <thead><tr><th>Nombre Completo</th><th>Usuario Institucional</th><th>Examen Asignado</th><th>Acciones</th></tr></thead>
                         <tbody id="users-tbody"></tbody>
                     </table>
@@ -289,8 +463,8 @@
                     </div>
                     <button class="btn btn-primary" onclick="openAdminModal()" style="margin-top: 20px;"><i class="fa-solid fa-plus"></i> Nuevo Administrador</button>
                 </div>
-                <div class="card" style="overflow-x: auto;">
-                    <table style="min-width: 700px; width: 100%;">
+                <div class="card" style="overflow-x: auto; padding: 15px;">
+                    <table style="width: 100%; min-width: 600px;">
                         <thead><tr><th>Nombre Completo</th><th>Usuario Institucional</th><th>Rol</th><th>Acciones</th></tr></thead>
                         <tbody id="admins-tbody"></tbody>
                     </table>
@@ -307,7 +481,7 @@
                     <div class="exam-main">
                         <div style="display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; font-weight: 600;">
                             <span id="player-progress">Progreso</span>
-                            <span class="badge badge-neutral" id="player-exam-id">Plantilla: </span>
+                            <span class="badge badge-neutral" id="player-exam-id" style="font-size: 0.95rem; background: #E2E8F0; color: var(--primary); padding: 6px 12px;"><i class="fa-solid fa-book-open"></i> Examen</span>
                         </div>
                         <h2 id="player-q-text" style="margin-bottom: 25px; font-size: 1.2rem;"></h2>
                         <div id="player-q-input" style="flex: 1;"></div>
@@ -317,14 +491,47 @@
                         </div>
                     </div>
                     <div class="exam-sidebar">
-                        <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="text-align: center; margin-bottom: 10px;">
                             <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">TIEMPO RESTANTE</div>
                             <div id="player-timer" style="font-size: 2.2rem; font-weight: 700; color: var(--primary); transition: 0.3s;">00:00</div>
                         </div>
+                        
+                        <hr style="border: none; border-top: 1px solid var(--border); margin: 15px 0;">
+                        <button id="btn-toggle-calc" class="btn btn-outline" style="width: 100%; margin-bottom: 10px;" onclick="toggleCalc()">
+                            <i class="fa-solid fa-calculator"></i> Mostrar Calculadora
+                        </button>
+                        <div id="student-calc" class="hidden" style="background: #F8FAFC; padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px;">
+                            <input type="text" id="calc-display" readonly placeholder="0" style="width: 100%; text-align: right; font-size: 1.25rem; margin-bottom: 10px; font-family: monospace; padding: 8px; background: white;">
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                                <button class="btn btn-danger" style="padding: 8px 0;" onclick="calcClear()">C</button>
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('.')">.</button>
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcOp('%')">%</button>
+                                <button class="btn btn-primary" style="padding: 8px 0; background: var(--primary-light);" onclick="calcOp('/')">÷</button>
+                                
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('7')">7</button>
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('8')">8</button>
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('9')">9</button>
+                                <button class="btn btn-primary" style="padding: 8px 0; background: var(--primary-light);" onclick="calcOp('*')">×</button>
+                                
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('4')">4</button>
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('5')">5</button>
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('6')">6</button>
+                                <button class="btn btn-primary" style="padding: 8px 0; background: var(--primary-light);" onclick="calcOp('-')">-</button>
+                                
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('1')">1</button>
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('2')">2</button>
+                                <button class="btn btn-outline" style="padding: 8px 0;" onclick="calcInput('3')">3</button>
+                                <button class="btn btn-primary" style="padding: 8px 0; background: var(--primary-light);" onclick="calcOp('+')">+</button>
+                                
+                                <button class="btn btn-outline" style="padding: 8px 0; grid-column: span 2;" onclick="calcInput('0')">0</button>
+                                <button class="btn btn-success" style="padding: 8px 0; grid-column: span 2;" onclick="calcEval()">=</button>
+                            </div>
+                        </div>
+
                         <hr style="border: none; border-top: 1px solid var(--border);">
                         <div class="nav-grid" id="player-grid"></div>
                         <div style="margin-top: auto;">
-                            <button class="btn btn-success" style="width: 100%;" onclick="confirmSubmit()">Finalizar y Enviar</button>
+                            <button class="btn btn-success" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 1rem;" onclick="confirmSubmit()"><i class="fa-solid fa-paper-plane"></i> Finalizar y Enviar</button>
                         </div>
                     </div>
                 </div>
@@ -374,7 +581,8 @@
             </div>
             
             <div class="form-group" id="mu-exams-group" style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px;">
-                <label style="color: var(--primary);"><i class="fa-solid fa-file-signature"></i> Asignar Examen:</label>
+                <label id="assign-exam-title" style="color: var(--primary); font-size:0.95rem; margin-bottom:10px; display:block;"><i class="fa-solid fa-file-signature"></i> Asignar Examen:</label>
+                
                 <div class="checkbox-list" id="mu-exams-list" style="margin-bottom: 10px;"></div>
                 
                 <div class="checkbox-item" style="margin-bottom:15px; background:#FEF2F2; border:1px solid var(--danger); padding:10px; border-radius:6px; color:var(--danger);">
@@ -395,7 +603,33 @@
     </div>
 </div>
 
-<!-- MODAL ADMINISTRADORES -->
+<div id="modal-adv-user" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3 style="color: var(--danger);"><i class="fa-solid fa-user-gear"></i> Configuración Avanzada</h3>
+            <button class="btn btn-outline" onclick="closeModal('modal-adv-user')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Modifica el perfil del alumno sin que pierda su historial de exámenes.</p>
+        <input type="hidden" id="adv-u-id">
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label>Nombres</label>
+            <input type="text" id="adv-u-fn" style="text-transform: uppercase;">
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+            <label>Apellidos</label>
+            <input type="text" id="adv-u-ln" style="text-transform: uppercase;">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label>Actualizar Correo Institucional (Opcional)</label>
+            <input type="text" id="adv-u-usr" style="text-transform: uppercase;">
+        </div>
+        <button class="btn btn-primary" style="width: 100%; margin-bottom: 15px;" onclick="saveAdvUser()">Guardar Cambios de Perfil</button>
+        
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 20px 0;">
+        <button class="btn btn-danger" style="width: 100%;" onclick="deleteUserComplete()"><i class="fa-solid fa-trash"></i> Eliminar Alumno Definitivamente</button>
+    </div>
+</div>
+
 <div id="modal-admin" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 450px;">
         <div class="modal-header">
@@ -437,7 +671,6 @@
     </div>
 </div>
 
-<!-- MODAL BANCO DE PREGUNTAS -->
 <div id="modal-bank" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 650px;">
         <div class="modal-header">
@@ -482,8 +715,8 @@
             <div style="background: #F8FAFC; padding: 15px; border-radius: 6px; border: 1px dashed var(--text-muted); margin-bottom: 20px;">
                 <h4 style="margin-bottom: 10px; font-size: 0.95rem;">Reglas de la Plataforma:</h4>
                 <ul style="margin-left: 20px; font-size: 0.9rem; color: var(--text-main); line-height: 1.5;">
-                    <li>El cronómetro comenzará al dar clic en <strong>"Comenzar Evaluación"</strong>. Si el tiempo se agota, el examen se enviará automáticamente hasta donde hayas contestado.</li>
-                    <li>Utiliza la <strong>cuadrícula de números</strong> para navegar. Las preguntas contestadas se pintarán de <strong style="color:var(--success);">verde</strong>. Si te faltan preguntas, se marcarán de <strong style="color:var(--danger);">rojo</strong>.</li>
+                    <li>El cronómetro comenzará al dar clic en <strong>"Comenzar Evaluación"</strong>. Si el tiempo se agota, el examen se enviará automáticamente.</li>
+                    <li>Utiliza la <strong>cuadrícula de números</strong> para navegar. Las preguntas contestadas se pintarán de <strong style="color:var(--success);">verde</strong>. Si te faltan preguntas, se marcarán de <strong style="color:var(--danger);">rojo</strong> al intentar enviar.</li>
                     <li>Al terminar, asegúrate de presionar siempre el botón verde de <strong>"Finalizar y Enviar"</strong> para registrar tu calificación definitiva.</li>
                 </ul>
             </div>
@@ -503,7 +736,7 @@
 <div id="modal-grade" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 700px;">
         <div class="modal-header">
-            <h3 id="modal-grade-title"><i class="fa-solid fa-pen-nib"></i> Revisión: <span id="mg-student" style="color:var(--primary);"></span></h3>
+            <h3 id="modal-grade-title"><i class="fa-solid fa-pen-nib"></i> Revisión</h3>
             <button class="btn btn-outline" onclick="closeModal('modal-grade')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div id="mg-summary-container"></div>
@@ -527,6 +760,77 @@
 <div id="toast-container"></div>
 
 <script>
+    function toggleCalc() {
+        const calc = document.getElementById('student-calc');
+        const btn = document.getElementById('btn-toggle-calc');
+        calc.classList.toggle('hidden');
+        if (calc.classList.contains('hidden')) { btn.innerHTML = '<i class="fa-solid fa-calculator"></i> Mostrar Calculadora'; } 
+        else { btn.innerHTML = '<i class="fa-solid fa-calculator"></i> Ocultar Calculadora'; }
+    }
+
+    let calcCurrent = ""; let calcPrev = ""; let calcOperation = null;
+    function calcInput(num) {
+        let display = document.getElementById('calc-display');
+        if(display.value === "Error") calcClear();
+        calcCurrent += num; display.value = calcCurrent;
+    }
+    function calcOp(op) {
+        if (calcCurrent === "") return;
+        if (calcPrev !== "") calcEval();
+        calcOperation = op; calcPrev = calcCurrent; calcCurrent = "";
+    }
+    function calcEval() {
+        if (calcCurrent === "" || calcPrev === "" || !calcOperation) return;
+        let res = 0; let p = parseFloat(calcPrev); let c = parseFloat(calcCurrent);
+        try {
+            switch(calcOperation) {
+                case '+': res = p + c; break; case '-': res = p - c; break;
+                case '*': res = p * c; break; case '/': res = p / c; break;
+                case '%': res = p * (c / 100); break;
+            }
+            calcCurrent = res.toString(); calcOperation = null; calcPrev = "";
+            document.getElementById('calc-display').value = calcCurrent;
+        } catch(e) { document.getElementById('calc-display').value = "Error"; calcClear(); }
+    }
+    function calcClear() { calcCurrent = ""; calcPrev = ""; calcOperation = null; document.getElementById('calc-display').value = ""; }
+
+    function insertEmoji(e) { 
+        const titleInput = document.getElementById('ex-title');
+        titleInput.value += e; titleInput.focus();
+        document.getElementById('emoji-picker').classList.add('hidden');
+    }
+
+    function playBeep() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            const ctx = new AudioContext();
+            function beep(time, freq, dur) {
+                const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = 'sine'; osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.1, time); gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                osc.start(time); osc.stop(time + dur);
+            }
+            beep(ctx.currentTime, 880, 0.3); beep(ctx.currentTime + 0.4, 880, 0.3); beep(ctx.currentTime + 0.8, 1100, 0.5);
+        } catch(e) { console.log('Audio error:', e); }
+    }
+
+    function updateGradeColor(qId, maxPts) {
+        let inp = document.getElementById('grade-' + qId); let val = Number(inp.value);
+        let box = document.getElementById('review-box-' + qId); let badge = document.getElementById('badge-' + qId);
+        if (val === maxPts && maxPts > 0) {
+            box.style.borderLeftColor = 'var(--success)'; box.style.backgroundColor = '#ECFDF5';
+            badge.className = 'badge badge-success'; badge.style.cssText = ''; badge.innerText = 'Correcta';
+        } else if (val === 0) {
+            box.style.borderLeftColor = 'var(--danger)'; box.style.backgroundColor = '#FEF2F2';
+            badge.className = 'badge badge-danger'; badge.style.cssText = ''; badge.innerText = 'Incorrecta';
+        } else {
+            box.style.borderLeftColor = 'var(--primary-light)'; box.style.backgroundColor = '#EFF6FF';
+            badge.className = 'badge badge-info'; badge.style.cssText = 'background:#DBEAFE; color:#1E40AF;'; badge.innerText = 'Puntuación Parcial';
+        }
+    }
+
     const firebaseConfig = {
         apiKey: "AIzaSyBDHj-dts63M2Vgvwag4YzTTYtk1I3-iN4",
         authDomain: "seguimiento-capacitacion.firebaseapp.com",
@@ -547,9 +851,7 @@
 
     const FB_PATHS = { users: 'examUsers', exams: 'examExams', results: 'examResults', liveSessions: 'examLiveSessions' };
     let CACHE = { users: {}, exams: [], results: [], liveSessions: {} };
-    let dbLoadedCount = 0;
-    const TOTAL_DB_NODES = 4;
-    let allNodesReady = false;
+    let dbLoadedCount = 0; const TOTAL_DB_NODES = 4; let allNodesReady = false;
 
     const DB = { get: (key) => CACHE[key], save: (key, data) => { CACHE[key] = data; examDb.ref(FB_PATHS[key]).set(data); } };
 
@@ -557,8 +859,7 @@
         Object.keys(FB_PATHS).forEach(key => {
             let firstLoad = true;
             examDb.ref(FB_PATHS[key]).on('value', snap => {
-                const val = snap.val();
-                CACHE[key] = val || (key === 'users' || key === 'liveSessions' ? {} : []);
+                const val = snap.val(); CACHE[key] = val || (key === 'users' || key === 'liveSessions' ? {} : []);
 
                 if (firstLoad) {
                     firstLoad = false;
@@ -568,9 +869,7 @@
                     }
                     dbLoadedCount++;
                     if (dbLoadedCount === TOTAL_DB_NODES) onFirebaseReady();
-                } else if (allNodesReady) {
-                    refreshLiveViews();
-                }
+                } else if (allNodesReady) { refreshLiveViews(); }
             }, err => {
                 const msg = document.getElementById('connecting-msg');
                 if (msg) msg.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No se pudo conectar a la base de datos.';
@@ -582,6 +881,26 @@
         allNodesReady = true;
         document.getElementById('view-connecting').style.display = 'none';
         document.getElementById('view-login').classList.remove('hidden');
+    }
+
+    function updateCategoryDropdown(selectedVal = '') {
+        const exams = DB.get('exams');
+        let cats = [...new Set(exams.map(e => e.category || 'General'))];
+        if(!cats.includes('General')) cats.unshift('General');
+        
+        let sel = document.getElementById('ex-category-select');
+        sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('') + '<option value="_NEW_">+ Crear Nueva Carpeta...</option>';
+        
+        if (selectedVal && cats.includes(selectedVal)) { sel.value = selectedVal; } 
+        else { sel.value = 'General'; }
+        toggleNewCat();
+    }
+    
+    function toggleNewCat() {
+        const sel = document.getElementById('ex-category-select');
+        const newCat = document.getElementById('ex-category-new');
+        if(sel.value === '_NEW_') { newCat.classList.remove('hidden'); newCat.focus(); } 
+        else { newCat.classList.add('hidden'); }
     }
 
     function populateDynamicFilters() {
@@ -645,6 +964,11 @@
         return newArr;
     }
 
+    function authAdminAction(callback) {
+        let pwd = prompt("Acción protegida. Ingresa tu contraseña de Administrador:");
+        if (pwd === currentUser.pass) { callback(); } else { if(pwd !== null) showToast("Contraseña incorrecta.", "danger"); }
+    }
+
     function login() {
         const inputUser = document.getElementById('login-user').value.trim().toUpperCase();
         const inputPass = document.getElementById('login-pass').value;
@@ -671,7 +995,14 @@
         } else { document.getElementById('login-error').classList.remove('hidden'); }
     }
     
-    function logout() { if(timerInt) clearInterval(timerInt); location.reload(); }
+    function logout() { 
+        if (activeExam) {
+            if(!confirm("Tienes un examen en curso. Si cierras sesión, tu intento se anulará y no podrás repetirlo. ¿Deseas salir de todas formas?")) return;
+            forceSubmit(false, "Anulado (Abandono)");
+        }
+        if(timerInt) clearInterval(timerInt); 
+        location.reload(); 
+    }
 
     function renderDashboard() {
         const results = DB.get('results') || [];
@@ -726,7 +1057,11 @@
         tbody.innerHTML = paginated.map(u => {
             let badgeStyle = u.assignedCount > 0 ? "badge-info" : "badge-neutral";
             let textStatus = u.assignedCount > 0 ? "1 Asignado" : "0 Asignados";
-            return `<tr><td style="font-weight:600;">${u.name}</td><td>${u.displayUser}</td><td><span class="badge ${badgeStyle}">${textStatus}</span></td><td><button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openUserModal('${u.id}')"><i class="fa-solid fa-pen"></i> Asignar / Editar</button></td></tr>`;
+            return `<tr><td style="font-weight:600;">${u.name}</td><td>${u.displayUser}</td><td><span class="badge ${badgeStyle}">${textStatus}</span></td>
+            <td>
+                <button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openUserModal('${u.id}')"><i class="fa-solid fa-pen"></i> Asignar</button>
+                <button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="authAdminAction(() => openAdvUserModal('${u.id}'))" title="Opciones Avanzadas"><i class="fa-solid fa-user-gear"></i></button>
+            </td></tr>`;
         }).join('') || '<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--text-muted);">No se encontraron alumnos con los filtros seleccionados.</td></tr>';
 
         let htmlPage = `<div class="pagination-info">Mostrando ${(usrPage-1)*usrPerPage + (total>0?1:0)} a ${Math.min(usrPage*usrPerPage, total)} de ${total} registros</div>`;
@@ -764,11 +1099,19 @@
         const extraAttsInput = document.getElementById('mu-extra-attempts');
         const antiCheatInput = document.getElementById('mu-anti-cheat');
         
-        listDiv.innerHTML = '<label class="checkbox-item"><input type="radio" name="exam-assign" class="exam-radio" value=""> <strong style="color:var(--text-muted);">[Ninguno] No asignar ningún examen</strong></label>' + 
-        allExams.map(ex => `<label class="checkbox-item"><input type="radio" name="exam-assign" class="exam-radio" value="${ex.id}"> [${ex.id}] ${ex.title}</label>`).join('') || '<p style="font-size:0.85rem; color:var(--text-muted);">No hay exámenes creados.</p>';
+        let grouped = {};
+        allExams.forEach(ex => { let cat = ex.category || 'General'; if(!grouped[cat]) grouped[cat] = []; grouped[cat].push(ex); });
+        
+        let htmlExams = '<label class="checkbox-item" style="background:#F1F5F9; padding:8px; border-radius:4px;"><input type="radio" name="exam-assign" class="exam-radio" value=""> <strong style="color:var(--primary);">[Ninguno] No asignar ningún examen</strong></label>';
+        Object.keys(grouped).sort().forEach(cat => {
+            htmlExams += `<div style="margin-top:10px; font-weight:700; color:var(--text-muted); font-size:0.8rem; text-transform:uppercase; border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:5px;">📁 ${cat}</div>`;
+            grouped[cat].forEach(ex => { htmlExams += `<label class="checkbox-item" style="padding:4px 0;"><input type="radio" name="exam-assign" class="exam-radio" value="${ex.id}"> <span style="font-size:0.85rem;">[${ex.id}] ${ex.title}</span></label>`; });
+        });
+        listDiv.innerHTML = htmlExams || '<p style="font-size:0.85rem; color:var(--text-muted);">No hay exámenes creados.</p>';
 
         if (username) {
             const u = users[username];
+            document.getElementById('assign-exam-title').innerHTML = `<i class="fa-solid fa-file-signature"></i> Asignar Examen a: <strong style="color:#0F172A;">${u.name}</strong>`;
             document.getElementById('modal-user-title').innerText = "Editar Alumno y Asignaciones";
             document.getElementById('mu-mode').value = username;
             document.getElementById('modal-user-new-fields').style.display = 'none';
@@ -787,6 +1130,7 @@
             antiCheatInput.checked = u.antiCheat || false;
             
         } else {
+            document.getElementById('assign-exam-title').innerHTML = `<i class="fa-solid fa-file-signature"></i> Asignar Examen: <strong style="color:#0F172A;">(Alumno Nuevo)</strong>`;
             document.getElementById('modal-user-title').innerText = "Nuevo Alumno";
             document.getElementById('mu-mode').value = ""; 
             document.getElementById('modal-user-new-fields').style.display = 'block';
@@ -794,8 +1138,7 @@
             document.getElementById('mu-first-name').value = ""; document.getElementById('mu-last-name').value = "";
             document.getElementById('mu-username-new').value = ""; document.getElementById('mu-pass').value = "";
             document.querySelector('.exam-radio[value=""]').checked = true;
-            extraAttsInput.value = 0;
-            antiCheatInput.checked = false;
+            extraAttsInput.value = 0; antiCheatInput.checked = false;
         }
         openModal('modal-user');
     }
@@ -842,6 +1185,34 @@
             showToast("Alumno creado exitosamente");
         }
         DB.save('users', users); closeModal('modal-user'); renderUsers(true); 
+    }
+
+    function openAdvUserModal(id) {
+        let u = DB.get('users')[id];
+        document.getElementById('adv-u-id').value = id;
+        document.getElementById('adv-u-fn').value = u.firstName || "";
+        document.getElementById('adv-u-ln').value = u.lastName || "";
+        document.getElementById('adv-u-usr').value = u.username || id;
+        openModal('modal-adv-user');
+    }
+    
+    function saveAdvUser() {
+        let id = document.getElementById('adv-u-id').value;
+        let users = DB.get('users'); let u = users[id];
+        u.firstName = document.getElementById('adv-u-fn').value.trim().toUpperCase();
+        u.lastName = document.getElementById('adv-u-ln').value.trim().toUpperCase();
+        u.name = (u.firstName + ' ' + u.lastName).trim();
+        u.username = document.getElementById('adv-u-usr').value.trim().toUpperCase();
+        
+        DB.save('users', users); closeModal('modal-adv-user'); renderUsers(true); showToast("Perfil de alumno actualizado.");
+    }
+    
+    function deleteUserComplete() {
+        let id = document.getElementById('adv-u-id').value;
+        if (confirm("🚨 ATENCIÓN 🚨\n\n¿Estás absolutamente seguro de eliminar a este alumno?\n\nSe borrará su acceso de la plataforma. (Sus resultados históricos se conservarán por seguridad).")) {
+            let users = DB.get('users'); delete users[id]; DB.save('users', users);
+            closeModal('modal-adv-user'); renderUsers(true); showToast("Alumno eliminado exitosamente.", "success");
+        }
     }
 
     function renderAdmins() {
@@ -931,8 +1302,10 @@
             html += `
             <details open style="margin-bottom: 20px; background: transparent;">
                 <summary style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 15px; cursor: pointer; border-bottom: 2px solid var(--border); padding-bottom: 5px;">
-                    <i class="fa-solid fa-folder-open" style="color: var(--warning);"></i> Carpeta: ${cat} 
-                    <span class="badge badge-neutral" style="font-size:0.7rem; vertical-align:middle; margin-left:5px;">${grouped[cat].length} Plantillas</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <div><i class="fa-solid fa-folder-open" style="color: var(--warning);"></i> Carpeta: ${cat} <span class="badge badge-neutral" style="font-size:0.7rem; vertical-align:middle; margin-left:5px;">${grouped[cat].length} Plantillas</span></div>
+                        <button class="btn btn-outline" style="padding:4px 8px; font-size:0.75rem; color:var(--primary-light); border-color:var(--primary-light);" onclick="event.preventDefault(); openCreateExam('${cat}')"><i class="fa-solid fa-plus"></i> Agregar Examen Aquí</button>
+                    </div>
                 </summary>
                 <div class="grid-cards" style="margin-top: 15px; margin-bottom: 15px;">
             `;
@@ -948,7 +1321,7 @@
                         <div style="display:flex; gap:10px;">
                             <button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--primary);" onclick="openAnalytics('${ex.id}')" title="Analítica"><i class="fa-solid fa-chart-pie"></i></button>
                             <button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openEditExam('${ex.id}')" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                            <button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="deleteExam('${ex.id}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            <button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="authAdminAction(() => deleteExam('${ex.id}'))" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                 </div>
@@ -959,18 +1332,19 @@
     }
 
     function deleteExam(id) {
-        if(confirm(`ATENCIÓN: ¿Seguro que deseas ELIMINAR la plantilla de examen ${id}?`)) {
+        if(confirm(`⚠️ CONFIRMACIÓN DE ELIMINACIÓN:\n\n¿Estás absolutamente seguro de eliminar la plantilla ${id}?\n\nLos exámenes de los alumnos que ya lo presentaron NO se borrarán del historial.`)) {
             let exams = DB.get('exams').filter(e => String(e.id) !== String(id));
-            DB.save('exams', exams); populateDynamicFilters(); renderExamsList(); showToast("Plantilla eliminada");
+            DB.save('exams', exams); populateDynamicFilters(); renderExamsList(); showToast("Plantilla eliminada correctamente.");
         }
     }
 
-    function openCreateExam() {
+    function openCreateExam(folderName = '') {
         document.getElementById('ex-edit-id').value = "";
         document.getElementById('title-crear-editar').innerHTML = '<i class="fa-solid fa-gear"></i> Crear Nuevo Examen';
-        document.getElementById('ex-title').value = ""; document.getElementById('ex-category').value = "General";
+        document.getElementById('ex-title').value = ""; 
         document.getElementById('ex-time').value = "30"; document.getElementById('ex-pass').value = "80";
         document.getElementById('ex-attempts').value = "1"; document.getElementById('q-container').innerHTML = "";
+        updateCategoryDropdown(folderName);
         checkTotalSum(); switchTab('tab-crear');
     }
 
@@ -980,7 +1354,8 @@
         
         document.getElementById('ex-edit-id').value = ex.id;
         document.getElementById('title-crear-editar').innerHTML = `<i class="fa-solid fa-pen"></i> Editar Examen (${ex.id})`;
-        document.getElementById('ex-title').value = ex.title; document.getElementById('ex-category').value = ex.category || "General";
+        document.getElementById('ex-title').value = ex.title; 
+        updateCategoryDropdown(ex.category);
         document.getElementById('ex-time').value = ex.time; document.getElementById('ex-pass').value = ex.passScore;
         document.getElementById('ex-attempts').value = ex.maxAttempts || 1;
         document.getElementById('q-container').innerHTML = "";
@@ -1000,7 +1375,7 @@
                 <div style="margin-top:15px; padding-left:5px; display:flex; flex-direction:column; gap:8px;">`;
             ex.questions.forEach(q => {
                 const safeQ = encodeURIComponent(JSON.stringify(q));
-                html += `<label class="checkbox-item" style="background:#F8FAFC; padding:10px; border-radius:6px; border:1px solid var(--border); cursor:pointer;"><input type="checkbox" class="bank-q-cb" value="${safeQ}"><div style="flex:1; margin-left:5px;"><div style="font-weight:600; font-size:0.9rem;">${q.text}</div><div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;"><i class="fa-solid fa-tag"></i> Tipo: ${q.type === 'opcion' ? 'Opción Múltiple' : 'Abierta'}</div></div></label>`;
+                html += `<label class="checkbox-item" style="background:#F8FAFC; padding:10px; border-radius:6px; border:1px solid var(--border); cursor:pointer;"><input type="checkbox" class="bank-q-cb" value="${safeQ}"><div style="flex:1; margin-left:5px;"><div style="font-weight:600; font-size:0.9rem;">${q.text}</div><div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;"><i class="fa-solid fa-tag"></i> Tipo: ${q.type === 'opcion' ? 'Opción Múltiple' : (q.type==='vf' ? 'Verdadero/Falso' : 'Abierta')}</div></div></label>`;
             });
             html += `</div></details>`;
         });
@@ -1024,20 +1399,45 @@
         const type = qData ? qData.type : document.getElementById('q-type').value;
         const id = qData ? qData.id : (Date.now() + Math.floor(Math.random() * 1000));
         const weight = qData ? qData.weight : 0; const text = qData ? qData.text : "";
+        let badgeTypeStr = type === 'opcion' ? 'Opción Múltiple' : (type === 'vf' ? 'Verdadero / Falso' : 'Pregunta Abierta');
+        let badgeClass = type === 'opcion' ? 'badge-warning' : (type === 'vf' ? 'badge-info' : 'badge-danger');
+        
+        let qNum = document.querySelectorAll('.q-builder').length + 1;
+        
         let html = `
-            <div class="q-builder card" style="background:#FAFAFA; border:1px dashed var(--border); padding:15px;" id="qb-${id}" data-type="${type}">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <span class="badge ${type === 'opcion' ? 'badge-warning' : 'badge-danger'}">${type === 'opcion' ? 'Opción Múltiple' : 'Pregunta Abierta'}</span>
-                    <div><label style="font-size:0.8rem;">Valor %:</label><input type="number" class="q-weight" value="${weight}" style="width:70px; padding:3px;" oninput="checkTotalSum()"><button type="button" class="btn btn-outline" style="padding:3px 8px; margin-left:10px; color:var(--danger);" onclick="this.closest('.q-builder').remove(); autoDistributeWeights();"><i class="fa-solid fa-trash"></i></button></div>
+            <div class="q-builder card" style="background:#FAFAFA; border:1px dashed var(--border); padding:0; overflow:hidden; margin-bottom:15px;" id="qb-${id}" data-type="${type}">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px; background:#F1F5F9; border-bottom:1px solid var(--border); cursor:pointer;" onclick="document.getElementById('qbody-${id}').classList.toggle('hidden')">
+                    <div style="font-weight:700; color:var(--primary); font-size:0.95rem;"><i class="fa-solid fa-chevron-down" style="font-size:0.8rem; margin-right:5px;"></i> Pregunta #${qNum} <span class="badge ${badgeClass}" style="margin-left:10px;">${badgeTypeStr}</span></div>
+                    <div style="display:flex; align-items:center;">
+                        <span style="font-size:0.8rem; margin-right:10px; font-weight:600;">Valor %: <input type="number" class="q-weight" value="${weight}" style="width:60px; padding:4px; margin-left:5px; border:1px solid var(--border); border-radius:4px;" oninput="checkTotalSum()" onclick="event.stopPropagation()"></span>
+                        <button type="button" class="btn btn-outline" style="padding:4px 8px; color:var(--danger); border-color:transparent;" onclick="event.stopPropagation(); document.getElementById('qb-${id}').remove(); autoDistributeWeights();" title="Borrar Pregunta"><i class="fa-solid fa-trash"></i></button>
+                    </div>
                 </div>
-                <div><input type="text" class="q-text" placeholder="Escribe la pregunta..." value="${text}"></div>`;
+                <div id="qbody-${id}" style="padding:15px;">
+                    <div><input type="text" class="q-text" placeholder="Escribe la pregunta aquí..." value="${text}" style="font-size:1rem; padding:12px;"></div>`;
+        
         if(type === 'opcion') {
             const optsStr = qData && qData.options ? qData.options.join('; ') : "";
-            html += `<div style="margin-top:10px;"><input type="text" class="q-opts" placeholder="Opción A; Opción B" id="opts-${id}" value="${optsStr}" oninput="updateSelectOpts('${id}')"><select class="q-correct" id="corr-${id}" style="margin-top:5px;"></select></div>`;
+            html += `<div style="margin-top:15px; display:grid; grid-template-columns: 2fr 1fr; gap:10px;">
+                        <div><label style="font-size:0.8rem; font-weight:600;">Opciones (separadas por punto y coma ;)</label><input type="text" class="q-opts" placeholder="Opción A; Opción B; Opción C" id="opts-${id}" value="${optsStr}" oninput="updateSelectOpts('${id}')"></div>
+                        <div><label style="font-size:0.8rem; font-weight:600; color:var(--success);">Opción Correcta</label><select class="q-correct" id="corr-${id}"></select></div>
+                     </div>`;
+        } else if (type === 'vf') {
+            html += `<div style="margin-top:15px; width:200px;"><label style="font-size:0.8rem; font-weight:600; color:var(--success);">Opción Correcta</label><select class="q-correct" id="corr-${id}"><option value="Verdadero">Verdadero</option><option value="Falso">Falso</option></select></div>`;
         }
-        html += `</div>`; document.getElementById('q-container').insertAdjacentHTML('beforeend', html);
+        
+        html += `<div style="text-align:right; margin-top:15px;"><button type="button" class="btn btn-success" style="padding:6px 12px; font-size:0.8rem;" onclick="document.getElementById('qbody-${id}').classList.add('hidden')"><i class="fa-solid fa-check"></i> Listo / Minimizar</button></div>
+                </div>
+            </div>`; 
+            
+        document.getElementById('q-container').insertAdjacentHTML('beforeend', html);
+        
         if(type === 'opcion') { updateSelectOpts(id); if(qData && qData.correct) document.getElementById(`corr-${id}`).value = qData.correct; }
-        if(!qData) autoDistributeWeights();
+        if(type === 'vf') { if(qData && qData.correct) document.getElementById(`corr-${id}`).value = qData.correct; }
+        if(!qData) {
+            autoDistributeWeights();
+            document.getElementById(`qb-${id}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     function autoDistributeWeights() {
@@ -1060,16 +1460,12 @@
         const randomPart = Math.floor(Math.random() * 9000 + 1000); return `EXM-${datePart}-${randomPart}`;
     }
 
-    function generateFolio() {
-        let res = DB.get('results') || []; let max = 0;
-        res.forEach(r => { if(r.folio && r.folio.startsWith('EVAL-')) { let n = parseInt(r.folio.split('-')[1]); if(n > max) max = n; }});
-        return "EVAL-" + String(max + 1).padStart(5, '0');
-    }
-
     function saveExam() {
         const editId = document.getElementById('ex-edit-id').value;
         const title = document.getElementById('ex-title').value.trim();
-        const category = document.getElementById('ex-category').value.trim() || 'General';
+        let category = document.getElementById('ex-category-select').value;
+        if(category === '_NEW_') category = document.getElementById('ex-category-new').value.trim() || 'General';
+        
         const time = parseInt(document.getElementById('ex-time').value);
         const passScore = parseInt(document.getElementById('ex-pass').value);
         const maxAttempts = parseInt(document.getElementById('ex-attempts').value);
@@ -1085,8 +1481,11 @@
             if (type === 'opcion') {
                 options = b.querySelector('.q-opts').value.split(';').map(o=>o.trim()).filter(o=>o); correct = b.querySelector('.q-correct').value;
                 if(!correct || options.length < 2) return showToast("Verifica las opciones múltiples", "danger");
+            } else if (type === 'vf') {
+                options = ["Verdadero", "Falso"]; correct = b.querySelector('.q-correct').value;
             }
-            questions.push({ id: Date.now() + qIndex++, text, type, options, correct, weight });
+            const qId = b.id.replace('qb-', '');
+            questions.push({ id: qId, text, type, options, correct, weight });
         }
 
         let exams = DB.get('exams');
@@ -1101,7 +1500,6 @@
         DB.save('exams', exams); populateDynamicFilters(); switchTab('tab-lista');
     }
 
-    // ====== CALIFICACIONES ======
     function openAnalytics(examId) {
         const results = DB.get('results').filter(r => String(r.examId) === String(examId));
         const exam = DB.get('exams').find(e => String(e.id) === String(examId));
@@ -1109,19 +1507,20 @@
 
         let html = `<div style="margin-bottom: 20px;"><h4>Total de exámenes presentados: ${results.length}</h4></div>`;
         let stats = {}; exam.questions.forEach(q => { stats[q.id] = { text: q.text, type: q.type, earned: 0, max: 0, correct: 0, answers: 0 }; });
-        results.forEach(res => { res.answers.forEach(ans => { if(stats[ans.qId]) { stats[ans.qId].answers++; stats[ans.qId].earned += ans.earned; stats[ans.qId].max += ans.maxPts; if(ans.type === 'opcion' && ans.earned > 0) stats[ans.qId].correct++; }}); });
+        results.forEach(res => { res.answers.forEach(ans => { if(stats[ans.qId]) { stats[ans.qId].answers++; stats[ans.qId].earned += ans.earned; stats[ans.qId].max += ans.maxPts; if((ans.type === 'opcion' || ans.type === 'vf') && ans.earned > 0) stats[ans.qId].correct++; }}); });
 
         exam.questions.forEach((q, idx) => {
             let s = stats[q.id]; if(s.answers === 0) return;
             let pct = 0, statText = "";
-            if(q.type === 'opcion') { pct = Math.round((s.correct / s.answers) * 100); statText = `${pct}% de aciertos (${s.correct}/${s.answers})`; } 
+            if(q.type === 'opcion' || q.type === 'vf') { pct = Math.round((s.correct / s.answers) * 100); statText = `${pct}% de aciertos (${s.correct}/${s.answers})`; } 
             else { pct = Math.round((s.earned / s.max) * 100); statText = `Promedio de puntos: ${pct}%`; }
             let color = pct >= 80 ? 'var(--success)' : (pct >= 60 ? 'var(--warning)' : 'var(--danger)');
+            let typeStr = q.type === 'opcion' ? 'Opción Múltiple' : (q.type === 'vf' ? 'Verdadero / Falso' : 'Pregunta Abierta');
 
             html += `
             <div style="margin-bottom: 15px; border: 1px solid var(--border); padding: 15px; border-radius: 6px;">
                 <p style="font-weight: 600; margin-bottom: 5px;">${idx + 1}. ${q.text}</p>
-                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px;"><span>${q.type === 'opcion' ? 'Opción Múltiple' : 'Pregunta Abierta'}</span><span style="font-weight: bold; color: ${color};">${statText}</span></div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px;"><span>${typeStr}</span><span style="font-weight: bold; color: ${color};">${statText}</span></div>
                 <div class="analytics-bar-bg"><div class="analytics-bar-fill" style="width: ${pct}%; background: ${color};"></div></div>
                 ${pct < 60 ? `<p style="font-size: 0.8rem; color: var(--danger); margin-top: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> Alerta: La mayoría reprueba este tema.</p>` : ''}
             </div>`;
@@ -1184,7 +1583,7 @@
             let displayScore = r.status === 'Pendiente Revisión' ? `<strong>${r.score}%</strong><br><span style="font-size:0.70rem; color:var(--warning); font-weight:bold;">(Parcial / Por revisar)</span>` : `<strong>${r.score}%</strong>`;
             let displayFolio = r.folio ? r.folio : r.examId;
                 
-            return `<tr><td><span class="badge badge-neutral" style="font-size:0.80rem; background:#E2E8F0; color:var(--primary); font-weight:800;">${displayFolio}</span></td><td><strong>${r.studentName}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${r.studentUser}</span></td><td>${r.examTitle}</td><td>${formatDateTime(r.timestamp)}</td><td>${displayScore}</td><td><span class="badge ${badge}">${r.status}</span></td><td><div style="display:flex; gap:5px;">${actionBtn}<button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="deleteResult('${r.id}')" title="Borrar intento"><i class="fa-solid fa-trash"></i></button></div></td></tr>`;
+            return `<tr><td><span class="badge badge-neutral" style="font-size:0.80rem; background:#E2E8F0; color:var(--primary); font-weight:800;">${displayFolio}</span></td><td><strong>${r.studentName}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${r.studentUser}</span></td><td>${r.examTitle}</td><td>${formatDateTime(r.timestamp)}</td><td>${displayScore}</td><td><span class="badge ${badge}">${r.status}</span></td><td><div style="display:flex; gap:5px;">${actionBtn}<button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="authAdminAction(() => deleteResult('${r.id}'))" title="Borrar intento"><i class="fa-solid fa-trash"></i></button></div></td></tr>`;
         }).join('') || '<tr><td colspan="7" style="text-align:center; padding: 20px; color: var(--text-muted);">No se encontraron resultados con los filtros actuales.</td></tr>';
 
         let htmlPage = `<div class="pagination-info">Mostrando ${(resPage-1)*resPerPage + (total>0?1:0)} a ${Math.min(resPage*resPerPage, total)} de ${total} registros</div>`;
@@ -1202,8 +1601,17 @@
     function updateGradingSummary(resultsObj) {
         let totalQuestions = resultsObj.answers.length; let correctCount = 0; let earnedSum = 0;
         resultsObj.answers.forEach(a => { earnedSum += (a.earned || 0); if (a.earned === a.maxPts && a.maxPts > 0) correctCount++; });
-        document.getElementById('mg-summary-container').innerHTML = `
-        <div style="display:flex; justify-content:space-around; background:#F8FAFC; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        
+        let infoHtml = `
+        <div style="background: #F8FAFC; border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; font-size: 0.95rem;">
+                <div><span style="color:var(--text-muted); font-size:0.8rem; font-weight:bold;">ALUMNO EVALUADO:</span><br><strong style="font-size:1.1rem; color:var(--primary);">${resultsObj.studentName}</strong></div>
+                <div><span style="color:var(--text-muted); font-size:0.8rem; font-weight:bold;">EXAMEN Y FECHA:</span><br><strong style="font-size:1rem;">${resultsObj.examTitle}</strong> <span class="badge badge-neutral" style="margin-left:5px;">${formatDateTime(resultsObj.timestamp)}</span></div>
+            </div>
+        </div>`;
+        
+        document.getElementById('mg-summary-container').innerHTML = infoHtml + `
+        <div style="display:flex; justify-content:space-around; background:#fff; padding:15px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <div style="text-align:center;"><div style="font-size:0.8rem; color:var(--text-muted); font-weight:bold;">TOTAL REACTIVOS</div><div style="font-size:1.5rem; font-weight:bold; color:var(--text-main);">${totalQuestions}</div></div>
             <div style="text-align:center;"><div style="font-size:0.8rem; color:var(--success); font-weight:bold;">ACIERTOS</div><div style="font-size:1.5rem; font-weight:bold; color:var(--success);">${correctCount}</div></div>
             <div style="text-align:center;"><div style="font-size:0.8rem; color:var(--primary); font-weight:bold;">CALIFICACIÓN</div><div style="font-size:1.5rem; font-weight:bold; color:var(--primary);" id="live-grade-score">${Math.round(earnedSum)}%</div></div>
@@ -1213,12 +1621,12 @@
     function openGradingModal(resultId, readOnly = false) {
         currentGradingResultId = resultId;
         const result = DB.get('results').find(r => String(r.id) === String(resultId));
-        document.getElementById('modal-grade-title').innerHTML = readOnly ? `<i class="fa-solid fa-eye"></i> Consulta de Examen: <span style="color:var(--primary);">${result.studentName}</span>` : `<i class="fa-solid fa-pen-nib"></i> Calificar: <span style="color:var(--primary);">${result.studentName}</span>`;
+        document.getElementById('modal-grade-title').innerHTML = readOnly ? `<i class="fa-solid fa-eye"></i> Consulta de Examen` : `<i class="fa-solid fa-pen-nib"></i> Evaluar Examen`;
         updateGradingSummary(result);
         
         let html = '';
         result.answers.forEach((ans, idx) => {
-            if (ans.type === 'opcion') {
+            if (ans.type === 'opcion' || ans.type === 'vf') {
                 let isCorrect = ans.earned === ans.maxPts;
                 let iconHTML = isCorrect ? '<i class="fa-solid fa-circle-check" style="color: var(--success); font-size: 1.4rem;"></i>' : '<i class="fa-solid fa-circle-xmark" style="color: var(--danger); font-size: 1.4rem;"></i>';
                 html += `
@@ -1228,15 +1636,22 @@
                     <div class="ans-text" style="display:flex; justify-content:space-between; align-items:center; background: ${isCorrect ? '#ECFDF5' : '#FEF2F2'}; border: 1px solid ${isCorrect ? '#A7F3D0' : '#FECACA'};"><span>Seleccionó: <strong>${ans.answer}</strong></span><div style="display:flex; align-items:center; gap:15px;"><span style="font-weight:bold; font-size:1.1rem;">${ans.earned} / ${ans.maxPts} pts</span>${iconHTML}</div></div>
                 </div>`;
             } else {
+                let boxColor = 'var(--warning)'; let boxBg = '#FFFBEB'; let badgeClass = 'badge-warning'; let badgeText = 'Requiere Revisión Manual'; let badgeStyle = '';
+                if (readOnly) {
+                    if (ans.earned === ans.maxPts && ans.maxPts > 0) { boxColor = 'var(--success)'; boxBg = '#ECFDF5'; badgeClass = 'badge-success'; badgeText = 'Correcta'; } 
+                    else if (ans.earned === 0) { boxColor = 'var(--danger)'; boxBg = '#FEF2F2'; badgeClass = 'badge-danger'; badgeText = 'Incorrecta'; } 
+                    else { boxColor = 'var(--primary-light)'; boxBg = '#EFF6FF'; badgeClass = 'badge-info'; badgeText = 'Puntuación Parcial'; badgeStyle = 'background:#DBEAFE; color:#1E40AF;'; }
+                }
+
                 html += `
-                <div class="review-box" style="border-left: 4px solid var(--warning); background: #FFFBEB;">
-                    <div style="display:flex; justify-content:space-between; align-items:start;"><p><strong>${idx+1}. ${ans.text}</strong></p><span class="badge badge-warning">Requiere Revisión Manual</span></div>
+                <div id="review-box-${ans.qId}" class="review-box" style="border-left: 4px solid ${boxColor}; background: ${boxBg}; transition: 0.3s;">
+                    <div style="display:flex; justify-content:space-between; align-items:start;"><p><strong>${idx+1}. ${ans.text}</strong></p><span id="badge-${ans.qId}" class="badge ${badgeClass}" style="${badgeStyle}">${badgeText}</span></div>
                     <div class="ans-text" style="background:#fff; border: 1px solid var(--border);">${ans.answer}</div>
                     ${!readOnly ? `
                         <div style="display:flex; align-items:center; gap:10px; margin-top: 15px; flex-wrap: wrap; background: #fff; padding: 12px; border-radius: 6px; border: 1px dashed var(--warning);">
-                            <button class="btn" style="background: #ECFDF5; color: var(--success); border: 1px solid var(--success);" onclick="document.getElementById('grade-${ans.qId}').value = ${ans.maxPts}; document.getElementById('grade-${ans.qId}').style.borderColor='var(--success)'; document.getElementById('grade-${ans.qId}').style.backgroundColor='#ECFDF5';"><i class="fa-solid fa-check"></i> Correcta (${ans.maxPts} pts)</button>
-                            <button class="btn" style="background: #FEF2F2; color: var(--danger); border: 1px solid var(--danger);" onclick="document.getElementById('grade-${ans.qId}').value = 0; document.getElementById('grade-${ans.qId}').style.borderColor='var(--danger)'; document.getElementById('grade-${ans.qId}').style.backgroundColor='#FEF2F2';"><i class="fa-solid fa-xmark"></i> Incorrecta (0 pts)</button>
-                            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;"><label style="font-weight:600; font-size:0.9rem; color: var(--primary);">Manual:</label><input type="number" class="manual-grade-input" id="grade-${ans.qId}" data-qid="${ans.qId}" max="${ans.maxPts}" min="0" value="" placeholder="pts" style="width:70px; padding: 8px; text-align:center; font-weight:bold;" oninput="this.style.borderColor='var(--primary-light)'; this.style.backgroundColor='#fff'; if(Number(this.value) > ${ans.maxPts}) this.value = ${ans.maxPts}; if(Number(this.value) < 0) this.value = 0;"><span style="font-weight:bold; color:var(--text-muted);">/ ${ans.maxPts}</span></div>
+                            <button class="btn" style="background: #ECFDF5; color: var(--success); border: 1px solid var(--success);" onclick="let el=document.getElementById('grade-${ans.qId}'); el.value = ${ans.maxPts}; updateGradeColor('${ans.qId}', ${ans.maxPts});"><i class="fa-solid fa-check"></i> Correcta (${ans.maxPts} pts)</button>
+                            <button class="btn" style="background: #FEF2F2; color: var(--danger); border: 1px solid var(--danger);" onclick="let el=document.getElementById('grade-${ans.qId}'); el.value = 0; updateGradeColor('${ans.qId}', ${ans.maxPts});"><i class="fa-solid fa-xmark"></i> Incorrecta (0 pts)</button>
+                            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;"><label style="font-weight:600; font-size:0.9rem; color: var(--primary);">Manual:</label><input type="number" class="manual-grade-input" id="grade-${ans.qId}" data-qid="${ans.qId}" max="${ans.maxPts}" min="0" value="" placeholder="pts" style="width:70px; padding: 8px; text-align:center; font-weight:bold;" oninput="if(Number(this.value) > ${ans.maxPts}) this.value = ${ans.maxPts}; if(Number(this.value) < 0) this.value = 0; updateGradeColor('${ans.qId}', ${ans.maxPts});"><span style="font-weight:bold; color:var(--text-muted);">/ ${ans.maxPts}</span></div>
                         </div>` : `<div style="text-align:right; font-weight:bold; color:var(--primary); background:#fff; padding:10px; border-radius:6px;">Puntos otorgados: ${ans.earned} / ${ans.maxPts}</div>`}
                 </div>`;
             }
@@ -1258,7 +1673,6 @@
         DB.save('results', results); closeModal('modal-grade'); renderResults(true); showToast("Examen Calificado permanentemente.");
     }
 
-    // ====== MOTOR DEL ALUMNO (QUEMAR INTENTO AL INICIAR & SENSOR DE PESTAÑAS) ======
     document.addEventListener('visibilitychange', function() {
         if (document.hidden && activeExam && currentUser && currentUser.antiCheat) {
             window.cheatWarnings = (window.cheatWarnings || 0) + 1;
@@ -1283,8 +1697,7 @@
             const myExtra = (currentUser.extraAttempts && currentUser.extraAttempts[ex.id]) ? parseInt(currentUser.extraAttempts[ex.id]) : 0;
             const max = (ex.maxAttempts || 1) + myExtra;
             const canAttempt = myAttempts < max;
-            
-            const doneText = canAttempt ? (myAttempts > 0 ? `Reintentar (Intento ${myAttempts+1}/${max})` : "Presentar Examen") : "Intentos Agotados";
+            const doneText = canAttempt ? "Presentar Examen" : "Intentos Agotados";
             
             return `
             <div class="card" style="margin:0; opacity: ${canAttempt ? '1' : '0.6'}">
@@ -1306,11 +1719,8 @@
         document.getElementById('inst-qcount').innerText = `${ex.questions.length}`;
         document.getElementById('inst-pass').innerText = `${ex.passScore}%`;
         
-        if(currentUser.antiCheat) {
-            document.getElementById('anti-cheat-warning').classList.remove('hidden');
-        } else {
-            document.getElementById('anti-cheat-warning').classList.add('hidden');
-        }
+        if(currentUser.antiCheat) { document.getElementById('anti-cheat-warning').classList.remove('hidden'); } 
+        else { document.getElementById('anti-cheat-warning').classList.add('hidden'); }
         
         document.getElementById('btn-start-exam').onclick = () => { closeModal('modal-instructions'); startExam(id); };
         openModal('modal-instructions');
@@ -1324,7 +1734,6 @@
         activeExam.questions.forEach(q => { if(q.type === 'opcion') q.options = shuffleArray(q.options); });
 
         activeAnswers = {}; currentIndex = 0; 
-        
         window.currentAttemptId = Date.now();
         let res = DB.get('results');
         let placeholderResult = {
@@ -1333,23 +1742,15 @@
             studentName: currentUser.name, timestamp: new Date().toISOString(), score: 0, 
             status: 'Anulado (Abandono)', answers: []
         };
-        res.push(placeholderResult);
-        DB.save('results', res);
+        res.push(placeholderResult); DB.save('results', res);
         
-        switchTab('tab-reproductor'); document.getElementById('player-exam-id').innerText = `Plantilla: ${activeExam.id}`;
+        switchTab('tab-reproductor'); document.getElementById('player-exam-id').innerHTML = `<i class="fa-solid fa-book-open"></i> ${activeExam.title}`;
         examDb.ref(FB_PATHS.liveSessions + '/' + currentUser.id).set({ name: currentUser.name, userDisplay: currentUser.username, examTitle: activeExam.title, start: Date.now() });
         
-        timeLeft = activeExam.time * 60; 
-        alertThreshold = activeExam.time >= 30 ? 300 : 60;
-        alertTriggered = false;
+        timeLeft = activeExam.time * 60; alertThreshold = activeExam.time >= 30 ? 300 : 60; alertTriggered = false;
         
-        if(timerInt) clearInterval(timerInt); 
-        updateTimer(); 
-        timerInt = setInterval(() => { 
-            timeLeft--; updateTimer(); 
-            if(timeLeft <= 0){ clearInterval(timerInt); forceSubmit(true); } 
-        }, 1000);
-        
+        if(timerInt) clearInterval(timerInt); updateTimer(); 
+        timerInt = setInterval(() => { timeLeft--; updateTimer(); if(timeLeft <= 0){ clearInterval(timerInt); forceSubmit(true); } }, 1000);
         renderQuestion(); renderGrid();
     }
     
@@ -1357,11 +1758,14 @@
         const m = Math.floor(Math.max(0, timeLeft)/60).toString().padStart(2,'0'), s = (Math.max(0, timeLeft)%60).toString().padStart(2,'0');
         const t = document.getElementById('player-timer'); t.innerText = `${m}:${s}`; 
         
-        if (timeLeft === alertThreshold && !alertTriggered) { alertTriggered = true; let mins = alertThreshold / 60; showToast(`¡Atención! El tiempo se agota. Te quedan ${mins} minuto(s).`, "warning"); }
+        if (timeLeft === alertThreshold && !alertTriggered) { 
+            alertTriggered = true; let mins = alertThreshold / 60; 
+            showToast(`¡Atención! El tiempo se agota. Te quedan ${mins} minuto(s).`, "warning"); playBeep(); 
+        }
         if(timeLeft <= alertThreshold) { t.classList.add('timer-warning'); } else { t.classList.remove('timer-warning'); }
     }
 
-    function isValidAns(qId) { const q = activeExam.questions.find(x => String(x.id) === String(qId)), a = activeAnswers[qId]; return a && (q.type === 'opcion' || a.trim().length >= 2); }
+    function isValidAns(qId) { const q = activeExam.questions.find(x => String(x.id) === String(qId)), a = activeAnswers[qId]; return a && (q.type === 'opcion' || q.type === 'vf' || a.trim().length >= 2); }
     
     function saveAns() {
         if(!activeExam || currentIndex >= activeExam.questions.length) return;
@@ -1406,38 +1810,27 @@
         
         activeExam.questions.forEach(q => {
             const ansText = activeAnswers[q.id] || "Sin responder"; let earned = 0;
-            if (q.type === 'opcion') { if (ansText === q.correct) earned = q.weight; totalEarnedAuto += earned; } else { needsReview = true; }
+            if (q.type === 'opcion' || q.type === 'vf') { if (ansText === q.correct) earned = q.weight; totalEarnedAuto += earned; } else { needsReview = true; }
             answersLog.push({ qId: q.id, type: q.type, text: q.text, answer: ansText, correct: q.correct, maxPts: q.weight, earned: earned });
         });
 
         let status = forceStatus ? forceStatus : (needsReview ? 'Pendiente Revisión' : (Math.round(totalEarnedAuto) >= activeExam.passScore ? 'Aprobado' : 'Reprobado'));
 
-        let res = DB.get('results');
-        let idx = res.findIndex(r => r.id === window.currentAttemptId);
+        let res = DB.get('results'); let idx = res.findIndex(r => r.id === window.currentAttemptId);
         
         if (idx > -1) {
-            res[idx].score = Math.round(totalEarnedAuto);
-            res[idx].status = status;
-            res[idx].answers = answersLog;
-            res[idx].timestamp = new Date().toISOString();
+            res[idx].score = Math.round(totalEarnedAuto); res[idx].status = status; res[idx].answers = answersLog; res[idx].timestamp = new Date().toISOString();
         } else {
-            res.push({
-                id: Date.now(), folio: generateFolio(), examId: activeExam.id, examTitle: activeExam.title,
-                passScore: activeExam.passScore, studentUserId: currentUser.id, studentUser: currentUser.username, 
-                studentName: currentUser.name, timestamp: new Date().toISOString(), score: Math.round(totalEarnedAuto), 
-                status: status, answers: answersLog 
-            });
+            res.push({ id: Date.now(), folio: generateFolio(), examId: activeExam.id, examTitle: activeExam.title, passScore: activeExam.passScore, studentUserId: currentUser.id, studentUser: currentUser.username, studentName: currentUser.name, timestamp: new Date().toISOString(), score: Math.round(totalEarnedAuto), status: status, answers: answersLog });
         }
         
         document.getElementById('view-submitting').classList.remove('hidden');
         examDb.ref(FB_PATHS.liveSessions + '/' + currentUser.id).remove();
 
         if (!navigator.onLine) {
-            examDb.ref(FB_PATHS.results).set(res); 
-            document.getElementById('view-submitting').classList.add('hidden');
+            examDb.ref(FB_PATHS.results).set(res); document.getElementById('view-submitting').classList.add('hidden');
             showToast("Sin conexión. Guardado localmente, se sincronizará automáticamente.", "warning");
-            activeExam = null; switchTab('tab-mis-examenes', document.querySelector('#nav-alumno .nav-item'));
-            return;
+            activeExam = null; switchTab('tab-mis-examenes', document.querySelector('#nav-alumno .nav-item')); return;
         }
 
         examDb.ref(FB_PATHS.results).set(res).then(() => {
