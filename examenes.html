@@ -91,9 +91,18 @@
         
         .option-lbl { display: flex; align-items: center; gap: 12px; padding: 15px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: var(--surface); }
         
-        .checkbox-list { max-height: 250px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 6px; background: #F8FAFC; }
-        .checkbox-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.9rem; }
+        /* CONTENEDOR DE ASIGNACIÓN: 100% VISIBLE, EXPANDIBLE Y SIN RECORTES */
+        .checkbox-list { max-height: 380px; overflow-y: auto; border: 1px solid var(--border); padding: 12px; border-radius: 8px; background: #F8FAFC; display: flex; flex-direction: column; gap: 8px; }
+        .checkbox-item { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; padding: 10px 14px; background: #FFF; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: 0.2s ease; width: 100%; box-sizing: border-box; }
+        .checkbox-item:hover { border-color: var(--primary-light); background: #EFF6FF; }
+        .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; margin-top: 0; }
         
+        /* DETALLES DE CARPETAS EXPANDIBLES */
+        .folder-group { background: #fff; border: 1px solid var(--border); border-radius: 8px; overflow: visible; margin-bottom: 6px; }
+        .folder-group summary { font-weight: 700; color: var(--primary); font-size: 0.85rem; text-transform: uppercase; cursor: pointer; outline: none; padding: 12px 14px; background: #F8FAFC; border-bottom: 1px solid transparent; display: flex; justify-content: space-between; align-items: center; user-select: none; border-radius: 8px; transition: 0.2s; }
+        .folder-group[open] summary { border-bottom-color: var(--border); border-bottom-left-radius: 0; border-bottom-right-radius: 0; background: #F1F5F9; }
+        .folder-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: #FFF; max-height: none; overflow: visible; }
+
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: var(--sidebar); color: white; padding: 15px 25px; border-radius: 6px; display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s forwards; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -348,7 +357,7 @@
                     <div class="filter-group" style="min-width: 150px;">
                         <label>Filtrar por Estatus</label>
                         <select id="filter-status-results" onchange="renderResults(true)">
-                            <option value="">Todos</option><option value="Aprobado">Aprobados</option><option value="Reprobado">Reprobados</option><option value="Pendiente Revisión">Pendiente Revisión</option><option value="Anulado (Abandono)">Abandonos</option>
+                            <option value="">Todos</option><option value="Aprobado">Aprobados</option><option value="Reprobado">Reprobados</option><option value="Pendiente Revisión">Pendiente Revisión</option><option value="En curso">En curso</option><option value="Anulado (Abandono)">Abandonos</option>
                         </select>
                     </div>
                     <div style="display: flex; align-items: flex-end; padding-bottom: 2px;">
@@ -478,8 +487,9 @@
     </div>
 </div>
 
+<!-- MODAL USUARIO / ASIGNAR EXAMEN (LIMPIO, SIN EMPALMES Y CON BUSCADOR) -->
 <div id="modal-user" class="modal-overlay hidden">
-    <div class="modal-content" style="max-width: 450px;">
+    <div class="modal-content" style="max-width: 650px;">
         <div class="modal-header">
             <h3 id="modal-user-title">Gestión de Alumno</h3>
             <button class="btn btn-outline" onclick="closeModal('modal-user')"><i class="fa-solid fa-xmark"></i></button>
@@ -487,11 +497,11 @@
         <div>
             <input type="hidden" id="mu-mode">
             <div id="modal-user-new-fields">
-                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div><label>Nombres</label><input type="text" id="mu-first-name" oninput="generateUsername()" placeholder="Ej. JUAN" style="text-transform: uppercase;"></div>
                     <div><label>Apellidos</label><input type="text" id="mu-last-name" oninput="generateUsername()" placeholder="Ej. PEREZ" style="text-transform: uppercase;"></div>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="margin-top: 10px;">
                     <label>Usuario Generado Automáticamente</label>
                     <input type="text" id="mu-username-new" readonly style="background: #F1F5F9; color: var(--primary); text-transform: uppercase; font-weight: bold; border-color: transparent;">
                 </div>
@@ -507,7 +517,7 @@
                 </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="margin-top: 15px;">
                 <label>Contraseña de Acceso</label>
                 <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                     <input type="text" id="mu-pass" placeholder="Ingresa una clave o genérala">
@@ -516,25 +526,35 @@
                 <button class="btn btn-outline" style="width: 100%; font-size: 0.8rem; color: var(--primary); border-color: var(--primary-light);" onclick="copyCredentials('mu')"><i class="fa-solid fa-copy"></i> Copiar Usuario y Contraseña</button>
             </div>
             
-            <div class="form-group" id="mu-exams-group" style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px;">
-                <label id="assign-exam-title" style="color: var(--primary); font-size:0.95rem; margin-bottom:10px; display:block;"><i class="fa-solid fa-file-signature"></i> Asignar Examen:</label>
+            <div class="form-group" id="mu-exams-group" style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                    <label id="assign-exam-title" style="color: var(--primary); font-size: 1rem; margin:0;"><i class="fa-solid fa-file-signature"></i> Asignar Examen:</label>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; line-height:1.4;">Por defecto se asigna 1 examen. Puedes marcar hasta 2: el alumno verá ambos y, al enviar uno, se habilitará el otro.</div>
                 
-                <div class="checkbox-list" id="mu-exams-list" style="margin-bottom: 10px;"></div>
+                <!-- BUSCADOR RÁPIDO DE EXÁMENES -->
+                <div style="position:relative; margin-bottom: 10px;">
+                    <i class="fa-solid fa-filter" style="position:absolute; left:10px; top:12px; color:var(--text-muted); font-size:0.8rem;"></i>
+                    <input type="text" id="filter-assign-input" placeholder="Filtrar examen por nombre..." onkeyup="filterAssignExams()" style="padding: 7px 10px 7px 30px; font-size:0.85rem; margin-top:0;">
+                </div>
+
+                <!-- LISTA DE CARPETAS PURAS Y SIN EMPALMES -->
+                <div class="checkbox-list" id="mu-exams-list"></div>
                 
-                <div class="checkbox-item" style="margin-bottom:15px; background:#FEF2F2; border:1px solid var(--danger); padding:10px; border-radius:6px; color:var(--danger);">
+                <div class="checkbox-item" style="margin-top:12px; margin-bottom:15px; background:#FEF2F2; border:1px solid var(--danger); padding:10px 14px; border-radius:6px; color:var(--danger);">
                     <input type="checkbox" id="mu-anti-cheat">
                     <label for="mu-anti-cheat" style="font-weight:600; cursor:pointer;"><i class="fa-solid fa-shield-halved"></i> Activar Modo Anti-Trampa (Bloquea salir de la pestaña)</label>
                 </div>
                 
-                <div style="padding: 12px; background: #EFF6FF; border: 1px dashed var(--primary-light); border-radius: 6px;">
+                <div style="padding: 14px; background: #EFF6FF; border: 1px dashed var(--primary-light); border-radius: 6px;">
                     <label style="font-size: 0.85rem; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-life-ring"></i> Otorgar Intentos Extra:</label>
-                    <div style="display:flex; align-items:center; gap:10px; margin-top: 5px;">
+                    <div style="display:flex; align-items:center; gap:12px; margin-top: 6px;">
                         <input type="number" id="mu-extra-attempts" value="0" min="0" max="10" style="width: 80px; padding: 6px; text-align:center; font-weight:bold;">
-                        <span style="font-size: 0.75rem; color: var(--text-muted); line-height:1.3;">Si el alumno reprobó o se salió por error, suma +1 aquí para dejarlo intentar de nuevo.</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); line-height:1.3;">Si el alumno reprobó o se salió por error, suma +1 aquí para dejarlo intentar de nuevo. Aplica a cada examen asignado.</span>
                     </div>
                 </div>
             </div>
-            <button class="btn btn-primary" style="width: 100%; margin-top: 20px; padding: 12px;" onclick="saveUser()">Guardar Cambios</button>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 20px; padding: 12px; font-size: 0.95rem;" onclick="saveUser()">Guardar Cambios</button>
         </div>
     </div>
 </div>
@@ -792,8 +812,6 @@
     let CACHE = { users: {}, exams: [], results: [], liveSessions: {} };
     let dbLoadedCount = 0; const TOTAL_DB_NODES = 4; let allNodesReady = false;
 
-    // SHIELD: SANEADOR ABSOLUTO DE DATOS VIEJOS
-    // Convierte cualquier cosa rota de Firebase en un Array puro y seguro
     function forceArray(obj) {
         if (obj === null || obj === undefined) return [];
         if (Array.isArray(obj)) return obj.filter(item => item !== null && item !== undefined);
@@ -801,7 +819,6 @@
         return [obj]; 
     }
 
-    // SHIELD: Interceptor de Base de Datos
     const DB = { 
         get: (key) => {
             let val = CACHE[key];
@@ -815,7 +832,6 @@
                 return cleanObj;
             }
             
-            // Reparación maestra de Exámenes y Resultados históricos
             let arr = forceArray(val);
             if (key === 'exams') { 
                 arr.forEach(ex => { 
@@ -906,7 +922,14 @@
         if (id === 'tab-dashboard') renderDashboard(); 
     }
 
-    if (fbSdkOk) initFirebaseSync();
+    if (fbSdkOk) {
+        initFirebaseSync();
+        try {
+            examDb.ref('.info/connected').on('value', snap => {
+                if (snap.val() === true && window.liveSessionActive) registerLiveSession();
+            });
+        } catch(e) { console.warn(e); }
+    }
     
     let currentUser = null, activeExam = null, activeAnswers = {}, currentIndex = 0, timerInt = null, timeLeft = 0;
     let currentGradingResultId = null;
@@ -976,7 +999,6 @@
         } else { document.getElementById('login-error').classList.remove('hidden'); }
     }
     
-    // SHIELD: Botón de logout 100% seguro
     function logout() { 
         if (activeExam) {
             if(!confirm("Tienes un examen en curso. Si cierras sesión, tu intento se anulará y no podrás repetirlo. ¿Deseas salir de todas formas?")) return;
@@ -1038,7 +1060,7 @@
 
         tbody.innerHTML = paginated.map(u => {
             let badgeStyle = u.assignedCount > 0 ? "badge-info" : "badge-neutral";
-            let textStatus = u.assignedCount > 0 ? "1 Asignado" : "0 Asignados";
+            let textStatus = u.assignedCount > 0 ? (u.assignedCount + (u.assignedCount === 1 ? " Asignado" : " Asignados")) : "0 Asignados";
             return `<tr><td style="font-weight:600;">${u.name}</td><td>${u.displayUser}</td><td><span class="badge ${badgeStyle}">${textStatus}</span></td>
             <td>
                 <button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openUserModal('${u.id}')"><i class="fa-solid fa-pen"></i> Asignar</button>
@@ -1075,33 +1097,37 @@
         navigator.clipboard.writeText(txt).then(() => showToast("Credenciales copiadas al portapapeles exitosamente"));
     }
 
+    // MODAL ASIGNAR EXAMEN: LISTA DINÁMICA, CARPETAS CERRADAS Y SIN RECORTES
     function openUserModal(username = '') {
         const users = DB.get('users'), allExams = DB.get('exams');
         const listDiv = document.getElementById('mu-exams-list');
         const extraAttsInput = document.getElementById('mu-extra-attempts');
         const antiCheatInput = document.getElementById('mu-anti-cheat');
+        const searchInput = document.getElementById('filter-assign-input');
+        if(searchInput) searchInput.value = '';
         
         let grouped = {};
         allExams.forEach(ex => { let cat = ex.category || 'General'; if(!grouped[cat]) grouped[cat] = []; grouped[cat].push(ex); });
         
-        let htmlExams = '<label class="checkbox-item" style="background:#F1F5F9; padding:8px; border-radius:4px;"><input type="radio" name="exam-assign" class="exam-radio" value=""> <strong style="color:var(--primary);">[Ninguno] No asignar ningún examen</strong></label>';
+        let htmlExams = '<label class="checkbox-item" style="background:#EFF6FF; border-color:#BFDBFE; margin-bottom:4px;"><input type="checkbox" class="exam-radio" value="" onchange="onExamAssignChange(this)"> <strong style="color:var(--primary);">[Ninguno] No asignar ningún examen</strong></label>';
         Object.keys(grouped).sort().forEach(cat => {
             htmlExams += `
-            <details style="margin-top:10px; background:#fff; border:1px solid var(--border); border-radius:6px; padding:5px;">
-                <summary style="font-weight:700; color:var(--text-muted); font-size:0.8rem; text-transform:uppercase; cursor:pointer; outline:none; padding:5px;">
-                    📁 ${cat} <span class="badge badge-neutral" style="font-size:0.65rem; float:right;">${grouped[cat].length}</span>
+            <details class="folder-group" data-cat="${cat}">
+                <summary>
+                    <span><i class="fa-solid fa-folder-closed" style="color:var(--warning); margin-right:8px;"></i> Carpeta: ${cat}</span>
+                    <span class="badge badge-neutral" style="font-size:0.75rem;">${grouped[cat].length} ${grouped[cat].length === 1 ? 'Examen' : 'Exámenes'}</span>
                 </summary>
-                <div style="padding:10px 5px 5px 5px; border-top:1px solid var(--border); margin-top:5px; display:flex; flex-direction:column; gap:5px;">`;
+                <div class="folder-body">`;
             grouped[cat].forEach(ex => { 
-                htmlExams += `<label class="checkbox-item" style="margin:0; padding:6px; background:#F8FAFC; border-radius:4px;"><input type="radio" name="exam-assign" class="exam-radio" value="${ex.id}"> <span style="font-size:0.85rem; font-weight:500;">${ex.title}</span></label>`; 
+                htmlExams += `<label class="checkbox-item exam-assign-item" data-title="${ex.title.toLowerCase()}"><input type="checkbox" class="exam-radio" value="${ex.id}" onchange="onExamAssignChange(this)"> <span style="font-size:0.88rem; font-weight:500; color:var(--text-main); word-break:break-word;">${ex.title}</span></label>`; 
             });
             htmlExams += `</div></details>`;
         });
-        listDiv.innerHTML = htmlExams || '<p style="font-size:0.85rem; color:var(--text-muted);">No hay exámenes creados.</p>';
+        listDiv.innerHTML = htmlExams || '<p style="font-size:0.85rem; color:var(--text-muted); text-align:center; padding:10px;">No hay exámenes creados en el catálogo.</p>';
 
         if (username) {
             const u = users[username];
-            document.getElementById('assign-exam-title').innerHTML = `<i class="fa-solid fa-file-signature"></i> Asignar Examen a: <strong style="color:#0F172A;">${u.name}</strong>`;
+            document.getElementById('assign-exam-title').innerHTML = `<i class="fa-solid fa-file-signature"></i> Asignar Examen(es) a: <strong style="color:#0F172A;">${u.name}</strong>`;
             document.getElementById('modal-user-title').innerText = "Editar Alumno y Asignaciones";
             document.getElementById('mu-mode').value = username;
             document.getElementById('modal-user-new-fields').style.display = 'none';
@@ -1114,17 +1140,22 @@
             let assignList = forceArray(u.assignedExams);
             if(assignList.length > 0) {
                 document.querySelectorAll('.exam-radio').forEach(cb => { if(assignList.map(String).includes(String(cb.value))) cb.checked = true; });
-                if(u.extraAttempts) currentExtra = u.extraAttempts[assignList[0]] || 0;
-            } else { document.querySelector('.exam-radio[value=""]').checked = true; }
+                if(u.extraAttempts) currentExtra = Math.max(0, ...assignList.map(id => parseInt(u.extraAttempts[id]) || 0));
+            } else { 
+                let noneRadio = document.querySelector('.exam-radio[value=""]');
+                if(noneRadio) noneRadio.checked = true; 
+            }
             
-            extraAttsInput.value = currentExtra;
+            extraAttsInput.value = currentExtra; extraAttsInput.dataset.orig = String(currentExtra);
             antiCheatInput.checked = u.antiCheat || false;
             
-            const checkedRadio = document.querySelector('.exam-radio:checked');
-            if(checkedRadio && checkedRadio.value !== '') {
-                const parentDetails = checkedRadio.closest('details');
-                if(parentDetails) parentDetails.open = true;
-            }
+            // Abre únicamente la carpeta del examen que ya tiene seleccionado
+            document.querySelectorAll('.exam-radio:checked').forEach(checkedRadio => {
+                if(checkedRadio.value !== '') {
+                    const parentDetails = checkedRadio.closest('details');
+                    if(parentDetails) parentDetails.open = true;
+                }
+            });
             
         } else {
             document.getElementById('assign-exam-title').innerHTML = `<i class="fa-solid fa-file-signature"></i> Asignar Examen: <strong style="color:#0F172A;">(Alumno Nuevo)</strong>`;
@@ -1134,10 +1165,38 @@
             document.getElementById('modal-user-edit-fields').style.display = 'none';
             document.getElementById('mu-first-name').value = ""; document.getElementById('mu-last-name').value = "";
             document.getElementById('mu-username-new').value = ""; document.getElementById('mu-pass').value = "";
-            document.querySelector('.exam-radio[value=""]').checked = true;
-            extraAttsInput.value = 0; antiCheatInput.checked = false;
+            let noneRadio = document.querySelector('.exam-radio[value=""]');
+            if(noneRadio) noneRadio.checked = true;
+            extraAttsInput.value = 0; extraAttsInput.dataset.orig = ''; antiCheatInput.checked = false;
         }
         openModal('modal-user');
+    }
+
+    // BUSCADOR RÁPIDO DENTRO DEL ASIGNADOR DE EXÁMENES
+    function filterAssignExams() {
+        const q = (document.getElementById('filter-assign-input').value || '').trim().toLowerCase();
+        const groups = document.querySelectorAll('.folder-group');
+        
+        groups.forEach(group => {
+            const items = group.querySelectorAll('.exam-assign-item');
+            let hasVisible = false;
+            items.forEach(item => {
+                const title = item.dataset.title || '';
+                if(q === '' || title.includes(q)) {
+                    item.style.display = 'flex';
+                    hasVisible = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            if(q !== '') {
+                group.style.display = hasVisible ? 'block' : 'none';
+                if(hasVisible) group.open = true; // Abre automáticamente la carpeta donde encontró coincidencia
+            } else {
+                group.style.display = 'block';
+                group.open = false; // Vuelve a cerrar las carpetas al limpiar el filtro
+            }
+        });
     }
 
     function saveUser() {
@@ -1145,8 +1204,9 @@
         let users = DB.get('users');
         let assigned = [];
         
-        const selectedRadio = document.querySelector('.exam-radio:checked');
-        if (selectedRadio && selectedRadio.value !== "") assigned.push(String(selectedRadio.value));
+        document.querySelectorAll('.exam-radio:checked').forEach(cb => {
+            if (cb.value !== "" && assigned.length < 2 && !assigned.includes(String(cb.value))) assigned.push(String(cb.value));
+        });
 
         let extraAtt = parseInt(document.getElementById('mu-extra-attempts').value) || 0;
         let isAntiCheat = document.getElementById('mu-anti-cheat').checked;
@@ -1156,7 +1216,8 @@
             if(!p) return showToast("La contraseña no puede estar vacía", "danger");
 
             let extraObj = users[mode].extraAttempts || {};
-            if(assigned.length > 0) extraObj[assigned[0]] = extraAtt;
+            const origExtra = parseInt(document.getElementById('mu-extra-attempts').dataset.orig);
+            assigned.forEach(id => { if (isNaN(origExtra) || extraAtt !== origExtra || extraObj[id] === undefined) extraObj[id] = extraAtt; });
 
             users[mode].pass = p; 
             users[mode].assignedExams = assigned; 
@@ -1176,7 +1237,7 @@
             if (users[dbKey]) return showToast("El usuario ya existe. Evita duplicados.", "danger");
 
             let extraObj = {};
-            if(assigned.length > 0) extraObj[assigned[0]] = extraAtt;
+            assigned.forEach(id => { extraObj[id] = extraAtt; });
 
             users[dbKey] = { username: u, name: fullName, firstName: f, lastName: l, pass: p, role: 'alumno', assignedExams: assigned, extraAttempts: extraObj, antiCheat: isAntiCheat }; 
             showToast("Alumno creado exitosamente");
@@ -1399,7 +1460,6 @@
         if(Array.from(sel.options).some(opt => opt.value === currentSelected)) sel.value = currentSelected;
     }
 
-    // SHIELD: Evita inyecciones de HTML en las preguntas importadas
     function addQuestionBuilder(qData = null) {
         const type = qData ? qData.type : document.getElementById('q-type').value;
         const id = qData && qData.id ? qData.id : (Date.now() + Math.floor(Math.random() * 1000));
@@ -1469,7 +1529,6 @@
         return t;
     }
 
-    // SHIELD: Generación de folios segura
     function generateFolio() {
         let res = forceArray(DB.get('results')); 
         let max = 0;
@@ -1503,7 +1562,6 @@
         if(!title || qBlocks.length === 0) return showToast("Falta título o preguntas", "danger");
         if(checkTotalSum() !== 100) return showToast("La ponderación debe sumar exactamente 100%", "danger");
 
-        let qIndex = 1;
         for (let b of qBlocks) {
             const type = b.dataset.type, text = b.querySelector('.q-text').value.trim(), weight = parseFloat(b.querySelector('.q-weight').value||0);
             if(!text) return showToast("Existen preguntas vacías", "danger");
@@ -1588,7 +1646,7 @@
         const results = DB.get('results').filter(r => {
             let matchText = r.studentName.toLowerCase().includes(qText) || r.examTitle.toLowerCase().includes(qText) || String(r.folio).toLowerCase().includes(qText) || String(r.examId).toLowerCase().includes(qText) || r.studentUser.toLowerCase().includes(qText);
             let matchExam = (fExam === "" || String(r.examId) === String(fExam));
-            let matchStatus = (fStatus === "" || r.status === fStatus);
+            let matchStatus = (fStatus === "" || effectiveStatus(r) === fStatus);
             return matchText && matchExam && matchStatus;
         });
 
@@ -1597,7 +1655,7 @@
         let csv = "Folio,ID Plantilla,Alumno,Usuario,Titulo Examen,Fecha Termino,Calificacion,Estatus\n";
         results.forEach(r => {
             let date = new Date(r.timestamp).toLocaleString('es-MX'); let t = r.examTitle.replace(/,/g, ' '); let folioStr = r.folio || r.examId;
-            csv += `"${folioStr}","${r.examId}","${r.studentName}","${r.studentUser}","${t}","${date}","${r.score}%","${r.status}"\n`;
+            csv += `"${folioStr}","${r.examId}","${r.studentName}","${r.studentUser}","${t}","${date}","${r.score}%","${effectiveStatus(r)}"\n`;
         });
         
         const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' }); 
@@ -1613,7 +1671,7 @@
         let results = DB.get('results').filter(r => {
             let matchText = r.studentName.toLowerCase().includes(qText) || r.examTitle.toLowerCase().includes(qText) || String(r.folio).toLowerCase().includes(qText) || String(r.examId).toLowerCase().includes(qText) || r.studentUser.toLowerCase().includes(qText);
             let matchExam = (fExam === "" || String(r.examId) === String(fExam));
-            let matchStatus = (fStatus === "" || r.status === fStatus);
+            let matchStatus = (fStatus === "" || effectiveStatus(r) === fStatus);
             return matchText && matchExam && matchStatus;
         });
         
@@ -1623,15 +1681,16 @@
         const paginated = results.slice((resPage - 1) * resPerPage, resPage * resPerPage);
 
         document.getElementById('results-tbody').innerHTML = paginated.map(r => {
-            let badge = r.status === 'Pendiente Revisión' ? 'badge-warning' : (r.status === 'Aprobado' ? 'badge-success' : 'badge-danger');
+            const st = effectiveStatus(r);
+            let badge = st === 'Pendiente Revisión' ? 'badge-warning' : (st === 'Aprobado' ? 'badge-success' : (st === 'En curso' ? 'badge-info' : 'badge-danger'));
             let actionBtn = r.status === 'Pendiente Revisión' 
                 ? `<button type="button" class="btn btn-primary" style="font-size:0.75rem;" onclick="openGradingModal('${r.id}')"><i class="fa-solid fa-pen-nib"></i> Calificar</button>`
                 : `<button type="button" class="btn btn-outline" style="font-size:0.75rem;" onclick="openGradingModal('${r.id}', true)"><i class="fa-solid fa-eye"></i> Ver</button>`;
             
-            let displayScore = r.status === 'Pendiente Revisión' ? `<strong>${r.score}%</strong><br><span style="font-size:0.70rem; color:var(--warning); font-weight:bold;">(Parcial / Por revisar)</span>` : `<strong>${r.score}%</strong>`;
+            let displayScore = st === 'En curso' ? `<strong>—</strong><br><span style="font-size:0.70rem; color:var(--text-muted); font-weight:bold;">(Presentando ahora)</span>` : st === 'Pendiente Revisión' ? `<strong>${r.score}%</strong><br><span style="font-size:0.70rem; color:var(--warning); font-weight:bold;">(Parcial / Por revisar)</span>` : `<strong>${r.score}%</strong>`;
             let displayFolio = r.folio ? r.folio : r.examId;
                 
-            return `<tr><td><span class="badge badge-neutral" style="font-size:0.80rem; background:#E2E8F0; color:var(--primary); font-weight:800;">${displayFolio}</span></td><td><strong>${r.studentName}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${r.studentUser}</span></td><td>${r.examTitle}</td><td>${formatDateTime(r.timestamp)}</td><td>${displayScore}</td><td><span class="badge ${badge}">${r.status}</span></td><td><div style="display:flex; gap:5px;">${actionBtn}<button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="authAdminAction(() => deleteResult('${r.id}'))" title="Borrar intento"><i class="fa-solid fa-trash"></i></button></div></td></tr>`;
+            return `<tr><td><span class="badge badge-neutral" style="font-size:0.80rem; background:#E2E8F0; color:var(--primary); font-weight:800;">${displayFolio}</span></td><td><strong>${r.studentName}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${r.studentUser}</span></td><td>${r.examTitle}</td><td>${formatDateTime(r.timestamp)}</td><td>${displayScore}</td><td><span class="badge ${badge}">${st}</span></td><td><div style="display:flex; gap:5px;">${actionBtn}<button type="button" class="btn btn-outline" style="font-size:0.75rem; color:var(--danger);" onclick="authAdminAction(() => deleteResult('${r.id}'))" title="Borrar intento"><i class="fa-solid fa-trash"></i></button></div></td></tr>`;
         }).join('') || '<tr><td colspan="7" style="text-align:center; padding: 20px; color: var(--text-muted);">No se encontraron resultados con los filtros actuales.</td></tr>';
 
         let htmlPage = `<div class="pagination-info">Mostrando ${(resPage-1)*resPerPage + (total>0?1:0)} a ${Math.min(resPage*resPerPage, total)} de ${total} registros</div>`;
@@ -1728,7 +1787,6 @@
         DB.save('results', results); closeModal('modal-grade'); renderResults(true); showToast("Examen Calificado permanentemente.");
     }
 
-    // SHIELD: Evita que el sistema colapse si el alumno abandona bruscamente
     document.addEventListener('visibilitychange', function() {
         if (document.hidden && activeExam && currentUser && currentUser.antiCheat) {
             window.cheatWarnings = (window.cheatWarnings || 0) + 1;
@@ -1739,7 +1797,49 @@
         }
     });
 
-    // SHIELD: Motor de Alumnos a prueba de fallos
+    function getActiveLiveSession(userId) {
+        const s = DB.get('liveSessions')[userId];
+        if (s && s.expiresAt && Number(s.expiresAt) > Date.now()) return s;
+        return null;
+    }
+
+    function effectiveStatus(r) {
+        if (r.status !== 'En curso') return r.status;
+        const s = DB.get('liveSessions')[r.studentUserId];
+        if (s && String(s.attemptId) === String(r.id)) return 'En curso';
+        if (Date.now() - new Date(r.timestamp).getTime() < 90000) return 'En curso';
+        return 'Anulado (Abandono)';
+    }
+
+    function registerLiveSession() {
+        try {
+            if (!examDb || !activeExam || !currentUser || !window.liveSessionActive) return;
+            const ref = examDb.ref(FB_PATHS.liveSessions + '/' + currentUser.id);
+            ref.onDisconnect().remove();
+            const start = window.currentAttemptStart || Date.now();
+            ref.set({
+                name: currentUser.name, userDisplay: currentUser.username, examTitle: activeExam.title || 'Examen',
+                examId: activeExam.id, attemptId: window.currentAttemptId, start: start,
+                expiresAt: start + (((activeExam.time || 30) + 3) * 60000)
+            }).catch(e => console.log(e));
+        } catch(e) { console.warn(e); }
+    }
+
+    function onExamAssignChange(el) {
+        const boxes = Array.from(document.querySelectorAll('.exam-radio'));
+        const none = boxes.find(b => b.value === '');
+        if (el.value === '') {
+            if (el.checked) boxes.forEach(b => { if (b !== el) b.checked = false; });
+            else el.checked = true;
+            return;
+        }
+        if (el.checked) {
+            const picked = boxes.filter(b => b.value !== '' && b.checked);
+            if (picked.length > 2) { el.checked = false; showToast("Máximo 2 exámenes por alumno.", "warning"); return; }
+            if (none) none.checked = false;
+        } else if (none && !boxes.some(b => b.value !== '' && b.checked)) { none.checked = true; }
+    }
+
     function renderStudentExams() {
         const liveUser = DB.get('users')[currentUser.id];
         if (liveUser) currentUser = { id: currentUser.id, username: liveUser.username || currentUser.id, ...liveUser };
@@ -1749,12 +1849,15 @@
         const myAssigned = forceArray(currentUser.assignedExams) || [];
         const myExams = forceArray(allExams).filter(e => myAssigned.map(String).includes(String(e.id)));
 
-        document.getElementById('alumno-exam-list').innerHTML = myExams.map(ex => {
-            const myAttempts = results.filter(r => String(r.examId) === String(ex.id) && r.status !== 'Anulado (Abandono)').length;
+        const activeLive = getActiveLiveSession(currentUser.id);
+        const multiNote = myExams.length > 1 ? `<div style="grid-column: 1 / -1; font-size:0.85rem; color:var(--text-muted);"><i class="fa-solid fa-circle-info"></i> Tienes ${myExams.length} exámenes asignados. Puedes presentar cualquiera primero; al enviarlo se habilitará el otro.</div>` : '';
+        document.getElementById('alumno-exam-list').innerHTML = multiNote + myExams.map(ex => {
+            const myAttempts = results.filter(r => String(r.examId) === String(ex.id) && r.status !== 'Anulado (Abandono)' && r.status !== 'En curso').length;
             const myExtra = (currentUser.extraAttempts && currentUser.extraAttempts[ex.id]) ? parseInt(currentUser.extraAttempts[ex.id]) : 0;
             const max = (ex.maxAttempts || 1) + myExtra;
-            const canAttempt = myAttempts < max;
-            const doneText = canAttempt ? "Presentar Examen" : "Intentos Agotados";
+            const hasAttempts = myAttempts < max;
+            const canAttempt = hasAttempts && !activeLive;
+            const doneText = !hasAttempts ? "Intentos Agotados" : (activeLive ? (String(activeLive.examId) === String(ex.id) ? "Examen en curso" : "Disponible al terminar el otro examen") : "Presentar Examen");
             
             return `
             <div class="card" style="margin:0; opacity: ${canAttempt ? '1' : '0.6'}">
@@ -1785,10 +1888,10 @@
         openModal('modal-instructions');
     }
 
-    // SHIELD: Súper Inicialización Blindada
     function startExam(id) {
         try {
             if(!currentUser || !currentUser.id) { throw new Error("Sesión inválida"); }
+            if(getActiveLiveSession(currentUser.id)) { showToast("Ya tienes un examen en curso. Termínalo y envíalo para presentar el siguiente.", "warning"); return; }
             
             window.cheatWarnings = 0; 
             const originalExam = DB.get('exams').find(e => e && e.id && String(e.id) === String(id));
@@ -1796,7 +1899,6 @@
             
             activeExam = JSON.parse(JSON.stringify(originalExam)); 
             
-            // Saneador Extremo de Preguntas
             activeExam.questions = forceArray(activeExam.questions).filter(q => q && typeof q === 'object');
             
             activeExam.questions.forEach(q => { 
@@ -1806,6 +1908,7 @@
                 q.text = q.text || 'Pregunta sin texto';
             });
             
+            // ALEATORIEDAD: DESORDENA PREGUNTAS Y OPCIONES
             if(activeExam.questions.length > 0) {
                 activeExam.questions = shuffleArray(activeExam.questions);
                 activeExam.questions.forEach(q => { 
@@ -1817,22 +1920,21 @@
 
             activeAnswers = {}; currentIndex = 0; 
             window.currentAttemptId = Date.now();
+            window.currentAttemptStart = Date.now();
+            window.liveSessionActive = true;
+            registerLiveSession();
             let res = DB.get('results') || [];
             let placeholderResult = {
                 id: window.currentAttemptId, folio: generateFolio(), examId: activeExam.id, examTitle: activeExam.title || 'Examen',
                 passScore: activeExam.passScore || 80, studentUserId: currentUser.id, studentUser: currentUser.username, 
                 studentName: currentUser.name, timestamp: new Date().toISOString(), score: 0, 
-                status: 'Anulado (Abandono)', answers: []
+                status: 'En curso', answers: []
             };
             res.push(placeholderResult); 
             DB.save('results', res);
             
             switchTab('tab-reproductor'); 
             document.getElementById('player-exam-id').innerHTML = `<i class="fa-solid fa-book-open"></i> ${activeExam.title || 'Examen'}`;
-            
-            try {
-                if(examDb) examDb.ref(FB_PATHS.liveSessions + '/' + currentUser.id).set({ name: currentUser.name, userDisplay: currentUser.username, examTitle: activeExam.title || 'Examen', start: Date.now() }).catch(e=>console.log(e));
-            } catch(e) {}
             
             timeLeft = (activeExam.time || 30) * 60; alertThreshold = (activeExam.time || 30) >= 30 ? 300 : 60; alertTriggered = false;
             
@@ -1923,7 +2025,6 @@
         try { forceSubmit(false); } catch(e) { console.error(e); }
     }
 
-    // SHIELD: Envío blindado
     function forceSubmit(isTimeout, forceStatus = null) {
         if(timerInt) clearInterval(timerInt); 
         saveAns();
@@ -1951,15 +2052,17 @@
         }
         
         document.getElementById('view-submitting').classList.remove('hidden');
-        try { if(examDb) examDb.ref(FB_PATHS.liveSessions + '/' + currentUser.id).remove(); } catch(e){}
+        window.liveSessionActive = false;
+        const clearLive = () => { try { if(examDb) { const lsRef = examDb.ref(FB_PATHS.liveSessions + '/' + currentUser.id); lsRef.onDisconnect().cancel(); lsRef.remove(); } } catch(e){} };
 
         if (!navigator.onLine || !examDb) {
-            DB.save('results', res); document.getElementById('view-submitting').classList.add('hidden');
+            DB.save('results', res); clearLive(); document.getElementById('view-submitting').classList.add('hidden');
             showToast("Sin conexión. Guardado localmente, se sincronizará automáticamente.", "warning");
             activeExam = null; switchTab('tab-mis-examenes', document.querySelector('#nav-alumno .nav-item')); return;
         }
 
-        examDb.ref(FB_PATHS.results).set(res).then(() => {
+        const saveP = examDb.ref(FB_PATHS.results).set(res); clearLive();
+        saveP.then(() => {
             CACHE.results = res; document.getElementById('view-submitting').classList.add('hidden');
             if(forceStatus) { showToast("Examen anulado y enviado al servidor.", "danger"); }
             else if(isTimeout) { showToast("¡Tiempo agotado! Examen guardado y confirmado.", "warning"); } 
