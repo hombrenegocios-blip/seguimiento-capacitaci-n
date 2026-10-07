@@ -860,7 +860,7 @@
                     <i class="fas fa-cloud-download-alt fa-2x" style="color:#4CAF50;flex-shrink:0;"></i>
                     <div style="flex:1;min-width:200px;">
                         <h2 style="margin:0 0 3px 0;font-size:17px;">Respaldo y Reportes de Capacitación</h2>
-                        <p style="margin:0;opacity:0.7;font-size:11.5px;">Reportes individuales con datos completos + resumen estadístico por zona.</p>
+                        <p style="margin:0;opacity:0.7;font-size:11.5px;">Reportes individuales con datos completos + resumen estadístico por zona. Incluye Exámenes (sin restricción por zona).</p>
                     </div>
                     <!-- LOG DERECHO -->
                     <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:9px;padding:10px 16px;min-width:220px;font-size:11px;line-height:1.9;">
@@ -895,11 +895,22 @@
                             <i class="fas fa-file-excel"></i>&nbsp;Descargar Gerenciales
                         </button>
                     </div>
+                    <div style="flex:1;min-width:250px;background:#e0f2f1;border:1px solid #b2dfdb;border-radius:10px;padding:16px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                            <i class="fas fa-file-circle-check" style="color:#00695c;"></i>
+                            <strong style="color:#00695c;font-size:13px;">Exámenes</strong>
+                        </div>
+                        <p style="font-size:11px;color:#666;margin:0 0 12px 0;">Respaldo filtrable: alumno, examen, tema, calificación, fecha · Sin restricción por zona</p>
+                        <button id="btn-exam-excel" onclick="downloadExamExcel(this)"
+                            style="width:100%;background:linear-gradient(135deg,#004d40,#00897b);color:white;border:none;border-radius:7px;padding:10px 0;font-size:13px;font-weight:bold;cursor:pointer;">
+                            <i class="fas fa-file-excel"></i>&nbsp;Descargar Exámenes
+                        </button>
+                    </div>
                 </div>
                 <div style="text-align:center;margin-bottom:20px;">
                     <button id="btn-excel-report" onclick="downloadExcelReport(this)"
                         style="background:linear-gradient(135deg,#4a148c,#7b1fa2);color:white;border:none;border-radius:8px;padding:11px 34px;font-size:13px;font-weight:bold;cursor:pointer;box-shadow:0 3px 14px rgba(123,31,162,0.35);">
-                        <i class="fas fa-database"></i>&nbsp;Descargar Reporte Completo — NH + Gerenciales (4 hojas)
+                        <i class="fas fa-database"></i>&nbsp;Descargar Reporte Completo — NH + Gerenciales + Exámenes (6 hojas)
                     </button>
                 </div>
 
@@ -935,9 +946,10 @@
                     <!-- Controles -->
                     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
                         <select id="email-report-type" style="padding:8px 12px;border:1px solid #ffca28;border-radius:6px;font-size:12px;background:white;">
-                            <option value="all">Reporte Completo</option>
+                            <option value="all">Reporte Completo (NH + Gerenciales + Exámenes)</option>
                             <option value="nh">Solo Nuevos Ingresos</option>
                             <option value="mgr">Solo Gerenciales</option>
+                            <option value="exam">Solo Exámenes</option>
                         </select>
                         <select id="email-client" style="padding:8px 12px;border:1px solid #ffca28;border-radius:6px;font-size:12px;background:white;">
                             <option value="gmail">Abrir en Gmail (navegador)</option>
@@ -3458,22 +3470,298 @@
             },300);
         }
 
+        // ============================================================
+        //  EXÁMENES — RESPALDO Y REPORTE (SOLO LECTURA)
+        //  Lee los nodos independientes del sistema de Exámenes en Firebase:
+        //  examExams, examResults y examLiveSessions (solo exámenes activos). NUNCA escribe y
+        //  De examUsers solo toma los NOMBRES de usuario (llaves), nunca contraseñas. Sin restricción por zona.
+        // ============================================================
+        const _hdrEX = { font:{bold:true,color:{rgb:"FFFFFF"},sz:11}, fill:{fgColor:{rgb:"00695C"}}, alignment:{horizontal:"center",vertical:"center",wrapText:true} };
+
+        function _exArr(v) {
+            if (v === null || v === undefined) return [];
+            if (Array.isArray(v)) return v.filter(x => x !== null && x !== undefined);
+            if (typeof v === 'object') return Object.values(v).filter(x => x !== null && x !== undefined);
+            return [v];
+        }
+        function _exNum(v) {
+            if (v === null || v === undefined || v === '') return null;
+            const n = Number(v);
+            return isNaN(n) ? null : n;
+        }
+
+        // Lectura de un nodo con tiempo máximo de espera
+        function _exReadNode(path) {
+            return new Promise((resolve, reject) => {
+                let done = false;
+                const timer = setTimeout(() => { if (!done) { done = true; reject(new Error('Tiempo de espera agotado leyendo ' + path)); } }, 15000);
+                try {
+                    const database = (typeof db !== 'undefined' && db) ? db : firebase.database();
+                    database.ref(path).once('value').then(snap => {
+                        if (done) return; done = true; clearTimeout(timer); resolve(snap.val());
+                    }).catch(err => {
+                        if (done) return; done = true; clearTimeout(timer); reject(err);
+                    });
+                } catch (err) { clearTimeout(timer); reject(err); }
+            });
+        }
+
+        // Mismo criterio que usa el sistema de Exámenes para el estatus real de cada intento
+        function _exStatus(r, live) {
+            if (r.status !== 'En curso') return _safeStr(r.status);
+            const s = live ? live[r.studentUserId] : null;
+            if (s && String(s.attemptId) === String(r.id)) return 'En curso';
+            if (Date.now() - new Date(r.timestamp).getTime() < 90000) return 'En curso';
+            return 'Anulado (Abandono)';
+        }
+
+        function _examPrepare(raw) {
+            const exams = _exArr(raw.exams);
+            const examMap = {};
+            exams.forEach(e => { examMap[String(e.id)] = e; });
+            const live = raw.live || {};
+            // Solo datos REALES de la plataforma: se omiten intentos de exámenes eliminados y de alumnos eliminados
+            // (pruebas que luego se borran). Los intentos "En curso" tampoco cuentan: aún no se han presentado.
+            const userSet = new Set(_exArr(raw.userKeys).map(k => String(k)));
+            const userActive = r => r.studentUserId !== undefined && r.studentUserId !== null && r.studentUserId !== ''
+                ? userSet.has(String(r.studentUserId))
+                : userSet.has(String(r.studentUser || '').replace(/\./g, '_'));
+            const activeResults = _exArr(raw.results).filter(r => r && examMap[String(r.examId)] !== undefined && userActive(r));
+            const recs = activeResults.map(r => {
+                const answers = _exArr(r.answers);
+                const ex = examMap[String(r.examId)] || {};
+                const d = r.timestamp ? new Date(r.timestamp) : null;
+                const valid = !!d && !isNaN(d.getTime());
+                const status = _exStatus(r, live);
+                const sc = _exNum(r.score);
+                const pass = _exNum(r.passScore !== undefined && r.passScore !== null && r.passScore !== '' ? r.passScore : ex.passScore);
+                const who = _safeStr(r.studentUserId || r.studentUser || r.studentName);
+                return {
+                    who: who,
+                    key: who + '||' + _safeStr(r.examId),
+                    folio: _safeStr(r.folio || r.examId),
+                    name: _safeStr(r.studentName),
+                    user: _safeStr(r.studentUser),
+                    examId: _safeStr(r.examId),
+                    examTitle: _safeStr(r.examTitle || ex.title),
+                    tema: _safeStr(ex.category) || 'Sin tema',
+                    ts: valid ? d.getTime() : 0,
+                    date: valid ? new Date(d.getFullYear(), d.getMonth(), d.getDate()) : null,
+                    time: valid ? d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' }) : '',
+                    attempt: 0,
+                    score: (status === 'En curso' || sc === null) ? null : Math.round(sc),
+                    pass: pass,
+                    status: status,
+                    totalQ: answers.length,
+                    correct: answers.filter(a => a && a.maxPts > 0 && a.earned === a.maxPts).length
+                };
+            });
+            // Número de intento por alumno + examen (por orden cronológico)
+            for (let k = recs.length - 1; k >= 0; k--) { if (recs[k].status === 'En curso') recs.splice(k, 1); }
+            const counter = {};
+            recs.slice().sort((a, b) => a.ts - b.ts).forEach(x => { counter[x.key] = (counter[x.key] || 0) + 1; x.attempt = counter[x.key]; });
+            recs.sort((a, b) => b.ts - a.ts);
+            return { recs: recs, exams: exams, generatedAt: new Date() };
+        }
+
+        // Solo los NOMBRES (llaves) de usuarios activos de Exámenes. Se usa lectura "shallow" por REST:
+        // devuelve únicamente las llaves, sin contraseñas ni datos del usuario. Respaldo: lectura normal
+        // del SDK conservando solo las llaves (el resto se descarta de inmediato).
+        function _exReadUserKeys() {
+            const viaSdk = () => _exReadNode('examUsers').then(v => Object.keys(v || {}));
+            let base = null;
+            try { base = (typeof firebaseConfig !== 'undefined' && firebaseConfig.databaseURL) ? String(firebaseConfig.databaseURL).replace(/\/$/, '') : null; } catch (e) { base = null; }
+            if (!base || typeof fetch !== 'function') return viaSdk();
+            return fetch(base + '/examUsers.json?shallow=true')
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(v => Object.keys(v || {}))
+                .catch(() => viaSdk());
+        }
+
+        // Lee Firebase (siempre datos frescos). examResults y examExams son indispensables:
+        // sin la lista de exámenes activos no se puede filtrar, así que mejor fallar que dar datos malos.
+        function _loadExamData() {
+            return Promise.all([
+                _exReadNode('examResults'),
+                _exReadNode('examExams'),
+                _exReadUserKeys(),
+                _exReadNode('examLiveSessions').catch(e => { console.warn('examLiveSessions no disponible:', e); return null; })
+            ]).then(res => _examPrepare({ results: res[0], exams: res[1], userKeys: res[2], live: res[3] }));
+        }
+
+        function _exAgg(list) {
+            const a = { n: list.length, ap: 0, rp: 0, otros: 0, sum: 0, cnt: 0 };
+            list.forEach(x => {
+                if (x.status === 'Aprobado') a.ap++;
+                else if (x.status === 'Reprobado') a.rp++;
+                else a.otros++;
+                if ((x.status === 'Aprobado' || x.status === 'Reprobado') && typeof x.score === 'number') { a.sum += x.score; a.cnt++; }
+            });
+            a.avg = a.cnt ? (a.sum / a.cnt).toFixed(1) : '-';
+            return a;
+        }
+
+        // Hoja de datos: una fila por intento, lista para filtrar en Excel
+        function _buildExamDataSheet(data) {
+            const headers = ['N°','Folio','Alumno','Usuario','ID Examen','Examen','Tema / Carpeta',
+                'Fecha','Hora','Intento N°','Calificación (%)','Mínimo aprobatorio (%)','Estatus','Reactivos','Aciertos'];
+            const rows = data.recs.map((x, i) => [
+                i + 1, x.folio, x.name, x.user, x.examId, x.examTitle, x.tema,
+                x.date, x.time, x.attempt, x.score, x.pass, x.status, x.totalQ, x.correct
+            ]);
+            const ws = XLSX.utils.aoa_to_sheet([headers, ...rows], { cellDates: true });
+            ws['!cols'] = [{wch:5},{wch:12},{wch:28},{wch:16},{wch:11},{wch:30},{wch:18},{wch:12},{wch:8},{wch:10},{wch:14},{wch:14},{wch:20},{wch:10},{wch:10}];
+            ws['!rows'] = [{hpt:26}];
+            ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:Math.max(rows.length,1), c:headers.length-1} }) };
+            headers.forEach((_, ci) => { const c = XLSX.utils.encode_cell({r:0,c:ci}); if (ws[c]) ws[c].s = _hdrEX; });
+            rows.forEach((row, ri) => {
+                const bg = ri % 2 === 0 ? "FFFFFF" : "E0F2F1";
+                row.forEach((_, ci) => {
+                    const c = XLSX.utils.encode_cell({r:ri+1,c:ci});
+                    if (!ws[c]) return;
+                    if (ci === 7) ws[c].z = 'dd/mm/yyyy';
+                    ws[c].s = { ...(ci >= 2 && ci <= 6 ? _cL : _cC), fill:{fgColor:{rgb:bg}} };
+                });
+            });
+            return ws;
+        }
+
+        // Hoja de resumen: estatus, indicadores, por tema, por examen y por alumno
+        function _buildExamSummarySheet(data) {
+            const recs = data.recs;
+            const total = recs.length;
+            const rows = []; const secRows = []; const titleRows = [];
+            const pad = (arr) => { while (arr.length < 7) arr.push(''); return arr; };
+            const sec = (arr) => { secRows.push(rows.length); rows.push(pad(arr)); };
+
+            titleRows.push(rows.length); rows.push(pad(['RESUMEN — EXÁMENES']));
+            rows.push(pad(['Generado el', new Date().toLocaleDateString('es-MX')]));
+            rows.push(pad([]));
+
+            sec(['📊 TOTALES POR ESTATUS', 'Cantidad', 'Porcentaje']);
+            const byStatus = {};
+            recs.forEach(x => { byStatus[x.status || '(sin estatus)'] = (byStatus[x.status || '(sin estatus)'] || 0) + 1; });
+            const order = ['Aprobado','Reprobado','Pendiente Revisión','En curso'];
+            const statusList = order.concat(Object.keys(byStatus).filter(s => order.indexOf(s) === -1).sort());
+            statusList.forEach(s => {
+                const n = byStatus[s] || 0;
+                if (n === 0 && order.indexOf(s) === -1) return;
+                rows.push(pad([s, n, total ? (n / total * 100).toFixed(1) + '%' : '0%']));
+            });
+            rows.push(pad(['TOTAL DE INTENTOS', total, total ? '100%' : '0%']));
+            rows.push(pad([]));
+
+            const g = _exAgg(recs);
+            sec(['📈 INDICADORES GENERALES', 'Valor']);
+            rows.push(pad(['Alumnos distintos', new Set(recs.map(x => x.who)).size]));
+            rows.push(pad(['Exámenes distintos presentados', new Set(recs.map(x => x.examId)).size]));
+            rows.push(pad(['Promedio general (solo Aprobado + Reprobado)', g.cnt ? g.avg + '%' : '-']));
+            rows.push(pad(['Porcentaje de aprobación (Aprobado / calificados)', g.cnt ? ((g.ap / (g.ap + g.rp)) * 100).toFixed(1) + '%' : '-']));
+            rows.push(pad([]));
+
+            const groupBy = (keyFn) => {
+                const m = {};
+                recs.forEach(x => { const k = keyFn(x); (m[k] = m[k] || []).push(x); });
+                return m;
+            };
+
+            sec(['🗂 RESUMEN POR TEMA / CARPETA', 'Intentos', 'Aprobados', 'Reprobados', 'Pend. / Anul. / En curso', 'Promedio (%)']);
+            const byTema = groupBy(x => x.tema);
+            Object.keys(byTema).sort().forEach(k => {
+                const a = _exAgg(byTema[k]);
+                rows.push(pad([k, a.n, a.ap, a.rp, a.otros, a.avg]));
+            });
+            rows.push(pad([]));
+
+            sec(['📝 RESUMEN POR EXAMEN', 'Tema', 'Intentos', 'Aprobados', 'Reprobados', 'Promedio (%)', 'Mín. aprobatorio']);
+            const byExam = groupBy(x => x.examId + '||' + x.examTitle);
+            Object.keys(byExam).sort().forEach(k => {
+                const l = byExam[k]; const a = _exAgg(l);
+                rows.push(pad([(l[0].examId ? l[0].examId + ' · ' : '') + l[0].examTitle, l[0].tema, a.n, a.ap, a.rp, a.avg, l[0].pass === null ? '' : l[0].pass]));
+            });
+            rows.push(pad([]));
+
+            sec(['👤 RESUMEN POR ALUMNO', 'Usuario', 'Intentos', 'Aprobados', 'Reprobados', 'Promedio (%)', 'Último intento']);
+            const byAlumno = groupBy(x => x.who);
+            Object.keys(byAlumno).sort((a, b) => _safeStr(byAlumno[a][0].name).localeCompare(_safeStr(byAlumno[b][0].name))).forEach(k => {
+                const l = byAlumno[k]; const a = _exAgg(l);
+                const last = Math.max.apply(null, l.map(x => x.ts));
+                rows.push(pad([l[0].name, l[0].user, a.n, a.ap, a.rp, a.avg, last ? new Date(last).toLocaleDateString('es-MX') : '']));
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{wch:46},{wch:20},{wch:12},{wch:12},{wch:22},{wch:14},{wch:16}];
+            rows.forEach((row, ri) => {
+                const isSec = secRows.indexOf(ri) !== -1;
+                const isTitle = titleRows.indexOf(ri) !== -1;
+                for (let ci = 0; ci < 7; ci++) {
+                    const c = XLSX.utils.encode_cell({r:ri,c:ci});
+                    if (!ws[c]) continue;
+                    if (isSec) ws[c].s = _hdrSum;
+                    else if (isTitle) ws[c].s = { font:{bold:true,sz:14,color:{rgb:"00695C"}}, alignment:{horizontal:"left",vertical:"center"} };
+                    else if (ci === 0) ws[c].s = _cBold;
+                    else ws[c].s = _cC;
+                }
+            });
+            return ws;
+        }
+
+        // Bloque de texto para el cuerpo del correo
+        function _examEmailBlock(examData) {
+            if (!examData) return 'RESUMEN EXÁMENES\n  No disponible: no se pudo leer la información de Exámenes en este envío.';
+            const a = _exAgg(examData.recs);
+            const alumnos = new Set(examData.recs.map(x => x.who)).size;
+            return 'RESUMEN EXÁMENES\n' +
+                '  Intentos registrados  : ' + a.n + '\n' +
+                '  Alumnos               : ' + alumnos + '\n' +
+                '  Aprobados             : ' + a.ap + '\n' +
+                '  Reprobados            : ' + a.rp + '\n' +
+                '  Pend. revisión / otros: ' + a.otros + '\n' +
+                '  Promedio calificados  : ' + (a.cnt ? a.avg + '%' : '-');
+        }
+
+        // ================= DESCARGA EXÁMENES =================
+        function downloadExamExcel(btn) {
+            if (typeof XLSX === 'undefined') { alert('Librería cargando, intenta de nuevo.'); return; }
+            _btnFeedback(btn, false);
+            _loadExamData().then(data => {
+                try {
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, _buildExamDataSheet(data),    'Datos - Exámenes');
+                    XLSX.utils.book_append_sheet(wb, _buildExamSummarySheet(data), 'Resumen - Exámenes');
+                    XLSX.writeFile(wb, _getFileName('Examenes'));
+                    _writeDownloadLog('Exámenes');
+                    _btnFeedback(btn, true);
+                } catch (e) { console.error(e); alert('Error al generar el reporte de Exámenes.'); btn.disabled = false; btn.innerHTML = btn._orig || btn.innerHTML; }
+            }).catch(e => {
+                console.error(e);
+                alert('No se pudo leer la información de Exámenes desde Firebase. Revisa tu conexión (y que las Reglas permitan leer examResults) e intenta de nuevo.');
+                btn.disabled = false; btn.innerHTML = btn._orig || btn.innerHTML;
+            });
+        }
+
         // ================= DESCARGA REPORTE COMPLETO =================
         function downloadExcelReport(btn) {
             if(typeof XLSX==='undefined'){alert('Librería cargando, intenta de nuevo.');return;}
             _btnFeedback(btn, false);
-            setTimeout(()=>{
+            // Exámenes se lee aparte: si falla, el reporte sale igual con NH + Gerenciales (como antes)
+            _loadExamData().catch(e => { console.error('Exámenes no disponible:', e); return null; }).then(examData => {
                 try{
                     const wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, _buildNHDataSheet(),     'Datos - Nuevos Ingresos');
                     XLSX.utils.book_append_sheet(wb, _buildNHSummarySheet(),  'Resumen - Nuevos Ingresos');
                     XLSX.utils.book_append_sheet(wb, _buildMGRDataSheet(),    'Datos - Gerenciales');
                     XLSX.utils.book_append_sheet(wb, _buildMGRSummarySheet(), 'Resumen - Gerenciales');
+                    if (examData) {
+                        XLSX.utils.book_append_sheet(wb, _buildExamDataSheet(examData),    'Datos - Exámenes');
+                        XLSX.utils.book_append_sheet(wb, _buildExamSummarySheet(examData), 'Resumen - Exámenes');
+                    }
                     XLSX.writeFile(wb, _getFileName('Reporte_Completo_Capacitacion'));
                     _writeDownloadLog('Reporte Completo');
                     _btnFeedback(btn, true);
+                    if (!examData) alert('Aviso: no se pudo leer la información de Exámenes. El archivo se generó SOLO con Nuevos Ingresos y Gerenciales. Intenta de nuevo para incluir Exámenes.');
                 }catch(e){console.error(e);alert('Error al generar el reporte.');btn.disabled=false;btn.innerHTML=btn._orig||btn.innerHTML;}
-            },300);
+            });
         }
 
         // ============================================================
@@ -3601,7 +3889,7 @@
         }
 
         // ---- Construir cuerpo del correo ----
-        function _buildEmailContent(type) {
+        function _buildEmailContent(type, examData) {
             const today     = new Date().toLocaleDateString('es-MX');
             const totalNH   = employees.length;
             const aprobNH   = employees.filter(e => e.status === 'Aprobado').length;
@@ -3610,10 +3898,10 @@
             const totalMGR  = managers.length;
             const aprobMGR  = managers.filter(m => m.status === 'Aprobado').length;
             const procesoMGR= managers.filter(m => m.status === 'En proceso').length;
-            const tipoLabel = type === 'nh' ? 'Nuevos Ingresos' : type === 'mgr' ? 'Gerenciales' : 'Completo (Nuevos Ingresos + Gerenciales)';
+            const tipoLabel = type === 'nh' ? 'Nuevos Ingresos' : type === 'mgr' ? 'Gerenciales' : type === 'exam' ? 'Exámenes' : 'Completo (Nuevos Ingresos + Gerenciales + Exámenes)';
 
             const subject = `Reporte Semanal de Capacitación — ${tipoLabel} — ${today}`;
-            const body =
+            let body =
 `Estimado/a equipo,
 
 Se adjunta el reporte semanal de capacitación generado el ${today}.
@@ -3634,11 +3922,19 @@ INSTRUCCION: Por favor adjunta el archivo Excel descargado antes de enviar.
 
 Saludos,
 Sistema de Seguimiento de Capacitacion — PrestoCash`;
+            if (type === 'exam' || type === 'all') {
+                const examBlock = _examEmailBlock(examData);
+                if (type === 'exam') {
+                    body = `Estimado/a equipo,\n\nSe adjunta el respaldo de Exámenes generado el ${today}.\nTipo: ${tipoLabel}\n\n${examBlock}\n\nINSTRUCCION: Por favor adjunta el archivo Excel descargado antes de enviar.\n\nSaludos,\nSistema de Seguimiento de Capacitacion — PrestoCash`;
+                } else {
+                    body = body.replace('INSTRUCCION:', examBlock + '\n\nINSTRUCCION:');
+                }
+            }
             return { subject, body, tipoLabel };
         }
 
         // ---- Generar y descargar Excel para correo ----
-        function _downloadExcelForEmail(type) {
+        function _downloadExcelForEmail(type, examData) {
             const wb = XLSX.utils.book_new();
             let fileName;
             if (type === 'nh') {
@@ -3649,11 +3945,19 @@ Sistema de Seguimiento de Capacitacion — PrestoCash`;
                 XLSX.utils.book_append_sheet(wb, _buildMGRDataSheet(),    'Datos - Gerenciales');
                 XLSX.utils.book_append_sheet(wb, _buildMGRSummarySheet(), 'Resumen - Gerenciales');
                 fileName = _getFileName('Gerenciales');
+            } else if (type === 'exam') {
+                XLSX.utils.book_append_sheet(wb, _buildExamDataSheet(examData),    'Datos - Exámenes');
+                XLSX.utils.book_append_sheet(wb, _buildExamSummarySheet(examData), 'Resumen - Exámenes');
+                fileName = _getFileName('Examenes');
             } else {
                 XLSX.utils.book_append_sheet(wb, _buildNHDataSheet(),     'Datos - Nuevos Ingresos');
                 XLSX.utils.book_append_sheet(wb, _buildNHSummarySheet(),  'Resumen - Nuevos Ingresos');
                 XLSX.utils.book_append_sheet(wb, _buildMGRDataSheet(),    'Datos - Gerenciales');
                 XLSX.utils.book_append_sheet(wb, _buildMGRSummarySheet(), 'Resumen - Gerenciales');
+                if (examData) {
+                    XLSX.utils.book_append_sheet(wb, _buildExamDataSheet(examData),    'Datos - Exámenes');
+                    XLSX.utils.book_append_sheet(wb, _buildExamSummarySheet(examData), 'Resumen - Exámenes');
+                }
                 fileName = _getFileName('Reporte_Completo_Capacitacion');
             }
             XLSX.writeFile(wb, fileName);
@@ -3673,43 +3977,57 @@ Sistema de Seguimiento de Capacitacion — PrestoCash`;
             if (extra) extra.split(',').map(e => e.trim()).filter(Boolean).forEach(e => allEmails.push(e));
             const toStr = allEmails.join(',');
 
-            try {
-                // 1. Descargar Excel
-                _downloadExcelForEmail(type);
+            // Exámenes se lee en el momento (datos frescos) solo cuando el reporte lo incluye
+            const needsExam = (type === 'all' || type === 'exam');
+            const getExam = needsExam
+                ? _loadExamData().catch(e => { console.error('No se pudo leer Exámenes:', e); return null; })
+                : Promise.resolve(null);
 
-                // 2. Registrar envío en Firebase
-                const tipoEnvio = type === 'nh' ? 'Nuevos Ingresos' : type === 'mgr' ? 'Gerenciales' : 'Reporte Completo';
-                _writeEmailLog(tipoEnvio);
-                updateBackupLog();
+            getExam.then(examData => {
+                if (type === 'exam' && !examData) {
+                    alert('No se pudo leer la información de Exámenes desde Firebase. Revisa tu conexión e intenta de nuevo.');
+                    return;
+                }
+                try {
+                    // 1. Descargar Excel
+                    _downloadExcelForEmail(type, examData);
 
-                // 3. Abrir cliente de correo
-                const { subject, body } = _buildEmailContent(type);
-                const subj = encodeURIComponent(subject);
-                const bdy  = encodeURIComponent(body);
+                    // 2. Registrar envío en Firebase
+                    const tipoEnvio = type === 'nh' ? 'Nuevos Ingresos' : type === 'mgr' ? 'Gerenciales' : type === 'exam' ? 'Exámenes' : 'Reporte Completo';
+                    _writeEmailLog(tipoEnvio);
+                    updateBackupLog();
 
-                setTimeout(() => {
-                    if (client === 'gmail') {
-                        window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(toStr)}&su=${subj}&body=${bdy}`, '_blank');
-                    } else if (client === 'outlook') {
-                        window.open(`https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(toStr)}&subject=${subj}&body=${bdy}`, '_blank');
-                    } else {
-                        window.location.href = `mailto:${toStr}?subject=${subj}&body=${bdy}`;
-                    }
+                    // 3. Abrir cliente de correo
+                    const { subject, body } = _buildEmailContent(type, examData);
+                    const subj = encodeURIComponent(subject);
+                    const bdy  = encodeURIComponent(body);
 
-                    // Notificación visual
-                    const n = document.getElementById('saveNotification');
-                    if (n) {
-                        n.style.display = 'block';
-                        n.style.background = '#e65100';
-                        n.textContent = '📧 Correo listo — adjunta el archivo Excel descargado y envía';
-                        setTimeout(() => { n.style.display = 'none'; }, 6000);
-                    }
-                }, 700);
+                    setTimeout(() => {
+                        if (client === 'gmail') {
+                            window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(toStr)}&su=${subj}&body=${bdy}`, '_blank');
+                        } else if (client === 'outlook') {
+                            window.open(`https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(toStr)}&subject=${subj}&body=${bdy}`, '_blank');
+                        } else {
+                            window.location.href = `mailto:${toStr}?subject=${subj}&body=${bdy}`;
+                        }
 
-            } catch (e) {
-                console.error('Error al preparar el correo:', e);
-                alert('Ocurrió un error al preparar el correo. Verifica la consola.');
-            }
+                        // Notificación visual
+                        const n = document.getElementById('saveNotification');
+                        if (n) {
+                            n.style.display = 'block';
+                            n.style.background = '#e65100';
+                            n.textContent = (type === 'all' && !examData)
+                                ? '⚠ No se pudo leer Exámenes: el archivo salió SIN Exámenes. Adjunta el Excel y envía, o reintenta.'
+                                : '📧 Correo listo — adjunta el archivo Excel descargado y envía';
+                            setTimeout(() => { n.style.display = 'none'; }, 6000);
+                        }
+                    }, 700);
+
+                } catch (e) {
+                    console.error('Error al preparar el correo:', e);
+                    alert('Ocurrió un error al preparar el correo. Verifica la consola.');
+                }
+            });
         }
 
         // ---- window.onload único ----
