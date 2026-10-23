@@ -344,17 +344,6 @@
                         <tbody id="dash-live-tbody"></tbody>
                     </table>
                 </div>
-
-                <h3 style="color: var(--primary); margin: 30px 0 15px 0;"><i class="fa-solid fa-database"></i> Respaldo y optimización de datos</h3>
-                <div class="card">
-                    <p class="sub-line" style="margin-bottom:10px;">Reduce el consumo de datos de Firebase sin perder información. Primero descarga el respaldo y después optimiza (se puede repetir sin riesgo).</p>
-                    <div id="maint-status" class="sub-line" style="margin-bottom:12px; color:var(--text-main);"></div>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <button class="btn btn-outline" onclick="showDataSizes()"><i class="fa-solid fa-ruler"></i> Ver tamaños</button>
-                        <button class="btn btn-outline" onclick="downloadBackup()"><i class="fa-solid fa-download"></i> 1. Descargar respaldo</button>
-                        <button class="btn btn-primary" onclick="runOptimization()"><i class="fa-solid fa-bolt"></i> 2. Optimizar datos</button>
-                    </div>
-                </div>
             </div>
 
             <!-- CATÁLOGO DE EXÁMENES -->
@@ -1644,81 +1633,6 @@
         if(sel.value === '_NEW_') { newCat.classList.remove('hidden'); newCat.focus(); } else { newCat.classList.add('hidden'); }
     }
 
-    function setMaint(msg) { const el = document.getElementById('maint-status'); if (el) el.innerHTML = msg; }
-
-    function refreshMaintStatus() {
-        const inline = DB.get('courses').filter(c => c && c.content);
-        if (inline.length) {
-            const kb = Math.round(inline.reduce((t, c) => t + String(c.content).length, 0) / 1024);
-            setMaint(`<i class="fa-solid fa-triangle-exclamation" style="color:var(--warning)"></i> ${inline.length} plática(s) tienen su HTML dentro de la base de datos (≈ ${kb} KB que se descargan en cada visita). Pulsa "Optimizar datos".`);
-        } else {
-            setMaint('<i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Las pláticas ya tienen su contenido separado.');
-        }
-    }
-
-    function showDataSizes() {
-        const rows = ['users', 'exams', 'results', 'liveSessions', 'courses', 'constancias'].map(k => {
-            let kb = 0; try { kb = JSON.stringify(CACHE[k] || '').length / 1024; } catch (e) {}
-            return `<tr><td>${FB_PATHS[k]}</td><td style="text-align:right;">${kb.toFixed(1)} KB</td></tr>`;
-        }).join('');
-        setMaint(`<table style="width:auto; min-width:260px;"><thead><tr><th>Nodo</th><th style="text-align:right;">Tamaño</th></tr></thead><tbody>${rows}</tbody></table>`);
-    }
-
-    async function downloadBackup() {
-        if (!examDb) return showToast("Sin conexión a Firebase", "danger");
-        setMaint('Preparando respaldo...');
-        try {
-            await loadMany(['users', 'exams', 'results', 'liveSessions', 'courses', 'constancias']);
-            const content = (await examDb.ref(FB_PATHS.courseContent).once('value')).val() || {};
-            const meta = (await examDb.ref(FB_PATHS.meta).once('value')).val() || {};
-            const data = { exportadoEn: new Date().toISOString(), nodos: {} };
-            ['users', 'exams', 'results', 'liveSessions', 'courses', 'constancias'].forEach(k => { data.nodos[FB_PATHS[k]] = CACHE[k] === undefined ? null : CACHE[k]; });
-            data.nodos[FB_PATHS.courseContent] = content; data.nodos[FB_PATHS.meta] = meta;
-            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-            const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
-            link.download = `Respaldo_EvalCap_${localYMD(new Date().toISOString())}.json`; link.click();
-            setMaint('<i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Respaldo descargado. Guarda el archivo antes de optimizar.');
-        } catch (e) { console.warn(e); setMaint('No se pudo generar el respaldo. Intenta de nuevo.'); }
-    }
-
-    // Migración segura: copia, verifica y sólo entonces elimina el HTML que estaba dentro de cada plática
-    async function runOptimization() {
-        if (!examDb) return showToast("Sin conexión a Firebase", "danger");
-        if (!confirm("Se moverá el HTML de las pláticas a un espacio aparte para ahorrar datos. No se pierde información.\n\n¿Ya descargaste el respaldo?")) return;
-        setMaint('Optimizando... no cierres esta pantalla.');
-        try {
-            await loadMany(['courses', 'exams', 'results', 'constancias']);
-            let moved = 0, failed = 0, keyed = 0;
-            const courses = forceArray(CACHE.courses);
-            for (const c of courses) {
-                if (!c || !c.id) continue;
-                const fbKey = KEYMAP.courses ? KEYMAP.courses[String(c.id)] : undefined;
-                if (fbKey === undefined) { if (c.content) failed++; continue; }
-                if (c.content) {
-                    try {
-                        const ref = examDb.ref(FB_PATHS.courseContent + '/' + c.id);
-                        await ref.set(c.content);
-                        const back = (await ref.once('value')).val();
-                        if (back !== c.content) { failed++; continue; }
-                        COURSE_CONTENT[c.id] = c.content;
-                        await examDb.ref(FB_PATHS.courses + '/' + fbKey + '/content').remove();
-                        moved++;
-                    } catch (e) { console.warn(e); failed++; continue; }
-                }
-                if (c.linkedExamId && (c.linkedExamKey === undefined || c.linkedExamKey === null || c.linkedExamKey === '')) {
-                    const ek = KEYMAP.exams ? KEYMAP.exams[String(c.linkedExamId)] : undefined;
-                    if (ek !== undefined) { try { await examDb.ref(FB_PATHS.courses + '/' + fbKey + '/linkedExamKey').set(ek); keyed++; } catch (e) { console.warn(e); } }
-                }
-            }
-            const evalRef = examDb.ref(FB_PATHS.meta + '/evalFolioSeq');
-            if ((await evalRef.once('value')).val() === null) await evalRef.transaction(cur => (cur === null || cur === undefined) ? maxFolioNumber(CACHE.results, 'EVAL-') : cur);
-            const constRef = examDb.ref(FB_PATHS.meta + '/constFolioSeq');
-            if ((await constRef.once('value')).val() === null) await constRef.transaction(cur => (cur === null || cur === undefined) ? Math.max(maxFolioNumber(CACHE.constancias, 'CONST-PC-'), forceArray(CACHE.constancias).length) : cur);
-            setMaint(`<i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Listo. Pláticas optimizadas: ${moved}${failed ? ` · con error (sin cambios, siguen como estaban): ${failed}` : ''}. Evaluaciones enlazadas: ${keyed}.`);
-            showToast(failed ? "Optimización parcial: revisa el mensaje" : "Optimización completada", failed ? "warning" : "success");
-        } catch (e) { console.warn(e); setMaint('La optimización se detuvo por un error. Tus datos no se modificaron más allá de lo ya copiado. Intenta de nuevo.'); }
-    }
-
     function populateDynamicFilters() {
         const exams = DB.get('exams');
         const examFilterSel = document.getElementById('filter-exam-results');
@@ -1743,7 +1657,7 @@
         if (id === 'tab-mis-examenes') renderStudentExams();
         if (id === 'tab-mis-cursos') renderStudentCourses();
         if (id === 'tab-mis-constancias') renderStudentConstancias();
-        if (id === 'tab-dashboard') { renderDashboard(); refreshMaintStatus(); }
+        if (id === 'tab-dashboard') renderDashboard();
     }
 
     if (fbSdkOk) {
@@ -1806,7 +1720,7 @@
         if (id === 'tab-mis-examenes') renderStudentExams();
         if (id === 'tab-mis-cursos') renderStudentCourses();
         if (id === 'tab-mis-constancias') renderStudentConstancias();
-        if (id === 'tab-dashboard') { renderDashboard(); refreshMaintStatus(); }
+        if (id === 'tab-dashboard') renderDashboard();
     };
 
     const openModal = (id) => document.getElementById(id).classList.remove('hidden');
