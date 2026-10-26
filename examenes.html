@@ -238,6 +238,7 @@
         .fp-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; flex-wrap: wrap; }
         .fp-count { background: var(--primary); color: #fff; border-radius: 10px; font-size: 0.7rem; padding: 1px 7px; }
         .sub-line { font-size: 0.72rem; color: var(--text-muted); line-height: 1.35; }
+        .fb-flag { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 6px; border-radius: 50%; background: #FEF3C7; color: #B45309; border: 1px solid #FCD34D; font-size: 0.68rem; font-weight: 800; cursor: help; vertical-align: middle; }
         .link-btn { background: none; border: none; padding: 0; color: var(--primary-light); font-size: 0.75rem; font-weight: 700; cursor: pointer; }
         .link-btn:hover { text-decoration: underline; }
 
@@ -461,6 +462,10 @@
                             <div><label>Instructor</label><select id="filter-constancias-instructor" onchange="renderConstanciasAdmin()"><option value="">Todos</option></select></div>
                             <div><label>Modalidad</label>
                                 <select id="filter-constancias-modality" onchange="renderConstanciasAdmin()"><option value="">Todas</option><option value="Presencial">Presencial</option><option value="Virtual">Virtual</option></select></div>
+                            <div><label>Tipo</label>
+                                <select id="filter-constancias-type" onchange="renderConstanciasAdmin()"><option value="">Todos</option><option value="Plática">Plática</option><option value="Curso">Curso</option></select></div>
+                            <div><label>Retroalimentación</label>
+                                <select id="filter-constancias-feedback" onchange="renderConstanciasAdmin()"><option value="">Todas</option><option value="needs">Requieren retroalimentación</option><option value="multi">Más de 1 intento</option></select></div>
                             <div><label>Desde</label><input type="date" id="filter-constancias-from" onchange="renderConstanciasAdmin()"></div>
                             <div><label>Hasta</label><input type="date" id="filter-constancias-to" onchange="renderConstanciasAdmin()"></div>
                         </div>
@@ -673,6 +678,15 @@
                 <input type="file" id="modal-course-file-input" accept=".html,.htm" onchange="autoFillCourseTitle(this)">
             </div>
             <div class="form-group" style="margin-bottom: 12px;">
+                <label style="font-size:0.8rem; font-weight:700;">¿Qué se está cargando? <span style="color:var(--danger)">*</span></label>
+                <select id="modal-course-type">
+                    <option value="">-- Selecciona --</option>
+                    <option value="Plática">Plática</option>
+                    <option value="Curso">Curso</option>
+                </select>
+                <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:4px;">Define el texto de la constancia (plática o curso).</span>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
                 <label style="font-size:0.8rem; font-weight:700;">Título Oficial del Curso:</label>
                 <input type="text" id="modal-course-title" placeholder="Ej. MEDIDAS DE SEGURIDAD OPERATIVAS">
             </div>
@@ -704,8 +718,9 @@
                     <option value="">-- Sin Examen (Acreditación Directa) --</option>
                 </select>
                 <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:4px;">
-                    Si vinculas un examen, el colaborador verá la presentación y al concluir se le lanzará este examen.
+                    Solo se muestran las evaluaciones de la carpeta «Evaluaciones de Plática y Curso». Al concluir la plática se lanzará la evaluación elegida.
                 </span>
+                <button type="button" class="link-btn" style="margin-top:6px;" onclick="closeModal('modal-upload-course'); openCreateExam('', 'platica')"><i class="fa-solid fa-plus"></i> Crear una evaluación de plática</button>
             </div>
 
             <div class="form-group" style="margin-bottom: 15px;">
@@ -747,6 +762,7 @@
                 </div>
                 <button class="btn btn-outline" onclick="downloadCourseQR()"><i class="fa-solid fa-download"></i> Descargar QR</button>
                 <div id="share-active-info" class="sub-line" style="margin-top:10px;"></div>
+                <div id="share-creds" style="margin-top:10px; background:#F8FAFC; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:0.8rem;"></div>
                 <div id="share-course-note" class="hidden" style="margin-top:10px; font-size:0.78rem; color:var(--warning);"></div>
             </div>
         </div>
@@ -756,12 +772,23 @@
             <p class="sub-line" style="margin-bottom:10px;">Opcional. Cada instructor tiene su propio QR y queda registrado en la constancia. Si no agregas ninguno, la plática queda abierta con el enlace general y la clave de sala. Al agregar instructores, solo funcionan sus QR.</p>
             <div id="share-access-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;"></div>
 
-            <div style="background:#F8FAFC; border:1px solid var(--border); border-radius:8px; padding:14px;">
-                <div style="font-weight:700; font-size:0.85rem; margin-bottom:10px;">Agregar instructor / QR</div>
+            <div id="share-form" style="background:#F8FAFC; border:1px solid var(--border); border-radius:8px; padding:14px;">
+                <div id="share-form-title" style="font-weight:700; font-size:0.85rem; margin-bottom:4px;">Agregar instructor / QR</div>
+                <div id="share-form-user" class="sub-line" style="margin-bottom:10px;"></div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
                     <div><label style="font-size:0.75rem; font-weight:700;">Nombre del instructor:</label><input type="text" id="share-acc-instructor" placeholder="Ej. Nombre y Apellido" autocomplete="off"></div>
                     <div><label style="font-size:0.75rem; font-weight:700;">Modalidad:</label>
                         <select id="share-acc-modality"><option value="Presencial">Presencial</option><option value="Virtual">Virtual</option></select></div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <div><label style="font-size:0.75rem; font-weight:700;">Contraseña de este instructor:</label>
+                        <div style="display:flex; gap:6px;"><input type="text" id="share-acc-pass" autocomplete="off" style="margin-top:4px;"><button type="button" class="btn btn-outline" style="margin-top:4px;" onclick="document.getElementById('share-acc-pass').value = genAccessPass(((DB.get('courses').find(x => x.id === shareCourseId)||{}).roomUser), editingAccessId)" title="Generar"><i class="fa-solid fa-dice"></i></button></div></div>
+                    <div><label style="font-size:0.75rem; font-weight:700;">La hora que escribo es la de:</label>
+                        <select id="share-acc-tz" onchange="updateSchedulePreview()">
+                            <option value="America/Matamoros">Matamoros / Reynosa</option>
+                            <option value="America/Mexico_City">Cd. Victoria / S.L.P. / Veracruz</option>
+                            <option value="local">El reloj de cada lugar</option>
+                        </select></div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
                     <div><label style="font-size:0.75rem; font-weight:700;">Válido desde:</label><input type="date" id="share-acc-from"></div>
@@ -771,12 +798,17 @@
                             <option value="1">1 día</option><option value="2">2 días</option><option value="3">3 días</option><option value="4">4 días</option><option value="5">5 días</option><option value="6">6 días</option><option value="7">7 días</option>
                         </select></div>
                 </div>
-                <label class="checkbox-item" style="margin-bottom:8px;"><input type="checkbox" id="share-acc-sched" onchange="document.getElementById('share-acc-times').classList.toggle('hidden', !this.checked)"> <span style="font-size:0.85rem; font-weight:600;">Horario fijo (opcional)</span></label>
+                <label class="checkbox-item" style="margin-bottom:8px;"><input type="checkbox" id="share-acc-sched" onchange="document.getElementById('share-acc-times').classList.toggle('hidden', !this.checked); updateSchedulePreview()"> <span style="font-size:0.85rem; font-weight:600;">Horario fijo (opcional)</span></label>
                 <div id="share-acc-times" class="hidden" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-                    <div><label style="font-size:0.75rem; font-weight:700;">De:</label><input type="time" id="share-acc-start"></div>
-                    <div><label style="font-size:0.75rem; font-weight:700;">A:</label><input type="time" id="share-acc-end"></div>
+                    <div><label style="font-size:0.75rem; font-weight:700;">De:</label><input type="time" id="share-acc-start" oninput="updateSchedulePreview()" onchange="updateSchedulePreview()"></div>
+                    <div><label style="font-size:0.75rem; font-weight:700;">A:</label><input type="time" id="share-acc-end" oninput="updateSchedulePreview()" onchange="updateSchedulePreview()"></div>
                 </div>
-                <button class="btn btn-primary" style="width:100%;" onclick="addCourseAccess()"><i class="fa-solid fa-plus"></i> Agregar y generar QR</button>
+                <div id="share-acc-preview" class="sub-line" style="margin-bottom:10px; color:var(--text-main);"></div>
+                <div class="sub-line" style="margin-bottom:10px;">¿La das al mismo tiempo en Matamoros y en Victoria? Elige una sola hora (por ejemplo la de Matamoros): los dos grupos entran en el mismo momento real y a cada uno se le muestra su propia hora. Elige "El reloj de cada lugar" solo si quieres que cada ciudad empiece a la hora que marque su reloj (por ejemplo 9:00 en cada una).</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button id="share-acc-submit" class="btn btn-primary" style="flex:1;" onclick="saveCourseAccess()"><i class="fa-solid fa-plus"></i> Agregar y generar QR</button>
+                    <button id="share-acc-cancel" class="btn btn-outline hidden" onclick="resetAccessForm()">Cancelar edición</button>
+                </div>
             </div>
         </div>
     </div>
@@ -850,7 +882,10 @@
     <div class="modal-content" style="width: 98vw; max-width: 1200px; height: 96vh; max-height: none; padding: 15px; display: flex; flex-direction: column;">
         <div class="modal-header" style="margin-bottom: 8px; padding-bottom: 8px;">
             <h3 id="course-player-title" style="color: var(--primary); font-size:1.15rem;">Plática</h3>
-            <button class="btn btn-outline" onclick="exitCoursePlayer()"><i class="fa-solid fa-xmark"></i> Salir</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-success" onclick="finishCourseManually()"><i class="fa-solid fa-flag-checkered"></i> Finalizar plática</button>
+                <button class="btn btn-outline" onclick="exitCoursePlayer()"><i class="fa-solid fa-xmark"></i> Salir</button>
+            </div>
         </div>
         <div style="flex:1; width:100%; height:100%; position:relative;">
             <iframe id="course-iframe" allowfullscreen style="width: 100%; height: 100%; border: 1px solid var(--border); border-radius: 8px; background: white;"></iframe>
@@ -863,13 +898,16 @@
     <div class="modal-content" style="max-width: 680px;">
         <div class="modal-header" style="border-bottom-color: var(--danger);">
             <h3 style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Calificación No Aprobatoria</h3>
-            <button class="btn btn-outline" onclick="closeFeedbackModal()"><i class="fa-solid fa-xmark"></i></button>
+            <button id="fb-close-btn" class="btn btn-outline" onclick="closeFeedbackModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div id="feedback-summary-box" style="background:#FEF2F2; border:1px solid #FECACA; border-radius:8px; padding:12px; margin-bottom:15px; text-align:center;"></div>
         <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">Revisa las preguntas en las que fallaste antes de intentar de nuevo:</p>
         <div id="feedback-questions-list" style="max-height: 45vh; overflow-y: auto; margin-bottom: 15px;"></div>
-        <button class="btn btn-primary" style="width: 100%; padding: 12px;" onclick="retryLinkedExam()">
+        <button id="fb-retry-btn" class="btn btn-primary" style="width: 100%; padding: 12px;" onclick="retryLinkedExam()">
             <i class="fa-solid fa-rotate-right"></i> Volver a Intentar Examen (Intento Contabilizado)
+        </button>
+        <button id="fb-continue-btn" class="btn btn-success hidden" style="width: 100%; padding: 12px;" onclick="continueAfterMaxAttempts()">
+            <i class="fa-solid fa-stamp"></i> Continuar a mi constancia
         </button>
     </div>
 </div>
@@ -879,15 +917,14 @@
     <div class="modal-content" style="max-width: 500px; text-align: center;">
         <div style="color: var(--success); font-size: 3rem; margin-bottom: 8px;"><i class="fa-solid fa-circle-check"></i></div>
         <h2 style="color: var(--primary); margin-bottom: 4px;">¡Capacitación Acreditada!</h2>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Confirma tu número de empleado y firma colocando una "X".</p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Firma colocando una "X" para generar tu constancia.</p>
 
         <div style="background: #F8FAFC; border: 1.5px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; text-align: left;">
             <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">COLABORADOR:</label>
             <div id="sign-val-name" style="font-weight: 800; color: var(--primary); font-size: 1.05rem; margin-bottom: 8px;"></div>
             
-            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">NÚMERO DE EMPLEADO (SOLO NÚMEROS):</label>
-            <input type="text" id="sign-val-empnum" inputmode="numeric" autocomplete="off" placeholder="Reingresa tu número de empleado" style="font-weight: bold;" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-            <div id="sign-val-feedback" style="font-size:0.75rem; color:var(--danger); margin-top:4px; display:none;">El número de empleado no coincide con el registrado al inicio.</div>
+            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">NÚMERO DE EMPLEADO:</label>
+            <div id="sign-val-num" style="font-weight: 800; color: var(--primary);"></div>
         </div>
 
         <div style="background: #EFF6FF; border: 1.5px dashed var(--primary-light); border-radius: 8px; padding: 12px; margin-bottom: 15px;">
@@ -927,7 +964,7 @@
             </div>
 
             <div style="background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 8px; padding: 15px; margin: 15px 0; text-align: center;">
-                <p style="font-size: 13px; color: #475569; margin: 0;">Acreditó satisfactoriamente los lineamientos y evaluación de la plática:</p>
+                <p id="pdfLead" style="font-size: 13px; color: #475569; margin: 0;">Acreditó satisfactoriamente los lineamientos y evaluación de la plática:</p>
                 <h2 id="pdfCursoTitulo" style="font-size: 16px; color: #1E3A8A; margin: 6px 0 0 0; text-transform: uppercase; font-weight: 800;"></h2>
                 <div id="pdfExamenBadge" style="margin-top:6px; font-size:12px; font-weight:bold; color:#166534;"></div>
             </div>
@@ -956,7 +993,7 @@
 
 <!-- 8. Modal "EXPEDIENTE DEL COLABORADOR" -->
 <div id="modal-employee-history" class="modal-overlay hidden" style="z-index: 9100;">
-    <div class="modal-content" style="max-width: 750px;">
+    <div class="modal-content" style="max-width: 920px;">
         <div class="modal-header">
             <h3 style="color: var(--primary);"><i class="fa-solid fa-address-card"></i> Expediente de Capacitación del Colaborador</h3>
             <button class="btn btn-outline" onclick="closeModal('modal-employee-history')"><i class="fa-solid fa-xmark"></i></button>
@@ -975,7 +1012,7 @@
         <div class="card" style="padding:10px; overflow-x:auto;">
             <table style="width:100%;">
                 <thead>
-                    <tr><th>Folio</th><th>Examen</th><th>Calificación</th><th>Estatus</th><th>Fecha</th></tr>
+                    <tr><th>Folio</th><th>Examen / Plática</th><th>Calificación</th><th>Estatus</th><th>Fecha</th><th>Respuestas</th></tr>
                 </thead>
                 <tbody id="emp-history-exams-tbody"></tbody>
             </table>
@@ -1680,6 +1717,7 @@
     let courseLinkedExamResult = null;
     let isCourseFlowExam = false;
     let examAttemptsCount = 1;
+    const COURSE_MAX_ATTEMPTS = 3;
     let lastExamLog = [];
     let currentViewingCert = null;
     
@@ -1773,15 +1811,26 @@
             if (!(foundKey && users[foundKey].pass === inputPass)) {
                 // 2) Clave de sala de una plática
                 await loadOnce('courses');
-                const foundCourse = DB.get('courses').find(c => c.roomUser && c.roomUser.toUpperCase() === inputUser && c.roomPass === inputPass);
-                if (foundCourse) {
-                    if (forceArray(foundCourse.accesos).length) {
-                        const er = document.getElementById('login-error');
-                        er.innerText = "Esta plática se imparte con el QR de tu instructor. Escanéalo para ingresar.";
-                        er.classList.remove('hidden');
-                        return;
-                    }
-                    enterCourseRoom(foundCourse);
+                const erEl = document.getElementById('login-error');
+                const sameUser = DB.get('courses').filter(c => c.roomUser && c.roomUser.toUpperCase() === inputUser);
+                let hit = null, blockedByInstructors = false;
+                for (const c of sameUser) {
+                    const accs = forceArray(c.accesos);
+                    if (accs.length) {
+                        const a = accs.find(x => x.pass && String(x.pass) === inputPass);
+                        if (a) { hit = { c, a }; break; }
+                        if (c.roomPass === inputPass) blockedByInstructors = true;
+                    } else if (c.roomPass === inputPass) { hit = { c, a: null }; break; }
+                }
+                if (hit) {
+                    const v = evaluateAccess(hit.c, hit.a);
+                    if (!v.ok) { erEl.innerText = v.msg; erEl.classList.remove('hidden'); return; }
+                    enterCourseRoom(hit.c, hit.a);
+                    return;
+                }
+                if (blockedByInstructors) {
+                    erEl.innerText = "Esta plática se imparte con la contraseña de tu instructor. Solicítala para ingresar.";
+                    erEl.classList.remove('hidden');
                     return;
                 }
                 // 3) Búsqueda completa de usuarios (casos especiales)
@@ -1938,7 +1987,7 @@
     }
 
     function copyRoomCredentials(roomUser, roomPass, courseTitle) {
-        let txt = `Acceso a Plática Masiva - Presto Cash\nPlática: ${courseTitle}\nUsuario de Sala: ${roomUser}\nContraseña: ${roomPass}`;
+        let txt = `Acceso a Plática Masiva - Presto Cash\nPlataforma: ${platformUrl()}\nPlática: ${courseTitle}\nUsuario de Sala: ${roomUser}\nContraseña: ${roomPass}`;
         copyTextSafe(txt, "Credenciales de sala copiadas al portapapeles");
     }
 
@@ -1949,25 +1998,58 @@
         return courseLink(c) + '&i=' + encodeURIComponent(a.id);
     }
 
-    // ---- Vigencia y horario de los QR ----
+    // ---- Vigencia y horario de los QR (con zona horaria) ----
+    const ZONES = { 'America/Matamoros': 'Norte (Matamoros, Reynosa)', 'America/Mexico_City': 'Centro (Cd. Victoria, S.L.P., Veracruz)' };
     function nowMs() { return Date.now() + (window.__srvOffset || 0); }
     function fmtYMD(ymd) { if (!ymd) return ''; const p = ymd.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
     function hhmmMin(t) { const p = String(t || '').split(':'); return (parseInt(p[0]) || 0) * 60 + (parseInt(p[1]) || 0); }
+
+    function zonedParts(tz, ms) {
+        try {
+            const parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(ms));
+            const g = (t) => parseInt(parts.find(p => p.type === t).value, 10);
+            return { y: g('year'), m: g('month'), d: g('day'), h: g('hour') % 24, mi: g('minute') };
+        } catch (e) { const d = new Date(ms); return { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate(), h: d.getHours(), mi: d.getMinutes() }; }
+    }
+    function ymdOf(p) { return p.y + '-' + String(p.m).padStart(2, '0') + '-' + String(p.d).padStart(2, '0'); }
+    function fmtHM(p) { return String(p.h).padStart(2, '0') + ':' + String(p.mi).padStart(2, '0'); }
+    function epochFromZoned(tz, y, m, d, h, mi) {
+        const target = Date.UTC(y, m - 1, d, h, mi);
+        let guess = target;
+        for (let i = 0; i < 3; i++) { const p = zonedParts(tz, guess); guess += target - Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi); }
+        return guess;
+    }
+
+    // Horario del QR expresado en ambas zonas (cambia solo cuando una zona está en horario de verano)
+    function scheduleText(acc, onYMD) {
+        if (!(acc.startTime && acc.endTime)) return '';
+        if (!acc.tz) return `${acc.startTime}–${acc.endTime}`;
+        if (acc.tz === 'local') return `${acc.startTime}–${acc.endTime} (hora que marque el reloj de cada lugar)`;
+        const base = onYMD || ymdOf(zonedParts(acc.tz, nowMs()));
+        const [y, m, d] = base.split('-').map(Number);
+        const s1 = hhmmMin(acc.startTime), e1 = hhmmMin(acc.endTime);
+        const eS = epochFromZoned(acc.tz, y, m, d, Math.floor(s1 / 60), s1 % 60);
+        const eE = epochFromZoned(acc.tz, y, m, d, Math.floor(e1 / 60), e1 % 60);
+        const lines = Object.keys(ZONES).map(z => ({ z, t: `${fmtHM(zonedParts(z, eS))}–${fmtHM(zonedParts(z, eE))}` }));
+        if (lines[0].t === lines[1].t) return `${lines[0].t} (misma hora en Norte y Centro)`;
+        return lines.map(l => `${l.t} hora ${ZONES[l.z].split(' ')[0]}`).join(' · ');
+    }
 
     // Devuelve {ok, code, msg}. Sin instructores definidos la plática queda abierta.
     function evaluateAccess(course, acc) {
         const accs = forceArray(course.accesos);
         if (!acc) {
-            if (accs.length) return { ok: false, code: 'needqr', msg: "Esta plática se imparte con el QR de tu instructor. Solicítalo para ingresar." };
+            if (accs.length) return { ok: false, code: 'needqr', msg: "Esta plática se imparte con el QR o la contraseña de tu instructor. Solicítalos para ingresar." };
             return { ok: true };
         }
-        const now = new Date(nowMs());
-        const today = localYMD(now.toISOString());
-        if (acc.validFrom && today < acc.validFrom) return { ok: false, code: 'pending', msg: `Este QR estará vigente a partir del ${fmtYMD(acc.validFrom)}.` };
-        if (acc.validUntil && today > acc.validUntil) return { ok: false, code: 'expired', msg: `Este QR venció el ${fmtYMD(acc.validUntil)}. Solicita uno nuevo a tu instructor.` };
+        const t = nowMs();
+        let today, minutes;
+        if (acc.tz && acc.tz !== 'local') { const p = zonedParts(acc.tz, t); today = ymdOf(p); minutes = p.h * 60 + p.mi; }
+        else { const dt = new Date(t); today = localYMD(dt.toISOString()); minutes = dt.getHours() * 60 + dt.getMinutes(); }
+        if (acc.validFrom && today < acc.validFrom) return { ok: false, code: 'pending', msg: `Este acceso estará vigente a partir del ${fmtYMD(acc.validFrom)}.` };
+        if (acc.validUntil && today > acc.validUntil) return { ok: false, code: 'expired', msg: `Este acceso venció el ${fmtYMD(acc.validUntil)}. Solicita uno nuevo a tu instructor.` };
         if (acc.startTime && acc.endTime) {
-            const m = now.getHours() * 60 + now.getMinutes();
-            if (m < hhmmMin(acc.startTime) || m > hhmmMin(acc.endTime)) return { ok: false, code: 'outside', msg: `Esta plática está disponible de ${acc.startTime} a ${acc.endTime}.` };
+            if (minutes < hhmmMin(acc.startTime) || minutes > hhmmMin(acc.endTime)) return { ok: false, code: 'outside', msg: `Esta plática está disponible de ${scheduleText(acc, today)}.` };
         }
         return { ok: true };
     }
@@ -1977,8 +2059,40 @@
         if (a.validFrom && a.validUntil) t = a.validFrom === a.validUntil ? `Solo el ${fmtYMD(a.validFrom)}` : `${fmtYMD(a.validFrom)} al ${fmtYMD(a.validUntil)}`;
         else if (a.validFrom) t = `Desde el ${fmtYMD(a.validFrom)}, sin fecha de término`;
         else t = 'Sin límite de fecha';
-        if (a.startTime && a.endTime) t += ` · Horario ${a.startTime}–${a.endTime}`;
+        const sch = scheduleText(a);
+        if (sch) t += ` · Horario ${sch}`;
         return t;
+    }
+
+    // Vista previa del horario en ambas zonas, mientras se captura
+    function updateSchedulePreview() {
+        const el = document.getElementById('share-acc-preview');
+        if (!el) return;
+        const st = document.getElementById('share-acc-start').value, en = document.getElementById('share-acc-end').value;
+        const tz = document.getElementById('share-acc-tz').value;
+        if (!document.getElementById('share-acc-sched').checked || !st || !en) { el.innerHTML = ''; return; }
+        const from = document.getElementById('share-acc-from').value || ymdOf(zonedParts('America/Matamoros', nowMs()));
+        const txt = scheduleText({ tz: tz, startTime: st, endTime: en }, from);
+        el.innerHTML = `<i class="fa-solid fa-clock"></i> Así se verá: <strong>${txt}</strong>`;
+    }
+
+    function platformUrl() { return location.href.split('#')[0].split('?')[0]; }
+
+    function accessPassTaken(roomUser, pass, exceptAccId) {
+        const ru = String(roomUser || '').toUpperCase();
+        return DB.get('courses').some(c => {
+            if (String(c.roomUser || '').toUpperCase() !== ru) return false;
+            const accs = forceArray(c.accesos);
+            if (!accs.length && String(c.roomPass) === String(pass)) return true;
+            return accs.some(a => a.id !== exceptAccId && String(a.pass || '') === String(pass));
+        });
+    }
+    function genAccessPass(roomUser, exceptAccId) {
+        for (let i = 0; i < 300; i++) {
+            const p = String(Math.floor(1000 + Math.random() * 9000));
+            if (!accessPassTaken(roomUser, p, exceptAccId)) return p;
+        }
+        return String(Math.floor(10000 + Math.random() * 90000));
     }
 
     function showLoginNotice(msg) {
@@ -1988,19 +2102,68 @@
     }
 
     // ---- Modal QR e instructores ----
+    let editingAccessId = null;
+
     function openCourseShareModal(courseId) {
         const c = DB.get('courses').find(x => x.id === courseId);
         if (!c) return showToast("Plática no encontrada", "danger");
         shareCourseId = courseId; shareAccessId = null;
+        // Instructores creados antes de existir las contraseñas: se les asigna una
+        const all = DB.get('courses'); const idx = all.findIndex(x => x.id === courseId);
+        let changed = false;
+        forceArray(all[idx].accesos).forEach(a => { if (!a.pass) { a.pass = genAccessPass(c.roomUser, a.id); changed = true; } });
+        if (changed) DB.save('courses', all);
+        resetAccessForm();
+        renderShareModal();
+        openModal('modal-course-share');
+    }
+
+    function resetAccessForm() {
+        editingAccessId = null;
+        const c = DB.get('courses').find(x => x.id === shareCourseId) || {};
+        document.getElementById('share-form-title').innerText = 'Agregar instructor / QR';
+        document.getElementById('share-form-user').innerText = `Usuario de acceso para todos los instructores: ${c.roomUser || ''}`;
         document.getElementById('share-acc-instructor').value = '';
         document.getElementById('share-acc-modality').value = c.modality || 'Presencial';
-        document.getElementById('share-acc-from').value = localYMD(new Date(nowMs()).toISOString());
-        document.getElementById('share-acc-days').value = '0';
+        document.getElementById('share-acc-tz').value = 'America/Matamoros';
+        document.getElementById('share-acc-pass').value = genAccessPass(c.roomUser, null);
+        document.getElementById('share-acc-from').value = ymdOf(zonedParts('America/Matamoros', nowMs()));
+        const dsel = document.getElementById('share-acc-days'); Array.from(dsel.options).forEach(o => { if (o.value === 'keep') o.remove(); }); dsel.value = '0';
         document.getElementById('share-acc-sched').checked = false;
         document.getElementById('share-acc-times').classList.add('hidden');
         document.getElementById('share-acc-start').value = ''; document.getElementById('share-acc-end').value = '';
+        document.getElementById('share-acc-submit').innerHTML = '<i class="fa-solid fa-plus"></i> Agregar y generar QR';
+        document.getElementById('share-acc-cancel').classList.add('hidden');
+        updateSchedulePreview();
+    }
+
+    function startEditAccess(accId) {
+        const c = DB.get('courses').find(x => x.id === shareCourseId);
+        const a = c ? forceArray(c.accesos).find(x => x.id === accId) : null;
+        if (!a) return;
+        editingAccessId = accId; shareAccessId = accId;
+        document.getElementById('share-form-title').innerText = `Editando QR de: ${a.instructor}`;
+        document.getElementById('share-acc-instructor').value = a.instructor || '';
+        document.getElementById('share-acc-modality').value = a.modality || 'Presencial';
+        document.getElementById('share-acc-tz').value = a.tz || 'America/Matamoros';
+        document.getElementById('share-acc-pass').value = a.pass || '';
+        document.getElementById('share-acc-from').value = a.validFrom || '';
+        const dsel = document.getElementById('share-acc-days'); Array.from(dsel.options).forEach(o => { if (o.value === 'keep') o.remove(); });
+        if (a.validFrom && a.validUntil) {
+            const p1 = a.validFrom.split('-').map(Number), p2 = a.validUntil.split('-').map(Number);
+            const days = Math.round((Date.UTC(p2[0], p2[1] - 1, p2[2]) - Date.UTC(p1[0], p1[1] - 1, p1[2])) / 86400000) + 1;
+            if (days >= 1 && days <= 7) dsel.value = String(days);
+            else { const o = document.createElement('option'); o.value = 'keep'; o.text = `Mantener (hasta ${fmtYMD(a.validUntil)})`; dsel.add(o); dsel.value = 'keep'; }
+        } else dsel.value = '0';
+        const hasSched = !!(a.startTime && a.endTime);
+        document.getElementById('share-acc-sched').checked = hasSched;
+        document.getElementById('share-acc-times').classList.toggle('hidden', !hasSched);
+        document.getElementById('share-acc-start').value = a.startTime || ''; document.getElementById('share-acc-end').value = a.endTime || '';
+        document.getElementById('share-acc-submit').innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar cambios';
+        document.getElementById('share-acc-cancel').classList.remove('hidden');
         renderShareModal();
-        openModal('modal-course-share');
+        updateSchedulePreview();
+        const f = document.getElementById('share-form'); if (f && f.scrollIntoView) f.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     function showShareQR(accId) { shareAccessId = accId; renderShareModal(); }
@@ -2020,6 +2183,11 @@
             ? `<i class="fa-solid fa-user-tie"></i> QR de: ${acc.instructor} · ${acc.modality}`
             : '<i class="fa-solid fa-link"></i> Enlace general (abierto)';
         document.getElementById('share-active-info').innerText = acc ? vigenciaText(acc) : 'Quien abra este enlace o escanee el QR entra directo, sin usuario ni contraseña, sin límite de fecha.';
+        const pass = acc ? acc.pass : c.roomPass;
+        document.getElementById('share-creds').innerHTML = `
+            <div style="word-break:break-all;"><strong>Plataforma:</strong> ${platformUrl()}</div>
+            <div><strong>Usuario:</strong> ${c.roomUser} &nbsp;|&nbsp; <strong>Contraseña:</strong> ${pass || '—'}</div>
+            <button class="btn btn-outline" style="font-size:0.75rem; margin-top:6px;" onclick="copyAccessCredentials('${c.id}', ${acc ? "'" + acc.id + "'" : 'null'})"><i class="fa-solid fa-copy"></i> Copiar acceso completo</button>`;
 
         const box = document.getElementById('share-course-qr');
         box.innerHTML = '';
@@ -2043,50 +2211,83 @@
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; border:1px solid ${sel ? 'var(--primary-light)' : 'var(--border)'}; background:${sel ? '#EFF6FF' : '#fff'}; border-radius:8px;">
                 <div style="min-width:0;">
                     <div style="font-weight:700; font-size:0.9rem;">${a.instructor} ${badge}</div>
-                    <div class="sub-line">${a.modality} · ${vigenciaText(a)}</div>
+                    <div class="sub-line">${a.modality} · Contraseña: <strong>${a.pass || '—'}</strong></div>
+                    <div class="sub-line">${vigenciaText(a)}</div>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button class="btn btn-outline" style="font-size:0.75rem; padding:5px 9px;" onclick="showShareQR('${a.id}')"><i class="fa-solid fa-qrcode"></i> Ver QR</button>
+                    <button class="btn btn-outline" style="font-size:0.75rem; padding:5px 9px;" onclick="showShareQR('${a.id}')"><i class="fa-solid fa-qrcode"></i> QR</button>
+                    <button class="btn btn-outline" style="font-size:0.75rem; padding:5px 9px;" onclick="startEditAccess('${a.id}')" title="Editar"><i class="fa-solid fa-pen"></i></button>
                     <button class="btn btn-outline" style="font-size:0.75rem; padding:5px 9px; color:var(--danger);" onclick="deleteCourseAccess('${a.id}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>`;
         }).join('') || '<div class="sub-line">Sin instructores: la plática está abierta con el enlace general y la clave de sala.</div>';
     }
 
-    function addCourseAccess() {
+    // Agrega un instructor/QR nuevo o guarda los cambios de uno existente (el enlace y el QR no cambian al editar)
+    function saveCourseAccess() {
         const instr = document.getElementById('share-acc-instructor').value.trim();
         const modality = document.getElementById('share-acc-modality').value;
+        const tz = document.getElementById('share-acc-tz').value;
+        let pass = document.getElementById('share-acc-pass').value.trim();
         let from = document.getElementById('share-acc-from').value;
-        const days = parseInt(document.getElementById('share-acc-days').value) || 0;
+        const daysSel = document.getElementById('share-acc-days').value;
         const sched = document.getElementById('share-acc-sched').checked;
         const st = document.getElementById('share-acc-start').value, en = document.getElementById('share-acc-end').value;
         if (!instr) return showToast("Escribe el nombre del instructor", "danger");
         if (sched && (!st || !en || hhmmMin(st) >= hhmmMin(en))) return showToast("Revisa el horario: la hora de inicio debe ser menor a la de fin", "danger");
-        if (days > 0 && !from) from = localYMD(new Date(nowMs()).toISOString());
-        let until = '';
-        if (days > 0) { const p = from.split('-').map(Number); until = localYMD(new Date(p[0], p[1] - 1, p[2] + days - 1, 12).toISOString()); }
 
         let courses = DB.get('courses');
         const idx = courses.findIndex(c => c.id === shareCourseId);
         if (idx === -1) return;
-        const acc = { id: 'ACC-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), instructor: instr, modality: modality, validFrom: from || '', validUntil: until, startTime: sched ? st : '', endTime: sched ? en : '', createdAt: new Date().toISOString() };
-        courses[idx].accesos = [...forceArray(courses[idx].accesos), acc];
-        DB.save('courses', courses);
-        shareAccessId = acc.id;
-        document.getElementById('share-acc-instructor').value = '';
-        renderShareModal(); renderAdminCoursesList();
-        showToast("QR de instructor generado");
+        const course = courses[idx];
+        if (!pass) pass = genAccessPass(course.roomUser, editingAccessId);
+        if (/\s/.test(pass)) return showToast("La contraseña no debe llevar espacios", "danger");
+        if (accessPassTaken(course.roomUser, pass, editingAccessId)) return showToast("Esa contraseña ya la usa otro instructor de esta plática. Genera otra.", "danger");
+
+        let until = '';
+        const existing = editingAccessId ? forceArray(course.accesos).find(a => a.id === editingAccessId) : null;
+        if (daysSel === 'keep' && existing) until = existing.validUntil || '';
+        else {
+            const days = parseInt(daysSel) || 0;
+            if (days > 0 && !from) from = ymdOf(zonedParts(tz === 'local' ? 'America/Matamoros' : tz, nowMs()));
+            if (days > 0) { const p = from.split('-').map(Number); until = localYMD(new Date(p[0], p[1] - 1, p[2] + days - 1, 12).toISOString()); }
+        }
+        const data = { instructor: instr, modality: modality, tz: tz, pass: pass, validFrom: from || '', validUntil: until, startTime: sched ? st : '', endTime: sched ? en : '' };
+
+        if (existing) {
+            Object.assign(existing, data, { updatedAt: new Date().toISOString() });
+            DB.save('courses', courses);
+            shareAccessId = existing.id;
+            showToast("QR actualizado. El enlace y el QR siguen siendo los mismos.");
+        } else {
+            const acc = Object.assign({ id: 'ACC-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), createdAt: new Date().toISOString() }, data);
+            course.accesos = [...forceArray(course.accesos), acc];
+            DB.save('courses', courses);
+            shareAccessId = acc.id;
+            showToast("QR de instructor generado");
+        }
+        resetAccessForm(); renderShareModal(); renderAdminCoursesList();
     }
+    function addCourseAccess() { return saveCourseAccess(); }
 
     function deleteCourseAccess(accId) {
-        if (!confirm("¿Eliminar este QR? Dejará de funcionar de inmediato.")) return;
+        if (!confirm("¿Eliminar este QR y su contraseña? Dejarán de funcionar de inmediato.")) return;
         let courses = DB.get('courses');
         const idx = courses.findIndex(c => c.id === shareCourseId);
         if (idx === -1) return;
         courses[idx].accesos = forceArray(courses[idx].accesos).filter(a => a.id !== accId);
         DB.save('courses', courses);
         if (shareAccessId === accId) shareAccessId = null;
+        if (editingAccessId === accId) resetAccessForm();
         renderShareModal(); renderAdminCoursesList();
+    }
+
+    function copyAccessCredentials(courseId, accId) {
+        const c = DB.get('courses').find(x => x.id === courseId);
+        if (!c) return;
+        const a = accId ? forceArray(c.accesos).find(x => x.id === accId) : null;
+        const txt = `Acceso a Plática - Presto Cash\nPlataforma: ${platformUrl()}\nPlática: ${c.title}\n${a ? 'Instructor: ' + a.instructor + '\n' : ''}Usuario: ${c.roomUser}\nContraseña: ${a ? a.pass : c.roomPass}`;
+        copyTextSafe(txt, "Acceso copiado al portapapeles");
     }
 
     function copyCourseLink() {
@@ -2176,10 +2377,12 @@
         autoGenCoursePass();
         document.getElementById('modal-course-modality').value = "";
 
-        const exams = DB.get('exams').filter(e => examUsage(e) === 'platica');
+        const plEx = DB.get('exams').filter(e => examUsage(e) === 'platica');
         const sel = document.getElementById('modal-course-linked-exam');
         sel.innerHTML = '<option value="">-- Sin Examen (Acreditación Directa) --</option>' + 
-            exams.map(e => `<option value="${e.id}">[Evaluación] ${e.title} (Aprobar con ${e.passScore}%)</option>`).join('');
+            plEx.map(e => `<option value="${e.id}">${e.title} (Aprobar con ${e.passScore}%)</option>`).join('') +
+            (plEx.length ? '' : '<option value="" disabled>(No hay evaluaciones en la carpeta Evaluaciones de Plática y Curso)</option>');
+        document.getElementById('modal-course-type').value = "";
             
         openModal('modal-upload-course');
     }
@@ -2199,7 +2402,9 @@
         const rPass = document.getElementById('modal-course-room-pass').value.trim();
         const linkedExamId = document.getElementById('modal-course-linked-exam').value;
         const courseModality = document.getElementById('modal-course-modality').value;
+        const courseType = document.getElementById('modal-course-type').value;
 
+        if(!courseType) return showToast("Selecciona si es Plática o Curso", "danger");
         if(!fileInput.files || !fileInput.files[0]) return showToast("Selecciona el archivo HTML", "danger");
         if(!title || !rUser || !rPass) return showToast("Llena los datos de la plática", "danger");
 
@@ -2217,10 +2422,12 @@
                 accessType: 'todos',
                 assignedUsers: [],
                 modality: courseModality,
+                courseType: courseType,
                 accesos: [],
                 dateAdded: new Date().toISOString()
             };
             if (linkedKey !== undefined) newCourse.linkedExamKey = linkedKey;
+
 
             // El HTML se guarda aparte para que no se descargue en cada visita
             let savedApart = false;
@@ -2255,22 +2462,36 @@
                 const ex = exams.find(e => String(e.id) === String(c.linkedExamId));
                 linkedExamBadge = `<span class="badge badge-info"><i class="fa-solid fa-link"></i> Examen: ${ex ? ex.title : c.linkedExamId}</span>`;
             }
-            const nAcc = forceArray(c.accesos).length;
+            const accsList = forceArray(c.accesos);
+            const nAcc = accsList.length;
             const accessBadge = nAcc ? `<span class="badge badge-warning"><i class="fa-solid fa-user-tie"></i> ${nAcc} QR de instructor</span>` : '<span class="badge badge-success"><i class="fa-solid fa-link"></i> Abierta con enlace o clave</span>';
 
             return `
             <div class="card" style="margin:0;">
                 <h3 style="margin-bottom:8px; color:var(--primary);">${c.title}</h3>
+                <div style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                    <span class="sub-line">Tipo:</span>
+                    <select style="width:auto; margin:0; padding:3px 8px; font-size:0.78rem;" onchange="setCourseType('${c.id}', this.value)">
+                        <option value="" ${!c.courseType ? 'selected' : ''}>Sin definir</option>
+                        <option value="Plática" ${c.courseType === 'Plática' ? 'selected' : ''}>Plática</option>
+                        <option value="Curso" ${c.courseType === 'Curso' ? 'selected' : ''}>Curso</option>
+                    </select>
+                </div>
                 <div style="margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap;">${linkedExamBadge} ${accessBadge}</div>
                 
                 <div style="background:#F8FAFC; border:1px solid #E2E8F0; padding:10px; border-radius:6px; font-size:0.8rem; margin-bottom:12px;">
+                    ${accsList.length ? accsList.map(a => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; padding:4px 0; border-top:1px dashed #E2E8F0;">
+                        <div><i class="fa-solid fa-user-tie" style="color:var(--primary);"></i> <strong>${a.instructor}</strong><br><span class="sub-line">Usuario: <strong>${c.roomUser || 'N/A'}</strong> | Clave: <strong>${a.pass || '—'}</strong></span></div>
+                        <button class="btn btn-outline" style="font-size:0.75rem; padding:3px 8px;" onclick="copyAccessCredentials('${c.id}', '${a.id}')" title="Copiar acceso de ${a.instructor}"><i class="fa-solid fa-copy"></i></button>
+                    </div>`).join('') : `
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
                             <i class="fa-solid fa-key" style="color:var(--primary);"></i> <strong>Sala Masiva:</strong>
                             Usuario: <strong style="color:var(--primary);">${c.roomUser || 'N/A'}</strong> | Clave: <strong>${c.roomPass || 'N/A'}</strong>
                         </div>
-                        <button class="btn btn-outline" style="font-size:0.75rem; padding:3px 8px;" onclick="copyRoomCredentials('${c.roomUser}', '${c.roomPass}', '${c.title.replace(/'/g, "\\'")}')" title="Copiar Datos de Acceso"><i class="fa-solid fa-copy"></i> Copiar Acceso</button>
-                    </div>
+                        <button class="btn btn-outline" style="font-size:0.75rem; padding:3px 8px;" onclick="copyAccessCredentials('${c.id}', null)" title="Copiar Datos de Acceso"><i class="fa-solid fa-copy"></i> Copiar Acceso</button>
+                    </div>`}
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -2280,6 +2501,15 @@
                 </div>
             </div>`;
         }).join('') || '<p style="color:var(--text-muted);">No hay pláticas ni cursos registrados.</p>';
+    }
+
+    function setCourseType(id, value) {
+        const courses = DB.get('courses');
+        const c = courses.find(x => x.id === id);
+        if (!c) return;
+        c.courseType = value;
+        DB.save('courses', courses);
+        showToast(value ? `Marcada como ${value}. Las constancias nuevas lo reflejarán.` : "Tipo quitado");
     }
 
     function deleteCourse(id) {
@@ -2330,6 +2560,7 @@
 
         activeCourseSession = curso;
         examAttemptsCount = 1;
+        courseLinkedExamResult = null;
 
         if (currentParticipant && currentParticipant.numEmpleado) {
             playCourseHTML();
@@ -2431,11 +2662,20 @@
     }
 
     window.addEventListener("message", function(event) {
-        if (event.data && (event.data.tipo === "CURSO_FINALIZADO" || event.data.type === "COURSE_COMPLETED")) {
+        const d = event.data;
+        if (d === "CURSO_FINALIZADO" || d === "COURSE_COMPLETED" || (d && (d.tipo === "CURSO_FINALIZADO" || d.type === "COURSE_COMPLETED"))) {
             closeCoursePlayer();
             onPresentationFinished();
         }
     });
+
+    // Botón "Finalizar plática": sirve aunque la plantilla HTML no envíe la señal de término
+    function finishCourseManually() {
+        if (!activeCourseSession) return;
+        if (!confirm("¿Ya terminaste la plática? Al continuar pasarás a tu evaluación (si tiene) o a tu constancia.")) return;
+        closeCoursePlayer();
+        onPresentationFinished();
+    }
 
     async function onPresentationFinished() {
         if (!activeCourseSession) return;
@@ -2488,11 +2728,12 @@
     }
 
     function showExamFeedbackModal(score, passScore, answersLog) {
+        const isFinal = examAttemptsCount >= COURSE_MAX_ATTEMPTS;
         const header = document.getElementById('feedback-summary-box');
         header.innerHTML = `
             <div style="font-size:1.8rem; font-weight:800; color:var(--danger);">${score}%</div>
             <div style="font-size:0.95rem; font-weight:700; color:#991B1B; margin-top:4px;">No Aprobado (Mínimo requerido: ${passScore}%)</div>
-            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Intento #${examAttemptsCount} registrado. Repasa tus errores antes de volver a presentar.</div>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">${isFinal ? `Alcanzaste el máximo de ${COURSE_MAX_ATTEMPTS} intentos. Revisa tus errores; se emitirá tu constancia y tu instructor te dará retroalimentación.` : `Intento #${examAttemptsCount} de ${COURSE_MAX_ATTEMPTS} registrado. Repasa tus errores antes de volver a presentar.`}</div>
         `;
 
         const listDiv = document.getElementById('feedback-questions-list');
@@ -2510,7 +2751,16 @@
             `;
         });
         listDiv.innerHTML = html;
+        document.getElementById('fb-retry-btn').classList.toggle('hidden', isFinal);
+        document.getElementById('fb-continue-btn').classList.toggle('hidden', !isFinal);
+        document.getElementById('fb-close-btn').classList.toggle('hidden', isFinal);
+        if (isFinal) courseLinkedExamResult = { score: score, status: "Acreditado con retroalimentación", needsFeedback: true };
         openModal('modal-exam-feedback');
+    }
+
+    function continueAfterMaxAttempts() {
+        closeModal('modal-exam-feedback');
+        openSignatureVerification();
     }
 
     function retryLinkedExam() {
@@ -2523,24 +2773,14 @@
     function openSignatureVerification() {
         if (!currentParticipant) return;
         document.getElementById('sign-val-name').innerText = currentParticipant.colaborador;
-        document.getElementById('sign-val-empnum').value = "";
+        document.getElementById('sign-val-num').innerText = currentParticipant.numEmpleado || "";
         document.getElementById('sign-val-x').value = "";
-        document.getElementById('sign-val-feedback').style.display = "none";
         openModal('modal-signature-verification');
     }
 
     // FINALIZAR EXAMEN Y EMITIR CONSTANCIA SIN REGRESAR AL REPRODUCTOR
     async function confirmCourseValidationAndEmit() {
-        const inputNum = document.getElementById('sign-val-empnum').value.trim();
         const firmaX = document.getElementById('sign-val-x').value.trim().toUpperCase();
-        const feedback = document.getElementById('sign-val-feedback');
-
-        if (inputNum !== currentParticipant.numEmpleado) {
-            feedback.style.display = "block";
-            return;
-        } else {
-            feedback.style.display = "none";
-        }
 
         if (firmaX !== "X") {
             return showToast("Debes colocar exactamente la letra 'X' en la casilla de firma.", "warning");
@@ -2569,8 +2809,11 @@
             accessId: activeAccess ? activeAccess.id : "",
             examScore: courseLinkedExamResult ? (courseLinkedExamResult.score + "%") : "100%",
             attempts: examAttemptsCount,
+            hasExam: !!(activeCourseSession && activeCourseSession.linkedExamId),
+            courseType: (activeCourseSession && activeCourseSession.courseType) || "",
+            needsFeedback: !!(courseLinkedExamResult && courseLinkedExamResult.needsFeedback),
             date: new Date().toISOString(),
-            status: "Acreditado"
+            status: (courseLinkedExamResult && courseLinkedExamResult.needsFeedback) ? "Acreditado con retroalimentación" : "Acreditado"
         };
 
         constancias.push(nuevaConstancia);
@@ -2612,6 +2855,11 @@
             line.style.display = parts.length ? '' : 'none';
         }
         document.getElementById('pdfCursoTitulo').innerText = cert.courseTitle;
+        {
+            const isCurso = cert.courseType === 'Curso';
+            const withEval = cert.hasExam !== false;
+            document.getElementById('pdfLead').innerText = `Acreditó satisfactoriamente los lineamientos${withEval ? ' y evaluación' : ''} ${isCurso ? 'del curso' : 'de la plática'}:`;
+        }
         document.getElementById('pdfFolioCert').innerText = "FOLIO: " + cert.folio;
         document.getElementById('pdfFechaEmision').innerText = "EMISIÓN: " + new Date(cert.date).toLocaleString('es-MX');
         
@@ -2677,7 +2925,7 @@
     }
 
     function clearConstanciasFilters() {
-        ['search-constancias', 'filter-constancias-course', 'filter-constancias-puesto', 'filter-constancias-branch', 'filter-constancias-city', 'filter-constancias-instructor', 'filter-constancias-modality', 'filter-constancias-from', 'filter-constancias-to'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        ['search-constancias', 'filter-constancias-course', 'filter-constancias-puesto', 'filter-constancias-branch', 'filter-constancias-city', 'filter-constancias-instructor', 'filter-constancias-modality', 'filter-constancias-feedback', 'filter-constancias-type', 'filter-constancias-from', 'filter-constancias-to'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         renderConstanciasAdmin();
     }
 
@@ -2689,9 +2937,11 @@
         const fCity = document.getElementById('filter-constancias-city')?.value || '';
         const fInstr = document.getElementById('filter-constancias-instructor')?.value || '';
         const fMod = document.getElementById('filter-constancias-modality')?.value || '';
+        const fFb = document.getElementById('filter-constancias-feedback')?.value || '';
+        const fType = document.getElementById('filter-constancias-type')?.value || '';
         const from = document.getElementById('filter-constancias-from')?.value || '';
         const to = document.getElementById('filter-constancias-to')?.value || '';
-        updateFilterBadge('const', ['filter-constancias-course', 'filter-constancias-puesto', 'filter-constancias-branch', 'filter-constancias-city', 'filter-constancias-instructor', 'filter-constancias-modality', 'filter-constancias-from', 'filter-constancias-to'].map(id => ({id})));
+        updateFilterBadge('const', ['filter-constancias-course', 'filter-constancias-puesto', 'filter-constancias-branch', 'filter-constancias-city', 'filter-constancias-instructor', 'filter-constancias-modality', 'filter-constancias-feedback', 'filter-constancias-type', 'filter-constancias-from', 'filter-constancias-to'].map(id => ({id})));
         return DB.get('constancias').filter(c => {
             const hay = [c.employeeName, c.employeeNum, c.folio, c.jobPosition, c.branch, c.city, c.supervisor, c.courseTitle, c.instructor].map(v => String(v || '').toLowerCase()).join(' | ');
             const day = localYMD(c.date);
@@ -2702,6 +2952,8 @@
                 (!fCity || (c.city || '') === fCity) &&
                 (!fInstr || (c.instructor || '') === fInstr) &&
                 (!fMod || (c.modality || '') === fMod) &&
+                (!fType || (c.courseType || '') === fType) &&
+                (!fFb || (fFb === 'needs' ? !!c.needsFeedback : (c.attempts || 1) > 1)) &&
                 (!from || day >= from) && (!to || day <= to);
         });
     }
@@ -2722,13 +2974,13 @@
 
         const filtered = getConstanciasFiltered().sort((a, b) => new Date(b.date) - new Date(a.date));
         const cnt = document.getElementById('constancias-count');
-        if (cnt) cnt.innerText = `${filtered.length} de ${all.length} constancias`;
+        if (cnt) cnt.innerText = `${filtered.length} de ${all.length} constancias` + (filtered.some(c => c.needsFeedback) ? '   ·   (?) = requiere retroalimentación' : '');
 
         tbody.innerHTML = filtered.map(c => `
             <tr>
                 <td><strong style="color:var(--primary);">${c.folio}</strong></td>
-                <td><strong>${c.employeeName}</strong><br><button class="link-btn" onclick="showEmployeeExpediente('${c.employeeNum}')" title="Ver expediente completo">No. ${c.employeeNum}</button></td>
-                <td>${c.courseTitle}<br><span class="sub-line">Eval. ${c.examScore || '100%'} · ${c.attempts || 1} ${(c.attempts || 1) > 1 ? 'intentos' : 'intento'}</span></td>
+                <td><strong>${c.employeeName}</strong>${c.needsFeedback ? FB_FLAG : ''}<br><button class="link-btn" onclick="showEmployeeExpediente('${c.employeeNum}')" title="Ver expediente completo">No. ${c.employeeNum}</button></td>
+                <td>${c.courseTitle}${c.courseType ? ' <span class="sub-line">· ' + c.courseType + '</span>' : ''}<br><span class="sub-line">${c.hasExam === false ? 'Sin evaluación' : 'Eval. ' + (c.examScore || '100%') + ' · ' + (c.attempts || 1) + ((c.attempts || 1) > 1 ? ' intentos' : ' intento')}</span></td>
                 <td>${c.jobPosition || ''}<br><span class="sub-line">${c.branch || ''}${c.city ? ' · ' + c.city : ''}</span></td>
                 <td>${c.instructor || '<span class="sub-line">—</span>'}${c.modality ? '<br><span class="sub-line">' + c.modality + '</span>' : ''}</td>
                 <td>${new Date(c.date).toLocaleDateString('es-MX')}<br><span class="sub-line">${new Date(c.date).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'})}</span></td>
@@ -2743,9 +2995,9 @@
     function exportConstanciasCSV() {
         const list = getConstanciasFiltered().sort((a, b) => new Date(b.date) - new Date(a.date));
         if (list.length === 0) return showToast("No hay constancias para exportar", "warning");
-        let csv = "Folio,No Empleado,Colaborador,Puesto,Sucursal,Ciudad,Supervisor,Plática,Instructor,Modalidad,Evaluación,Intentos,Fecha\n";
+        let csv = "Folio,No Empleado,Colaborador,Puesto,Sucursal,Ciudad,Supervisor,Plática,Tipo,Instructor,Modalidad,Evaluación,Intentos,Requiere retroalimentación,Fecha\n";
         list.forEach(c => {
-            csv += [c.folio, c.employeeNum, c.employeeName, c.jobPosition, c.branch, c.city, c.supervisor, c.courseTitle, c.instructor, c.modality, c.examScore, c.attempts || 1, new Date(c.date).toLocaleString('es-MX')].map(csvCell).join(',') + "\n";
+            csv += [c.folio, c.employeeNum, c.employeeName, c.jobPosition, c.branch, c.city, c.supervisor, c.courseTitle, c.courseType, c.instructor, c.modality, c.examScore, c.attempts || 1, c.needsFeedback ? 'SI' : '', new Date(c.date).toLocaleString('es-MX')].map(csvCell).join(',') + "\n";
         });
         const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `Constancias_${new Date().getTime()}.csv`; link.click();
@@ -2759,6 +3011,29 @@
             renderStudentConstancias();
             showToast("Constancia eliminada correctamente.", "success");
         }
+    }
+
+    const FB_FLAG = '<span class="fb-flag" title="Requiere retroalimentación">?</span>';
+    function escHtml(v) { return String(v === undefined || v === null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+    function toggleExpDetail(id) { const row = document.getElementById('exp-det-' + id); if (row) row.classList.toggle('hidden'); }
+
+    // Detalle de lo que contestó el colaborador, para identificar errores y retroalimentar
+    function buildAnswersDetail(r) {
+        const ans = forceArray(r.answers);
+        if (!ans.length) return '<div class="sub-line" style="padding:8px;">Este intento no guardó el detalle de respuestas.</div>';
+        const isOk = (a) => a.earned === a.maxPts && a.maxPts > 0;
+        const wrong = ans.filter(a => !isOk(a)).length;
+        let h = `<div style="padding:8px 4px;"><div style="font-weight:700; margin-bottom:8px; color:${wrong ? 'var(--danger)' : 'var(--success)'};">${wrong ? wrong + ' de ' + ans.length + ' preguntas con error' : 'Todas las preguntas correctas'}</div>`;
+        ans.forEach((a, i) => {
+            const ok = isOk(a);
+            h += `<div style="border:1px solid ${ok ? '#86EFAC' : '#FECACA'}; background:${ok ? '#F0FDF4' : '#FEF2F2'}; border-radius:6px; padding:8px 10px; margin-bottom:6px; font-size:0.82rem;">
+                <div style="display:flex; justify-content:space-between; gap:8px;"><strong>${i + 1}. ${escHtml(a.text)}</strong><span class="badge ${ok ? 'badge-success' : 'badge-danger'}">${ok ? 'Correcta' : 'Incorrecta'}</span></div>
+                <div>Respondió: <strong>${escHtml(a.answer)}</strong></div>
+                ${ok ? '' : `<div style="color:var(--success);">Respuesta correcta: <strong>${escHtml(a.correct)}</strong></div>`}
+            </div>`;
+        });
+        return h + '</div>';
     }
 
     function showEmployeeExpediente(empNum) {
@@ -2778,21 +3053,23 @@
                 <td><strong>${c.folio}</strong></td>
                 <td>${c.courseTitle}</td>
                 <td><span class="badge badge-info">${c.examScore || '100%'}</span></td>
-                <td><span class="badge ${c.attempts > 1 ? 'badge-warning':'badge-success'}">${c.attempts || 1}</span></td>
+                <td><span class="badge ${c.attempts > 1 ? 'badge-warning':'badge-success'}">${c.attempts || 1}</span>${c.needsFeedback ? FB_FLAG : ''}</td>
                 <td>${new Date(c.date).toLocaleDateString('es-MX')}</td>
                 <td><button class="btn btn-outline" style="font-size:0.7rem; padding:2px 6px;" onclick='viewCertModal(${JSON.stringify(c)}, false)'><i class="fa-solid fa-eye"></i></button></td>
             </tr>
         `).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Sin pláticas registradas.</td></tr>';
 
-        document.getElementById('emp-history-exams-tbody').innerHTML = results.map(r => `
+        document.getElementById('emp-history-exams-tbody').innerHTML = results.slice().sort((x, y) => new Date(y.timestamp) - new Date(x.timestamp)).map(r => `
             <tr>
                 <td><strong>${r.folio || r.id}</strong></td>
-                <td>${r.examTitle}</td>
+                <td>${r.courseTitle ? '<strong>' + escHtml(r.courseTitle) + '</strong><br><span class="sub-line">' + escHtml(r.examTitle) + '</span>' : escHtml(r.examTitle)}</td>
                 <td><strong>${r.score}%</strong></td>
                 <td><span class="badge ${r.status === 'Aprobado' ? 'badge-success':'badge-danger'}">${r.status}</span></td>
                 <td>${new Date(r.timestamp).toLocaleDateString('es-MX')}</td>
+                <td><button class="btn btn-outline" style="font-size:0.72rem; padding:3px 8px;" onclick="toggleExpDetail('${r.id}')"><i class="fa-solid fa-list-check"></i> Ver</button></td>
             </tr>
-        `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Sin exámenes registrados.</td></tr>';
+            <tr id="exp-det-${r.id}" class="hidden"><td colspan="6" style="background:#F8FAFC;">${buildAnswersDetail(r)}</td></tr>
+        `).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Sin exámenes registrados.</td></tr>';
 
         openModal('modal-employee-history');
     }
