@@ -333,10 +333,18 @@
             <!-- MONITOR Y MÉTRICAS -->
             <div id="tab-dashboard" class="tab-content hidden">
                 <h2 style="color: var(--primary); margin-bottom: 20px;"><i class="fa-solid fa-chart-pie"></i> Control General de Evaluaciones</h2>
+                <h3 style="color: var(--primary); margin-bottom: 12px; font-size: 1rem;"><i class="fa-solid fa-file-pen"></i> Exámenes aplicados <span class="sub-line" style="font-weight:400;">(sin plática ni curso)</span></h3>
                 <div class="grid-cards" style="margin-bottom: 30px;">
                     <div class="metric-card"><div class="metric-title">Exámenes Aplicados Hoy</div><div class="metric-value" id="dash-today">0</div></div>
                     <div class="metric-card" style="border-bottom-color: var(--success);"><div class="metric-title">Aplicados Este Mes</div><div class="metric-value" id="dash-month" style="color: var(--success);">0</div></div>
                     <div class="metric-card" style="border-bottom-color: var(--warning);"><div class="metric-title">Total Histórico Aplicados</div><div class="metric-value" id="dash-total" style="color: var(--warning);">0</div></div>
+                </div>
+                <h3 style="color: var(--primary); margin-bottom: 12px; font-size: 1rem;"><i class="fa-solid fa-certificate"></i> Constancias de pláticas y cursos <span class="sub-line" style="font-weight:400;">(quienes vieron una plática o curso)</span></h3>
+                <div class="grid-cards" style="margin-bottom: 30px;">
+                    <div class="metric-card"><div class="metric-title">Constancias Hoy</div><div class="metric-value" id="dash-c-today">0</div></div>
+                    <div class="metric-card" style="border-bottom-color: var(--success);"><div class="metric-title">Constancias Este Mes</div><div class="metric-value" id="dash-c-month" style="color: var(--success);">0</div></div>
+                    <div class="metric-card" style="border-bottom-color: var(--warning);"><div class="metric-title">Total de Constancias</div><div class="metric-value" id="dash-c-total" style="color: var(--warning);">0</div><div class="sub-line" id="dash-c-split" style="margin-top:8px;"></div></div>
+                    <div class="metric-card" style="border-bottom-color: #FCD34D;"><div class="metric-title">Requieren retroalimentación <span class="fb-flag">?</span></div><div class="metric-value" id="dash-c-fb" style="color: #B45309;">0</div></div>
                 </div>
                 <h3 style="color: var(--primary); margin-bottom: 15px;"><span class="pulse-dot"></span> Radar en Vivo (Evaluándose Ahora)</h3>
                 <div class="card" style="overflow-x: auto; padding: 15px;">
@@ -499,18 +507,12 @@
                 <h2 style="color: var(--primary); margin-bottom: 15px;"><i class="fa-solid fa-file-signature"></i> Monitor de Calificaciones</h2>
                 <div class="card toolbar">
                     <div class="tb-row">
-                        <div class="search-bar"><i class="fa-solid fa-search"></i><input type="text" id="search-results" placeholder="Buscar por nombre, No. empleado, folio o plática..." onkeyup="renderResults(true)"></div>
+                        <div class="search-bar"><i class="fa-solid fa-search"></i><input type="text" id="search-results" placeholder="Buscar por nombre, No. empleado, folio o examen..." onkeyup="renderResults(true)"></div>
                         <button class="btn btn-outline" onclick="toggleFilters('res')"><i class="fa-solid fa-sliders"></i> Filtros <span id="fpc-res" class="fp-count hidden"></span></button>
                         <button class="btn btn-success" onclick="exportToCSV()"><i class="fa-solid fa-file-csv"></i> Exportar</button>
                     </div>
                     <div id="fp-res" class="fp hidden">
                         <div class="fp-grid">
-                            <div><label>Tipo</label>
-                                <select id="filter-type-results" onchange="populateDynamicFilters(); renderResults(true)">
-                                    <option value="individual">Exámenes individuales</option>
-                                    <option value="platica">Evaluaciones de plática y curso</option>
-                                    <option value="todos">Todos</option>
-                                </select></div>
                             <div><label>Evaluación</label><select id="filter-exam-results" onchange="renderResults(true)"><option value="">Todas</option></select></div>
                             <div><label>Estatus</label>
                                 <select id="filter-status-results" onchange="renderResults(true)">
@@ -1675,7 +1677,9 @@
         const examFilterSel = document.getElementById('filter-exam-results');
         if (examFilterSel) {
             const currentVal = examFilterSel.value;
-            examFilterSel.innerHTML = '<option value="">Todos los Exámenes</option>' + exams.filter(ex => { const tp = document.getElementById('filter-type-results')?.value || 'individual'; return tp === 'todos' || examUsage(ex) === tp; }).map(ex => `<option value="${ex.id}">${ex.title}</option>`).join('');
+            const courseListF = DB.get('courses');
+            const normalExamIds = new Set(DB.get('results').filter(r => !isPlaticaResult(r, courseListF)).map(r => String(r.examId)));
+            examFilterSel.innerHTML = '<option value="">Todos los Exámenes</option>' + exams.filter(ex => examUsage(ex) === 'individual' || normalExamIds.has(String(ex.id))).map(ex => `<option value="${ex.id}">${ex.title}</option>`).join('');
             if(Array.from(examFilterSel.options).some(opt => opt.value === currentVal)) examFilterSel.value = currentVal;
         }
     }
@@ -1877,7 +1881,8 @@
     }
 
     function renderDashboard() {
-        const results = DB.get('results') || [];
+        const courseList = DB.get('courses');
+        const results = (DB.get('results') || []).filter(r => !isPlaticaResult(r, courseList));
         const live = DB.get('liveSessions') || {};
         let countToday = 0, countMonth = 0, total = results.length;
         const now = new Date(), todayStr = now.toDateString(), currentMonth = now.getMonth(), currentYear = now.getFullYear();
@@ -1891,6 +1896,20 @@
         document.getElementById('dash-today').innerText = countToday;
         document.getElementById('dash-month').innerText = countMonth;
         document.getElementById('dash-total').innerText = total;
+
+        // Constancias de pláticas y cursos (quienes vieron una plática o curso)
+        const cons = DB.get('constancias') || [];
+        let cToday = 0, cMonth = 0, cFb = 0, cPl = 0, cCu = 0;
+        cons.forEach(c => {
+            const d = new Date(c.date);
+            if (d.toDateString() === todayStr) cToday++;
+            if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) cMonth++;
+            if (c.needsFeedback) cFb++;
+            if (c.courseType === 'Curso') cCu++; else if (c.courseType === 'Plática') cPl++;
+        });
+        const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+        setTxt('dash-c-today', cToday); setTxt('dash-c-month', cMonth); setTxt('dash-c-total', cons.length); setTxt('dash-c-fb', cFb);
+        setTxt('dash-c-split', (cPl || cCu) ? `Pláticas: ${cPl} · Cursos: ${cCu}` : '');
 
         let liveHtml = '';
         Object.keys(live).forEach(userId => {
@@ -3062,11 +3081,11 @@
         document.getElementById('emp-history-exams-tbody').innerHTML = results.slice().sort((x, y) => new Date(y.timestamp) - new Date(x.timestamp)).map(r => `
             <tr>
                 <td><strong>${r.folio || r.id}</strong></td>
-                <td>${r.courseTitle ? '<strong>' + escHtml(r.courseTitle) + '</strong><br><span class="sub-line">' + escHtml(r.examTitle) + '</span>' : escHtml(r.examTitle)}</td>
+                <td>${courseLabelOf(r) ? '<strong>' + escHtml(courseLabelOf(r)) + '</strong><br><span class="sub-line">' + escHtml(r.examTitle) + '</span>' : escHtml(r.examTitle)}</td>
                 <td><strong>${r.score}%</strong></td>
-                <td><span class="badge ${r.status === 'Aprobado' ? 'badge-success':'badge-danger'}">${r.status}</span></td>
+                <td><span class="badge ${r.status === 'Aprobado' ? 'badge-success' : (r.status === 'Pendiente Revisión' ? 'badge-warning' : 'badge-danger')}">${r.status}</span></td>
                 <td>${new Date(r.timestamp).toLocaleDateString('es-MX')}</td>
-                <td><button class="btn btn-outline" style="font-size:0.72rem; padding:3px 8px;" onclick="toggleExpDetail('${r.id}')"><i class="fa-solid fa-list-check"></i> Ver</button></td>
+                <td style="white-space:nowrap;"><button class="btn btn-outline" style="font-size:0.72rem; padding:3px 8px;" onclick="toggleExpDetail('${r.id}')"><i class="fa-solid fa-list-check"></i> Ver</button>${r.status === 'Pendiente Revisión' ? ` <button class="btn btn-primary" style="font-size:0.72rem; padding:3px 8px;" onclick="closeModal('modal-employee-history'); openGradingModal('${r.id}')"><i class="fa-solid fa-pen-nib"></i> Calificar</button>` : ''}</td>
             </tr>
             <tr id="exp-det-${r.id}" class="hidden"><td colspan="6" style="background:#F8FAFC;">${buildAnswersDetail(r)}</td></tr>
         `).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Sin exámenes registrados.</td></tr>';
@@ -3122,11 +3141,19 @@
     function platicaExamIds() {
         return new Set(DB.get('exams').filter(e => examUsage(e) === 'platica').map(e => String(e.id)));
     }
-    function isPlaticaResult(r, idSet) {
+    // Un resultado es de plática/curso sólo si realmente se presentó dentro de una plática o curso.
+    // OJO: los exámenes normales también guardaban su propio título en "courseTitle", por eso
+    // no basta con que ese campo tenga texto: debe ser distinto del título del examen.
+    function isPlaticaResult(r, courseList) {
         if (!r) return false;
-        if (r.courseTitle) return true;
-        return (idSet || platicaExamIds()).has(String(r.examId));
+        if (r.courseId) return true;                                   // resultados nuevos
+        if (!r.courseTitle) return false;
+        if (r.examTitle && r.courseTitle !== r.examTitle) return true; // plática distinta del examen
+        const cl = courseList || DB.get('courses');                    // mismo nombre: se confirma con la plática
+        return cl.some(c => c.title === r.courseTitle && c.linkedExamId && String(c.linkedExamId) === String(r.examId));
     }
+    // Texto de plática/curso a mostrar (vacío si el resultado es de un examen normal)
+    function courseLabelOf(r) { return (r && r.courseTitle && r.courseTitle !== r.examTitle) ? r.courseTitle : ''; }
     function localYMD(iso) {
         const d = new Date(iso); if (isNaN(d)) return '';
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -3429,17 +3456,15 @@
 
     function getResultsFiltered() {
         const qText = (document.getElementById('search-results')?.value || '').toLowerCase();
-        const type = document.getElementById('filter-type-results')?.value || 'individual';
         const fExam = document.getElementById('filter-exam-results')?.value || '';
         const fStatus = document.getElementById('filter-status-results')?.value || '';
         const from = document.getElementById('filter-results-from')?.value || '';
         const to = document.getElementById('filter-results-to')?.value || '';
-        updateFilterBadge('res', [{id:'filter-type-results', def:'individual'}, {id:'filter-exam-results'}, {id:'filter-status-results'}, {id:'filter-results-from'}, {id:'filter-results-to'}]);
-        const idSet = platicaExamIds();
+        updateFilterBadge('res', [{id:'filter-exam-results'}, {id:'filter-status-results'}, {id:'filter-results-from'}, {id:'filter-results-to'}]);
+        const courseList = DB.get('courses');
         return DB.get('results').filter(r => {
-            const isPl = isPlaticaResult(r, idSet);
-            if (type === 'individual' && isPl) return false;
-            if (type === 'platica' && !isPl) return false;
+            // Este monitor es sólo de exámenes normales; lo de pláticas y cursos se consulta en Constancias y expedientes
+            if (isPlaticaResult(r, courseList)) return false;
             const matchText = (r.studentName || '').toLowerCase().includes(qText) ||
                 (r.examTitle || '').toLowerCase().includes(qText) ||
                 (r.courseTitle || '').toLowerCase().includes(qText) ||
@@ -3463,7 +3488,6 @@
     }
     function clearResultsFilters() {
         ['search-results', 'filter-exam-results', 'filter-status-results', 'filter-results-from', 'filter-results-to'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-        const tp = document.getElementById('filter-type-results'); if (tp) tp.value = 'individual';
         populateDynamicFilters(); renderResults(true);
     }
 
@@ -3502,7 +3526,7 @@
             let displayScore = st === 'En curso' ? `<strong>—</strong><br><span style="font-size:0.70rem; color:var(--text-muted); font-weight:bold;">(Presentando)</span>` : st === 'Pendiente Revisión' ? `<strong>${r.score}%</strong><br><span style="font-size:0.70rem; color:var(--warning); font-weight:bold;">(Por revisar)</span>` : `<strong>${r.score}%</strong>`;
             let displayFolio = r.folio ? r.folio : r.examId;
             let displayEmp = r.studentNum ? `<span class="badge badge-info" style="font-size:0.7rem; margin-top:2px;">No. ${r.studentNum}</span>` : '';
-            let titleExamOrCourse = r.courseTitle ? `<strong>${r.courseTitle}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);"><i class="fa-solid fa-file-lines"></i> ${r.examTitle}</span>` : r.examTitle;
+            let titleExamOrCourse = courseLabelOf(r) ? `<strong>${courseLabelOf(r)}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);"><i class="fa-solid fa-file-lines"></i> ${r.examTitle}</span>` : r.examTitle;
                 
             return `<tr>
                 <td><span class="badge badge-neutral" style="font-size:0.80rem; background:#E2E8F0; color:var(--primary); font-weight:800;">${displayFolio}</span></td>
@@ -3774,6 +3798,7 @@
             let placeholderResult = {
                 id: window.currentAttemptId, folio: startFolio, examId: activeExam.id, examTitle: activeExam.title || 'Examen',
                 courseTitle: activeCourseSession ? activeCourseSession.title : '',
+                courseId: activeCourseSession ? activeCourseSession.id : '',
                 passScore: activeExam.passScore || 80, studentUserId: currentUser.id, studentUser: studentUserFinal, 
                 studentName: studentNameFinal, studentNum: studentNumFinal, timestamp: new Date().toISOString(), score: 0, 
                 status: 'En curso', answers: []
@@ -3899,7 +3924,8 @@
         let idx = res.findIndex(r => r.id === window.currentAttemptId);
         const studentNameFinal = currentParticipant ? currentParticipant.colaborador : currentUser.name;
         const studentNumFinal = currentParticipant ? currentParticipant.numEmpleado : (currentUser.employeeNum || '');
-        const courseTitleFinal = activeCourseSession ? activeCourseSession.title : (activeExam ? activeExam.title : '');
+        const courseTitleFinal = activeCourseSession ? activeCourseSession.title : '';
+        const courseIdFinal = activeCourseSession ? activeCourseSession.id : '';
         if (idx === -1 && !newFolio) newFolio = await nextEvalFolio();
 
         if (idx > -1) {
@@ -3910,6 +3936,7 @@
             res[idx].studentName = studentNameFinal;
             res[idx].studentNum = studentNumFinal;
             res[idx].courseTitle = courseTitleFinal;
+            res[idx].courseId = courseIdFinal;
         } else {
             res.push({ 
                 id: Date.now(), 
@@ -3917,6 +3944,7 @@
                 examId: activeExam ? activeExam.id : '', 
                 examTitle: activeExam ? activeExam.title : '', 
                 courseTitle: courseTitleFinal,
+                courseId: courseIdFinal,
                 passScore: passTarget, 
                 studentUserId: currentUser.id, 
                 studentUser: currentUser.username, 
